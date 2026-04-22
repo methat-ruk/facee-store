@@ -23,7 +23,7 @@ export async function AuthFormCard({ mode }: AuthFormCardProps) {
   return (
     <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6">
       <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="relative hidden overflow-hidden rounded-[2rem] border border-border/70 bg-[linear-gradient(180deg,rgba(255,247,242,0.98)_0%,rgba(246,230,219,0.92)_100%)] p-8 shadow-[0_30px_80px_rgba(132,83,60,0.1)] lg:flex lg:min-h-[38rem] lg:flex-col lg:justify-between dark:bg-[linear-gradient(180deg,rgba(41,29,24,0.98)_0%,rgba(33,24,20,0.96)_100%)]">
+        <section className="relative hidden overflow-hidden rounded-[2rem] border border-border/70 bg-[linear-gradient(180deg,rgba(255,247,242,0.98)_0%,rgba(246,230,219,0.92)_100%)] p-8 shadow-[0_30px_80px_rgba(132,83,60,0.1)] lg:flex lg:min-h-152 lg:flex-col lg:justify-between dark:bg-[linear-gradient(180deg,rgba(41,29,24,0.98)_0%,rgba(33,24,20,0.96)_100%)]">
           <div className="absolute inset-x-8 top-0 h-40 rounded-b-[3rem] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0)_72%)]" />
           <div className="relative z-10 space-y-5">
             <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground">

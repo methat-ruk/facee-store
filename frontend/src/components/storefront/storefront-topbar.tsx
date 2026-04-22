@@ -87,8 +87,8 @@ export function StorefrontTopbar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-[80] border-b border-border/80 bg-background/90 shadow-[0_10px_30px_rgba(88,51,38,0.06)] backdrop-blur-xl">
-      <div className="relative mx-auto flex min-h-[4.5rem] w-full max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
+    <header className="sticky top-0 z-80 border-b border-border/80 bg-background/90 shadow-[0_10px_30px_rgba(88,51,38,0.06)] backdrop-blur-xl">
+      <div className="relative mx-auto flex min-h-18 w-full max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
         <Link
           href="/products"
           className="rounded-[1.4rem] px-1 py-0.5 transition hover:opacity-85"
@@ -127,7 +127,7 @@ export function StorefrontTopbar() {
                 align="end"
                 side="bottom"
                 sideOffset={16}
-                className="mt-4 w-[25rem] max-w-[calc(100vw-2rem)] rounded-[1.75rem] p-4"
+                className="mt-4 w-100 max-w-[calc(100vw-2rem)] rounded-[1.75rem] p-4"
               >
                 <StorefrontMenuPanel showNavigation={false} />
               </DropdownMenuContent>
@@ -150,8 +150,8 @@ export function StorefrontTopbar() {
               <SheetContent
                 side="top"
                 showCloseButton={false}
-                overlayClassName="top-[4.5rem] z-[70] bg-[rgba(49,31,24,0.12)] supports-backdrop-filter:backdrop-blur-[2px]"
-                className="top-[4.95rem] right-4 left-4 z-[75] rounded-[1.75rem] border border-border/90 bg-background/96 px-4 py-4 shadow-[0_24px_60px_rgba(132,83,60,0.14)] data-[side=top]:inset-x-4 data-[side=top]:top-[4.95rem] data-[side=top]:rounded-[1.75rem] data-[side=top]:border"
+                overlayClassName="top-18 z-70 bg-[rgba(49,31,24,0.12)] supports-backdrop-filter:backdrop-blur-[2px]"
+                className="top-20 right-4 left-4 z-75 rounded-[1.75rem] border border-border/90 bg-background/96 px-4 py-4 shadow-[0_24px_60px_rgba(132,83,60,0.14)] data-[side=top]:inset-x-4 data-[side=top]:top-20 data-[side=top]:rounded-[1.75rem] data-[side=top]:border"
               >
                 <SheetTitle className="sr-only">Facee navigation</SheetTitle>
                 <SheetDescription className="sr-only">
