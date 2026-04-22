@@ -1,3 +1,16 @@
+jest.mock('../src/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {
+    category = {
+      findMany: jest.fn().mockResolvedValue([]),
+    };
+
+    product = {
+      count: jest.fn().mockResolvedValue(0),
+      findMany: jest.fn().mockResolvedValue([]),
+    };
+  },
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
