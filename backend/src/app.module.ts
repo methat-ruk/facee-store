@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { CategoriesModule } from './api/modules/categories/categories.module';
 import { HealthModule } from './api/modules/health/health.module';
+import { ProductsModule } from './api/modules/products/products.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -17,7 +20,10 @@ import { HealthModule } from './api/modules/health/health.module';
         limit: 20,
       },
     ]),
+    PrismaModule,
+    CategoriesModule,
     HealthModule,
+    ProductsModule,
   ],
   providers: [
     {

@@ -1,11 +1,14 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "cjs"
+  generatedFileExtension = "cts"
+  importFileExtension    = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -32,6 +35,8 @@ model Product {
   name        String
   slug        String      @unique
   description String
+  imageUrl    String?
+  isPublished Boolean     @default(false)
   price       Decimal     @db.Decimal(10, 2)
   stock       Int         @default(0)
   categoryId  String
