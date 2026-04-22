@@ -1,13 +1,29 @@
 'use client';
 
-import { cn } from '@/lib/cn';
+import { useTranslations } from 'next-intl';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { Category, ProductSort } from './schemas';
 
-const sortOptions: Array<{ value: ProductSort; label: string }> = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'price-asc', label: 'Price: Low to High' },
-  { value: 'price-desc', label: 'Price: High to Low' },
-  { value: 'name-asc', label: 'Name: A to Z' },
+const sortOptions: Array<{ value: ProductSort; labelKey: string }> = [
+  { value: 'newest', labelKey: 'sortNewest' },
+  { value: 'price-asc', labelKey: 'sortPriceAsc' },
+  { value: 'price-desc', labelKey: 'sortPriceDesc' },
+  { value: 'name-asc', labelKey: 'sortNameAsc' },
 ];
 
 type CatalogToolbarProps = {
@@ -25,88 +41,71 @@ export function CatalogToolbar({
   onCategoryChange,
   onSortChange,
 }: CatalogToolbarProps) {
+  const t = useTranslations('products');
+
   return (
-    <div className="space-y-5 rounded-4xl border border-[#ead7ca] bg-white/92 p-5 shadow-[0_18px_40px_rgba(132,83,60,0.08)] backdrop-blur sm:p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-muted">
-            Product Catalog
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold text-foreground">
-            Discover Facee skincare essentials
-          </h1>
-        </div>
-
-        <label className="flex w-full flex-col gap-2 text-sm text-muted lg:w-auto">
-          <span className="font-medium">Sort by</span>
-          <div className="group relative w-full sm:w-auto">
-            <select
-              value={sort}
-              onChange={(event) =>
-                onSortChange(event.target.value as ProductSort)
-              }
-              className="w-full cursor-pointer appearance-none rounded-2xl border border-border bg-[#fffaf6] px-4 py-3 pr-11 text-sm text-foreground outline-none transition hover:border-accent hover:bg-white focus:border-accent sm:min-w-56 sm:pr-12"
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted transition group-hover:text-foreground sm:right-4">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                fill="none"
-                className="h-4 w-4"
-              >
-                <path
-                  d="M5 7.5L10 12.5L15 7.5"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
+    <Card className="border-border/80 bg-card/92 shadow-[0_18px_40px_rgba(132,83,60,0.08)]">
+      <CardHeader className="gap-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <CardTitle>{t('toolbarTitle')}</CardTitle>
+            <CardDescription>{t('toolbarDescription')}</CardDescription>
           </div>
-        </label>
-      </div>
 
-      <div className="flex flex-wrap gap-2 sm:gap-3">
-        <button
-          type="button"
-          onClick={() => onCategoryChange(undefined)}
-          className={cn(
-            'cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition',
-            !activeCategory
-              ? 'bg-foreground text-background'
-              : 'border border-border bg-white text-foreground hover:border-accent',
-          )}
+          <div className="flex w-full flex-col gap-2 text-sm lg:w-auto">
+            <span className="font-medium text-muted-foreground">
+              {t('sortBy')}
+            </span>
+            <Select
+              value={sort}
+              onValueChange={(value) => onSortChange(value as ProductSort)}
+            >
+              <SelectTrigger className="w-full border-[#9d6c59] bg-background shadow-[0_8px_24px_rgba(132,83,60,0.06)] focus-visible:border-[#9d6c59] sm:min-w-56">
+                <SelectValue placeholder={t('sortBy')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {sortOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <ToggleGroup
+          type="single"
+          value={activeCategory ?? 'all'}
+          onValueChange={(value) =>
+            onCategoryChange(value && value !== 'all' ? value : undefined)
+          }
+          className="flex w-full flex-wrap justify-start gap-2 rounded-[1.6rem] border border-border/70 bg-[linear-gradient(180deg,rgba(255,250,247,0.96)_0%,rgba(249,239,232,0.92)_100%)] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:bg-[linear-gradient(180deg,rgba(44,30,24,0.94)_0%,rgba(38,26,22,0.96)_100%)]"
         >
-          All categories
-        </button>
+          <ToggleGroupItem
+            value="all"
+            variant="outline"
+            className="rounded-full border-transparent bg-transparent px-4 text-foreground/80 hover:border-border hover:bg-background/85 data-[state=on]:border-[#b97c61]/35 data-[state=on]:bg-[#f3d5c8] data-[state=on]:text-[#4f2e24] dark:data-[state=on]:bg-[#5b3a30] dark:data-[state=on]:text-[#fff4ee]"
+          >
+            {t('allCategories')}
+          </ToggleGroupItem>
 
-        {categories.map((category) => {
-          const isActive = category.slug === activeCategory;
-
-          return (
-            <button
+          {categories.map((category) => (
+            <ToggleGroupItem
               key={category.id}
-              type="button"
-              onClick={() => onCategoryChange(category.slug)}
-              className={cn(
-                'cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition',
-                isActive
-                  ? 'bg-foreground text-background'
-                  : 'border border-border bg-white text-foreground hover:border-accent',
-              )}
+              value={category.slug}
+              variant="outline"
+              className="rounded-full border-transparent bg-transparent px-4 text-foreground/80 hover:border-border hover:bg-background/85 data-[state=on]:border-[#b97c61]/35 data-[state=on]:bg-[#f3d5c8] data-[state=on]:text-[#4f2e24] dark:data-[state=on]:bg-[#5b3a30] dark:data-[state=on]:text-[#fff4ee]"
             >
               {category.name}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </CardContent>
+    </Card>
   );
 }

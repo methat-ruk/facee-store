@@ -1,5 +1,15 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+
 type CatalogPaginationProps = {
   currentPage: number;
   totalPages: number;
@@ -11,46 +21,58 @@ export function CatalogPagination({
   totalPages,
   onPageChange,
 }: CatalogPaginationProps) {
+  const t = useTranslations('products');
+
   if (totalPages <= 1) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3">
-      <button
-        type="button"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="cursor-pointer rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent disabled:cursor-not-allowed disabled:opacity-45"
-      >
-        Previous
-      </button>
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            text={t('paginationPrevious')}
+            onClick={(event) => {
+              event.preventDefault();
+              if (currentPage > 1) {
+                onPageChange(currentPage - 1);
+              }
+            }}
+          />
+        </PaginationItem>
 
-      {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-        (page) => (
-          <button
-            key={page}
-            type="button"
-            onClick={() => onPageChange(page)}
-            className={`cursor-pointer h-11 min-w-11 rounded-full px-4 text-sm font-semibold transition ${
-              page === currentPage
-                ? 'bg-foreground text-background'
-                : 'border border-border bg-white text-foreground hover:border-accent'
-            }`}
-          >
-            {page}
-          </button>
-        ),
-      )}
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+          (page) => (
+            <PaginationItem key={page}>
+              <PaginationLink
+                href="#"
+                isActive={page === currentPage}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onPageChange(page);
+                }}
+              >
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
 
-      <button
-        type="button"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="cursor-pointer rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent disabled:cursor-not-allowed disabled:opacity-45"
-      >
-        Next
-      </button>
-    </div>
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            text={t('paginationNext')}
+            onClick={(event) => {
+              event.preventDefault();
+              if (currentPage < totalPages) {
+                onPageChange(currentPage + 1);
+              }
+            }}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
   );
 }

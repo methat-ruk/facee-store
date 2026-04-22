@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useState } from 'react';
 import { CatalogEmptyState } from './catalog-empty-state';
@@ -20,6 +20,7 @@ const DEFAULT_SORT: ProductSort = 'newest';
 const DEFAULT_LIMIT = 9;
 
 export function ProductCatalogPage() {
+  const t = useTranslations('products');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -120,69 +121,69 @@ export function ProductCatalogPage() {
   )?.name;
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fff8f3_0%,#f6e6da_100%)] px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
-      <div className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="space-y-8">
-          <CatalogToolbar
-            categories={categories}
-            activeCategory={category}
-            sort={sort}
-            onCategoryChange={(nextCategory) =>
-              updateQuery({
-                category: nextCategory,
-                page: 1,
-              })
-            }
-            onSortChange={(nextSort) =>
-              updateQuery({
-                sort: nextSort,
-                page: 1,
-              })
-            }
-          />
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+      <header className="space-y-3 border-b border-border/70 pb-8">
+        <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+          {t('title')}
+        </h1>
+      </header>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-            <p className="text-sm text-muted">
-              {catalog
-                ? `${catalog.meta.totalItems} published product${
-                    catalog.meta.totalItems === 1 ? '' : 's'
-                  }`
-                : 'Loading published products...'}
-            </p>
-            <Link
-              href="/"
-              className="text-sm font-medium text-foreground underline decoration-accent/70 underline-offset-4"
-            >
-              Back to home
-            </Link>
-          </div>
+      <div className="space-y-8">
+        <CatalogToolbar
+          categories={categories}
+          activeCategory={category}
+          sort={sort}
+          onCategoryChange={(nextCategory) =>
+            updateQuery({
+              category: nextCategory,
+              page: 1,
+            })
+          }
+          onSortChange={(nextSort) =>
+            updateQuery({
+              sort: nextSort,
+              page: 1,
+            })
+          }
+        />
 
-          {errorMessage ? (
-            <CatalogErrorState message={errorMessage} />
-          ) : isLoading ? (
-            <CatalogLoading />
-          ) : catalog && catalog.items.length > 0 ? (
-            <div className="space-y-8">
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {catalog.items.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-
-              <CatalogPagination
-                currentPage={catalog.meta.page}
-                totalPages={catalog.meta.totalPages}
-                onPageChange={(nextPage) =>
-                  updateQuery({
-                    page: nextPage,
-                  })
-                }
-              />
-            </div>
-          ) : (
-            <CatalogEmptyState categoryLabel={activeCategoryLabel} />
-          )}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+          <p className="text-sm text-muted-foreground">
+            {catalog
+              ? t('publishedCount', { count: catalog.meta.totalItems })
+              : t('loadingPublished')}
+          </p>
         </div>
+
+        {errorMessage ? (
+          <CatalogErrorState message={errorMessage} />
+        ) : isLoading ? (
+          <CatalogLoading />
+        ) : catalog && catalog.items.length > 0 ? (
+          <div className="space-y-8">
+            <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {catalog.items.map((product, index) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  eagerImage={index === 0}
+                />
+              ))}
+            </div>
+
+            <CatalogPagination
+              currentPage={catalog.meta.page}
+              totalPages={catalog.meta.totalPages}
+              onPageChange={(nextPage) =>
+                updateQuery({
+                  page: nextPage,
+                })
+              }
+            />
+          </div>
+        ) : (
+          <CatalogEmptyState categoryLabel={activeCategoryLabel} />
+        )}
       </div>
     </main>
   );

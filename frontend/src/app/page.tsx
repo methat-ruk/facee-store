@@ -1,5 +1,6 @@
-import { HomePage } from '@/features/home/home-page';
+import { redirect } from 'next/navigation';
+import { routing } from '@/i18n/routing';
 
-export default function Page() {
-  return <HomePage />;
+export default function RootPage() {
+  redirect(`/${routing.defaultLocale}/products`);
 }
