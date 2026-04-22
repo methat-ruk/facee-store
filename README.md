@@ -1,7 +1,7 @@
 # Facee
 
 <p align="center">
-  <img src="./Facee-logo.png" alt="Facee Skincare Store Logo" width="220" />
+  <img src="./frontend/public/images/brand/facee-logo.png" alt="Facee Skincare Store Logo" width="220" />
 </p>
 
 <p align="center">

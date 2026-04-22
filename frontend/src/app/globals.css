@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+
+:root {
+  --background: #fffaf6;
+  --foreground: #2e1f1a;
+  --muted: #6c5149;
+  --card: rgba(255, 255, 255, 0.76);
+  --border: rgba(183, 141, 126, 0.22);
+  --accent: #b96f5a;
+  --accent-soft: #f5d8c9;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans:
+    'Segoe UI', 'Helvetica Neue', Arial, BlinkMacSystemFont, system-ui,
+    sans-serif;
+  --font-mono:
+    'SFMono-Regular', 'Cascadia Code', 'Fira Code', Consolas, Monaco, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  background-image:
+    radial-gradient(
+      circle at top left,
+      rgba(255, 233, 218, 0.85),
+      transparent 34%
+    ),
+    linear-gradient(180deg, #fffaf6 0%, #fff4ed 52%, #fffaf6 100%);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
