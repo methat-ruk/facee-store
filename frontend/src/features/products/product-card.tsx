@@ -1,9 +1,11 @@
 'use client';
 
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { ProductAvailabilityBadge } from '@/components/shared/product-availability-badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { getLocalizedProduct } from './localized-content';
 import type { Product } from './schemas';
 
 type ProductCardProps = {
@@ -12,15 +14,20 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
+  const locale = useLocale();
   const t = useTranslations('products');
+  const localizedProduct = getLocalizedProduct(product, locale);
 
   return (
     <Card className="group h-full gap-0 overflow-hidden border-border/80 bg-card/92 py-0 shadow-[0_24px_70px_rgba(132,83,60,0.1)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(132,83,60,0.16)]">
-      <div className="relative h-[19rem] cursor-pointer overflow-hidden bg-[linear-gradient(180deg,#fff3ea_0%,#f7ddd0_100%)]">
-        {product.imageUrl ? (
+      <Link
+        href={`/products/${localizedProduct.slug}`}
+        className="relative block h-[19rem] cursor-pointer overflow-hidden bg-[linear-gradient(180deg,#fff3ea_0%,#f7ddd0_100%)]"
+      >
+        {localizedProduct.imageUrl ? (
           <Image
-            src={product.imageUrl}
-            alt={product.name}
+            src={localizedProduct.imageUrl}
+            alt={localizedProduct.name}
             fill
             loading={eagerImage ? 'eager' : 'lazy'}
             fetchPriority={eagerImage ? 'high' : 'auto'}
@@ -39,31 +46,36 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
             </div>
           </div>
         )}
-      </div>
+      </Link>
 
       <CardContent className="flex flex-1 flex-col space-y-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-              {product.category.name}
+              {localizedProduct.category.name}
             </p>
-            <h2 className="mt-2 cursor-pointer text-lg font-semibold text-foreground transition-colors hover:text-[#8c5a46]">
-              {product.name}
-            </h2>
+            <Link
+              href={`/products/${localizedProduct.slug}`}
+              className="inline-block"
+            >
+              <h2 className="mt-2 cursor-pointer text-lg font-semibold text-foreground transition-colors hover:text-[#8c5a46]">
+                {localizedProduct.name}
+              </h2>
+            </Link>
           </div>
-          <ProductAvailabilityBadge stock={product.stock} />
+          <ProductAvailabilityBadge stock={localizedProduct.stock} />
         </div>
 
         <p className="line-clamp-3 text-sm leading-7 text-muted-foreground">
-          {product.description}
+          {localizedProduct.description}
         </p>
 
         <div className="mt-auto flex items-center justify-between pt-2">
           <span className="text-xl font-semibold text-foreground">
-            THB {product.price.toFixed(2)}
+            THB {localizedProduct.price.toFixed(2)}
           </span>
           <span className="text-sm text-muted-foreground">
-            {t('availableCount', { count: product.stock })}
+            {t('availableCount', { count: localizedProduct.stock })}
           </span>
         </div>
       </CardContent>

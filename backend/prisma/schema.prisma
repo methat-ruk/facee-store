@@ -34,7 +34,12 @@ model Product {
   id          String      @id @default(cuid())
   name        String
   slug        String      @unique
+  subtitle    String?
   description String
+  howToUse    String      @default("")
+  benefits    String[]    @default([])
+  ingredients String[]    @default([])
+  galleryImages String[]  @default([])
   imageUrl    String?
   isPublished Boolean     @default(false)
   price       Decimal     @db.Decimal(10, 2)

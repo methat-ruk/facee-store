@@ -9,15 +9,20 @@ import { ProductsService } from './products.service';
 describe('ProductsService', () => {
   const buildService = () => {
     const count = jest.fn();
+    const findFirst = jest.fn();
     const findMany = jest.fn();
 
     const prisma = {
       product: {
         count,
+        findFirst,
         findMany,
       },
     } satisfies {
-      product: Pick<PrismaService['product'], 'count' | 'findMany'>;
+      product: Pick<
+        PrismaService['product'],
+        'count' | 'findFirst' | 'findMany'
+      >;
     };
 
     const service = new ProductsService(prisma);
@@ -25,6 +30,7 @@ describe('ProductsService', () => {
     return {
       service,
       count,
+      findFirst,
       findMany,
     };
   };
@@ -184,6 +190,102 @@ describe('ProductsService', () => {
         skip: 9,
         take: 9,
       }),
+    );
+  });
+
+  it('returns a rich published product detail payload by slug', async () => {
+    const { service, findFirst, findMany } = buildService();
+
+    findFirst.mockResolvedValue({
+      id: 'cm8product00000123456789012',
+      name: 'Cloud Calm Gel Cleanser',
+      slug: 'cloud-calm-gel-cleanser',
+      subtitle: 'A comfort-first gel cleanser for calm everyday cleansing.',
+      description: 'Gentle cleanser.',
+      howToUse: 'Massage onto damp skin and rinse with lukewarm water.',
+      benefits: ['Comfortable cleanse', 'Soft skin feel'],
+      ingredients: ['Glycerin', 'Panthenol'],
+      galleryImages: [
+        '/images/products/cloud-calm-gel-cleanser.png',
+        '/images/products/soft-reset-cream-cleanser.png',
+      ],
+      imageUrl: '/images/products/cloud-calm-gel-cleanser.png',
+      price: { toString: () => '490' },
+      stock: 28,
+      category: {
+        id: 'cm8category000001234567890',
+        name: 'Cleansers',
+        slug: 'cleansers',
+      },
+    });
+    findMany.mockResolvedValue([
+      {
+        id: 'cm8product00000123456789013',
+        name: 'Soft Reset Cream Cleanser',
+        slug: 'soft-reset-cream-cleanser',
+        description: 'Cream cleanser.',
+        imageUrl: '/images/products/soft-reset-cream-cleanser.png',
+        price: { toString: () => '520' },
+        stock: 14,
+        category: {
+          id: 'cm8category000001234567890',
+          name: 'Cleansers',
+          slug: 'cleansers',
+        },
+      },
+    ]);
+
+    await expect(
+      service.findBySlug('cloud-calm-gel-cleanser'),
+    ).resolves.toEqual({
+      product: {
+        id: 'cm8product00000123456789012',
+        name: 'Cloud Calm Gel Cleanser',
+        slug: 'cloud-calm-gel-cleanser',
+        subtitle: 'A comfort-first gel cleanser for calm everyday cleansing.',
+        description: 'Gentle cleanser.',
+        howToUse: 'Massage onto damp skin and rinse with lukewarm water.',
+        benefits: ['Comfortable cleanse', 'Soft skin feel'],
+        ingredients: ['Glycerin', 'Panthenol'],
+        galleryImages: [
+          '/images/products/cloud-calm-gel-cleanser.png',
+          '/images/products/soft-reset-cream-cleanser.png',
+        ],
+        imageUrl: '/images/products/cloud-calm-gel-cleanser.png',
+        price: 490,
+        stock: 28,
+        category: {
+          id: 'cm8category000001234567890',
+          name: 'Cleansers',
+          slug: 'cleansers',
+        },
+      },
+      relatedProducts: [
+        {
+          id: 'cm8product00000123456789013',
+          name: 'Soft Reset Cream Cleanser',
+          slug: 'soft-reset-cream-cleanser',
+          description: 'Cream cleanser.',
+          imageUrl: '/images/products/soft-reset-cream-cleanser.png',
+          price: 520,
+          stock: 14,
+          category: {
+            id: 'cm8category000001234567890',
+            name: 'Cleansers',
+            slug: 'cleansers',
+          },
+        },
+      ],
+    });
+  });
+
+  it('throws when the requested product slug is missing or unpublished', async () => {
+    const { service, findFirst } = buildService();
+
+    findFirst.mockResolvedValue(null);
+
+    await expect(service.findBySlug('missing-product')).rejects.toThrow(
+      'Published product "missing-product" was not found.',
     );
   });
 });

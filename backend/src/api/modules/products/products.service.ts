@@ -1,12 +1,39 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client.cjs';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { ProductDetailResponseDto } from './dto/product-detail-response.dto';
 import { GetProductsQuery } from './dto/get-products-query.dto';
 import { ProductListResponseDto } from './dto/product-list-response.dto';
 
 type ProductsStorefrontPrisma = {
-  product: Pick<PrismaService['product'], 'count' | 'findMany'>;
+  product: Pick<PrismaService['product'], 'count' | 'findFirst' | 'findMany'>;
 };
+
+const productCardSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  imageUrl: true,
+  price: true,
+  stock: true,
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+    },
+  },
+} satisfies Prisma.ProductSelect;
+
+const productDetailSelect = {
+  ...productCardSelect,
+  subtitle: true,
+  howToUse: true,
+  benefits: true,
+  ingredients: true,
+  galleryImages: true,
+} satisfies Prisma.ProductSelect;
 
 @Injectable()
 export class ProductsService {
@@ -34,22 +61,7 @@ export class ProductsService {
 
     const items = await this.prisma.product.findMany({
       where,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        imageUrl: true,
-        price: true,
-        stock: true,
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-      },
+      select: productCardSelect,
       orderBy: this.getOrderBy(query.sort),
       skip,
       take: query.limit,
@@ -66,6 +78,48 @@ export class ProductsService {
         totalItems,
         totalPages,
       },
+    };
+  }
+
+  async findBySlug(slug: string): Promise<ProductDetailResponseDto> {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        slug,
+        isPublished: true,
+      },
+      select: productDetailSelect,
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Published product "${slug}" was not found.`);
+    }
+
+    const relatedProducts = await this.prisma.product.findMany({
+      where: {
+        isPublished: true,
+        categoryId: product.category.id,
+        slug: {
+          not: slug,
+        },
+      },
+      select: productCardSelect,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 3,
+    });
+
+    return {
+      product: {
+        ...product,
+        price: Number(product.price),
+      },
+      relatedProducts: relatedProducts.map(
+        (item: (typeof relatedProducts)[number]) => ({
+          ...item,
+          price: Number(item.price),
+        }),
+      ),
     };
   }
 

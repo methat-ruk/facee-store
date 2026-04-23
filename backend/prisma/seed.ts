@@ -33,13 +33,60 @@ const categories = [
   },
 ] as const;
 
+const categoryGalleryMap = {
+  cleansers: [
+    '/images/products/cloud-calm-gel-cleanser.png',
+    '/images/products/soft-reset-cream-cleanser.png',
+    '/images/products/quiet-bloom-amino-cleanser.png',
+  ],
+  serums: [
+    '/images/products/bright-dew-vitamin-serum.png',
+    '/images/products/barrier-bloom-peptide-serum.png',
+    '/images/products/pure-balance-bha-serum.png',
+  ],
+  moisturizers: [
+    '/images/products/daily-veil-moisture-cream.png',
+    '/images/products/overnight-silk-repair-cream.png',
+    '/images/products/hydra-petal-water-cream.png',
+  ],
+  'sun-care': [
+    '/images/products/velvet-shield-spf-50.png',
+    '/images/products/airy-glow-tone-up-spf-50.png',
+    '/images/products/invisible-finish-uv-milk.png',
+  ],
+} as const;
+
+function buildGallery(
+  primaryImage: string,
+  categorySlug: keyof typeof categoryGalleryMap,
+) {
+  return [
+    primaryImage,
+    ...categoryGalleryMap[categorySlug].filter((item) => item !== primaryImage),
+  ];
+}
+
 const products = [
   {
     name: 'Cloud Calm Gel Cleanser',
     slug: 'cloud-calm-gel-cleanser',
+    subtitle:
+      'A comfort-first gel wash that leaves skin fresh, soft, and balanced.',
     description:
       'A gentle gel cleanser that removes excess oil without leaving the skin feeling stripped or tight.',
+    howToUse:
+      'Massage one to two pumps over damp skin for 30 seconds, then rinse with lukewarm water. Use morning and evening as your first skincare step.',
+    benefits: [
+      'Refreshes without a squeaky-clean after-feel',
+      'Supports a calm, balanced skin finish',
+      'Works well for daily morning and evening use',
+    ],
+    ingredients: ['Glycerin', 'Panthenol', 'Betaine', 'Allantoin'],
     imageUrl: '/images/products/cloud-calm-gel-cleanser.png',
+    galleryImages: buildGallery(
+      '/images/products/cloud-calm-gel-cleanser.png',
+      'cleansers',
+    ),
     isPublished: true,
     price: '490.00',
     stock: 28,
@@ -48,9 +95,22 @@ const products = [
   {
     name: 'Soft Reset Cream Cleanser',
     slug: 'soft-reset-cream-cleanser',
+    subtitle: 'A plush cream cleanser made to comfort dry or sensitive skin.',
     description:
       'A creamy face wash for dry and sensitive skin with a comfort-first texture for morning and evening routines.',
+    howToUse:
+      'Smooth a small amount onto damp skin, massage gently, and rinse clean. Follow with a hydrating serum or moisturizer.',
+    benefits: [
+      'Comforts skin while cleansing away residue',
+      'Leaves skin feeling soft and replenished',
+      'Ideal for dry, delicate, or redness-prone routines',
+    ],
+    ingredients: ['Squalane', 'Glycerin', 'Ceramide NP', 'Oat Extract'],
     imageUrl: '/images/products/soft-reset-cream-cleanser.png',
+    galleryImages: buildGallery(
+      '/images/products/soft-reset-cream-cleanser.png',
+      'cleansers',
+    ),
     isPublished: true,
     price: '520.00',
     stock: 14,
@@ -59,9 +119,23 @@ const products = [
   {
     name: 'Bright Dew Vitamin Serum',
     slug: 'bright-dew-vitamin-serum',
+    subtitle:
+      'A glow-focused serum for uneven tone, dullness, and daily radiance.',
     description:
       'A lightweight brightening serum made for uneven tone, dullness, and everyday glow support.',
+    howToUse:
+      'Apply two to three drops after cleansing and before moisturizer. Use in the morning with sunscreen or in the evening for glow support.',
+    benefits: [
+      'Supports a brighter, more even-looking complexion',
+      'Layers smoothly under moisturizer and SPF',
+      'Adds lightweight hydration without heaviness',
+    ],
+    ingredients: ['Vitamin C Derivative', 'Niacinamide', 'Hyaluronic Acid'],
     imageUrl: '/images/products/bright-dew-vitamin-serum.png',
+    galleryImages: buildGallery(
+      '/images/products/bright-dew-vitamin-serum.png',
+      'serums',
+    ),
     isPublished: true,
     price: '790.00',
     stock: 11,
@@ -70,9 +144,23 @@ const products = [
   {
     name: 'Barrier Bloom Peptide Serum',
     slug: 'barrier-bloom-peptide-serum',
+    subtitle:
+      'A silky peptide serum designed to support bounce and barrier comfort.',
     description:
       'A peptide-focused serum that helps the skin barrier feel smoother, calmer, and more resilient over time.',
+    howToUse:
+      'Press one to two pumps into clean skin before cream. Best used in the evening or as part of a recovery-focused routine.',
+    benefits: [
+      'Helps skin feel smooth and comforted',
+      'Supports a supple, resilient barrier feel',
+      'Pairs well with moisturizers and recovery creams',
+    ],
+    ingredients: ['Peptide Complex', 'Panthenol', 'Beta-Glucan', 'Ceramides'],
     imageUrl: '/images/products/barrier-bloom-peptide-serum.png',
+    galleryImages: buildGallery(
+      '/images/products/barrier-bloom-peptide-serum.png',
+      'serums',
+    ),
     isPublished: true,
     price: '890.00',
     stock: 8,
@@ -81,9 +169,22 @@ const products = [
   {
     name: 'Daily Veil Moisture Cream',
     slug: 'daily-veil-moisture-cream',
+    subtitle: 'A balanced daily cream for smooth hydration with a soft finish.',
     description:
       'A daily moisturizer for balanced hydration with a soft finish that layers well under makeup.',
+    howToUse:
+      'Apply as the final step of your morning or evening routine. Smooth over face and neck after serum.',
+    benefits: [
+      'Delivers balanced hydration with a breathable finish',
+      'Sits comfortably under sunscreen or makeup',
+      'Helps skin feel soft and polished throughout the day',
+    ],
+    ingredients: ['Ceramide NP', 'Shea Butter', 'Glycerin', 'Squalane'],
     imageUrl: '/images/products/daily-veil-moisture-cream.png',
+    galleryImages: buildGallery(
+      '/images/products/daily-veil-moisture-cream.png',
+      'moisturizers',
+    ),
     isPublished: true,
     price: '690.00',
     stock: 19,
@@ -92,9 +193,22 @@ const products = [
   {
     name: 'Overnight Silk Repair Cream',
     slug: 'overnight-silk-repair-cream',
+    subtitle: 'A richer recovery cream built for deep overnight comfort.',
     description:
       'A richer evening cream designed to support recovery, comfort, and long-lasting overnight moisture.',
+    howToUse:
+      'Use as the final evening step. Smooth a generous layer over face and neck to lock in moisture overnight.',
+    benefits: [
+      'Supports overnight moisture retention',
+      'Comforts skin after active or dry-day routines',
+      'Leaves skin feeling soft and cushioned by morning',
+    ],
+    ingredients: ['Shea Butter', 'Ceramide Complex', 'Squalane', 'Bisabolol'],
     imageUrl: '/images/products/overnight-silk-repair-cream.png',
+    galleryImages: buildGallery(
+      '/images/products/overnight-silk-repair-cream.png',
+      'moisturizers',
+    ),
     isPublished: true,
     price: '950.00',
     stock: 6,
@@ -103,9 +217,23 @@ const products = [
   {
     name: 'Velvet Shield SPF 50',
     slug: 'velvet-shield-spf-50',
+    subtitle:
+      'A soft-finish daily sunscreen that feels smooth and invisible on skin.',
     description:
       'A broad-spectrum sunscreen with a lightweight feel and a no-white-cast finish for everyday wear.',
+    howToUse:
+      'Apply generously as the final step of your morning routine. Reapply throughout the day as needed, especially after sweat or sun exposure.',
+    benefits: [
+      'Helps protect skin with a lightweight daily texture',
+      'Leaves little to no visible cast on skin',
+      'Sits smoothly under makeup or over skincare',
+    ],
+    ingredients: ['UV Filters', 'Vitamin E', 'Glycerin', 'Silica'],
     imageUrl: '/images/products/velvet-shield-spf-50.png',
+    galleryImages: buildGallery(
+      '/images/products/velvet-shield-spf-50.png',
+      'sun-care',
+    ),
     isPublished: true,
     price: '640.00',
     stock: 23,
@@ -114,9 +242,22 @@ const products = [
   {
     name: 'Airy Glow Tone-Up SPF 50',
     slug: 'airy-glow-tone-up-spf-50',
+    subtitle: 'A brightening sunscreen with a fresh tone-up finish.',
     description:
       'A subtle tone-up sunscreen that helps brighten the complexion while protecting against daily UV exposure.',
+    howToUse:
+      'Spread evenly over the face as the last morning skincare step. Blend outward for a naturally brightened finish.',
+    benefits: [
+      'Adds a subtle brightening effect to the complexion',
+      'Combines daily protection with lightweight wear',
+      'Works well on no-makeup or minimal-makeup days',
+    ],
+    ingredients: ['UV Filters', 'Niacinamide', 'Pearl Pigment', 'Glycerin'],
     imageUrl: '/images/products/airy-glow-tone-up-spf-50.png',
+    galleryImages: buildGallery(
+      '/images/products/airy-glow-tone-up-spf-50.png',
+      'sun-care',
+    ),
     isPublished: true,
     price: '720.00',
     stock: 17,
@@ -125,9 +266,23 @@ const products = [
   {
     name: 'Pure Balance BHA Serum',
     slug: 'pure-balance-bha-serum',
+    subtitle:
+      'A clarifying serum for texture, visible pores, and oilier zones.',
     description:
       'A clarifying treatment serum created for textured skin, visible pores, and oil-prone areas.',
+    howToUse:
+      'Apply a thin layer in the evening after cleansing. Start a few nights per week, then adjust to your skin comfort level.',
+    benefits: [
+      'Helps refine the look of uneven texture',
+      'Supports a clearer look around congested areas',
+      'Designed for targeted oil-prone routines',
+    ],
+    ingredients: ['Salicylic Acid', 'Niacinamide', 'Green Tea Extract'],
     imageUrl: '/images/products/pure-balance-bha-serum.png',
+    galleryImages: buildGallery(
+      '/images/products/pure-balance-bha-serum.png',
+      'serums',
+    ),
     isPublished: true,
     price: '830.00',
     stock: 12,
@@ -136,9 +291,23 @@ const products = [
   {
     name: 'Hydra Petal Water Cream',
     slug: 'hydra-petal-water-cream',
+    subtitle:
+      'A fresh gel-cream with featherlight hydration and a dewy finish.',
     description:
       'A fresh gel-cream moisturizer for lightweight hydration and a soft, dewy skin finish.',
+    howToUse:
+      'Use after serum as your lightweight moisturizer. Layer a second amount onto dry areas if extra comfort is needed.',
+    benefits: [
+      'Feels cool and lightweight on skin',
+      'Leaves a soft dewy finish without heaviness',
+      'Great for warm weather or combination skin routines',
+    ],
+    ingredients: ['Hyaluronic Acid', 'Glycerin', 'Panthenol', 'Lotus Extract'],
     imageUrl: '/images/products/hydra-petal-water-cream.png',
+    galleryImages: buildGallery(
+      '/images/products/hydra-petal-water-cream.png',
+      'moisturizers',
+    ),
     isPublished: true,
     price: '710.00',
     stock: 26,
@@ -147,9 +316,22 @@ const products = [
   {
     name: 'Quiet Bloom Amino Cleanser',
     slug: 'quiet-bloom-amino-cleanser',
+    subtitle: 'A low-foam cleanser for calm, comfortable everyday cleansing.',
     description:
       'A low-foam amino cleanser made for gentle daily cleansing and comfortable skin feel.',
+    howToUse:
+      'Massage onto damp skin with small circular motions, then rinse. Follow with serum and cream while skin is still lightly damp.',
+    benefits: [
+      'Cleanses without overwhelming the skin barrier',
+      'Low-foam texture feels calm and soft',
+      'Suitable for simple morning and night routines',
+    ],
+    ingredients: ['Amino Acid Surfactants', 'Glycerin', 'Panthenol'],
     imageUrl: '/images/products/quiet-bloom-amino-cleanser.png',
+    galleryImages: buildGallery(
+      '/images/products/quiet-bloom-amino-cleanser.png',
+      'cleansers',
+    ),
     isPublished: true,
     price: '450.00',
     stock: 31,
@@ -158,9 +340,22 @@ const products = [
   {
     name: 'Invisible Finish UV Milk',
     slug: 'invisible-finish-uv-milk',
+    subtitle: 'A fluid UV milk with a soft-matte finish for warm, humid days.',
     description:
       'A fluid sunscreen with a soft-matte finish for combination skin and warm-weather routines.',
+    howToUse:
+      'Shake before use and apply evenly as the final morning step. Reapply through the day when spending time outdoors.',
+    benefits: [
+      'Leaves a lighter, soft-matte skin finish',
+      'Designed for combination skin and humid climates',
+      'Sits well with lightweight daytime routines',
+    ],
+    ingredients: ['UV Filters', 'Silica', 'Vitamin E', 'Niacinamide'],
     imageUrl: '/images/products/invisible-finish-uv-milk.png',
+    galleryImages: buildGallery(
+      '/images/products/invisible-finish-uv-milk.png',
+      'sun-care',
+    ),
     isPublished: false,
     price: '680.00',
     stock: 10,
@@ -194,8 +389,13 @@ async function main() {
       },
       update: {
         name: product.name,
+        subtitle: product.subtitle,
         description: product.description,
+        howToUse: product.howToUse,
+        benefits: [...product.benefits],
+        ingredients: [...product.ingredients],
         imageUrl: product.imageUrl,
+        galleryImages: [...product.galleryImages],
         isPublished: product.isPublished,
         price: product.price,
         stock: product.stock,
@@ -204,8 +404,13 @@ async function main() {
       create: {
         name: product.name,
         slug: product.slug,
+        subtitle: product.subtitle,
         description: product.description,
+        howToUse: product.howToUse,
+        benefits: [...product.benefits],
+        ingredients: [...product.ingredients],
         imageUrl: product.imageUrl,
+        galleryImages: [...product.galleryImages],
         isPublished: product.isPublished,
         price: product.price,
         stock: product.stock,
