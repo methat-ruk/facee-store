@@ -28,6 +28,14 @@ export const productSchema = z.object({
   category: categorySchema,
 });
 
+export const productDetailSchema = productSchema.extend({
+  subtitle: z.string().nullable(),
+  howToUse: z.string(),
+  benefits: z.array(z.string()),
+  ingredients: z.array(z.string()),
+  galleryImages: z.array(z.string()),
+});
+
 export const productListMetaSchema = z.object({
   page: z.number().int().min(1),
   limit: z.number().int().min(1),
@@ -40,6 +48,11 @@ export const productListResponseSchema = z.object({
   meta: productListMetaSchema,
 });
 
+export const productDetailResponseSchema = z.object({
+  product: productDetailSchema,
+  relatedProducts: z.array(productSchema),
+});
+
 export const catalogQuerySchema = z.object({
   category: z.string().trim().min(1).optional(),
   sort: productSortSchema.default('newest'),
@@ -49,6 +62,8 @@ export const catalogQuerySchema = z.object({
 
 export type Category = z.infer<typeof categorySchema>;
 export type Product = z.infer<typeof productSchema>;
+export type ProductDetail = z.infer<typeof productDetailSchema>;
 export type ProductListResponse = z.infer<typeof productListResponseSchema>;
+export type ProductDetailResponse = z.infer<typeof productDetailResponseSchema>;
 export type ProductSort = z.infer<typeof productSortSchema>;
 export type CatalogQuery = z.infer<typeof catalogQuerySchema>;

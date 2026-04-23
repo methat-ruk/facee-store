@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Card,
   CardContent,
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { getLocalizedCategoryName } from './localized-content';
 import type { Category, ProductSort } from './schemas';
 
 const sortOptions: Array<{ value: ProductSort; labelKey: string }> = [
@@ -41,6 +42,7 @@ export function CatalogToolbar({
   onCategoryChange,
   onSortChange,
 }: CatalogToolbarProps) {
+  const locale = useLocale();
   const t = useTranslations('products');
 
   return (
@@ -101,7 +103,7 @@ export function CatalogToolbar({
               variant="outline"
               className="rounded-full border-transparent bg-transparent px-4 text-foreground/80 hover:border-border hover:bg-background/85 data-[state=on]:border-[#b97c61]/35 data-[state=on]:bg-[#f3d5c8] data-[state=on]:text-[#4f2e24] dark:data-[state=on]:bg-[#5b3a30] dark:data-[state=on]:text-[#fff4ee]"
             >
-              {category.name}
+              {getLocalizedCategoryName(category, locale)}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
