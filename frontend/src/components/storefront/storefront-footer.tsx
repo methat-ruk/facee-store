@@ -39,6 +39,9 @@ export function StorefrontFooter() {
               <Link href="/login" className="hover:text-primary">
                 {topbarT('login')}
               </Link>
+              <Link href="/cart" className="hover:text-primary">
+                {topbarT('cart')}
+              </Link>
               <Link href="/register" className="hover:text-primary">
                 {topbarT('register')}
               </Link>

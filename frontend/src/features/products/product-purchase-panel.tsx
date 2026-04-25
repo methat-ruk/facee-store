@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckIcon, MinusIcon, PlusIcon, ShoppingBagIcon } from 'lucide-react';
+import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ProductAvailabilityBadge } from '@/components/shared/product-availability-badge';
@@ -104,6 +104,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
               name: product.name,
               imageUrl: product.imageUrl,
               price: product.price,
+              stock: product.stock,
               quantity,
             });
             setIsAdded(true);
@@ -112,7 +113,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           {isAdded ? (
             <CheckIcon data-icon="inline-start" />
           ) : (
-            <ShoppingBagIcon data-icon="inline-start" />
+            <ShoppingCartIcon data-icon="inline-start" />
           )}
           {isAdded ? t('addedToCart') : t('addToCart')}
         </Button>
