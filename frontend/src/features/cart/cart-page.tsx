@@ -1,6 +1,5 @@
 'use client';
 
-import axios from 'axios';
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
@@ -10,8 +9,7 @@ import {
   Trash2Icon,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,207 +21,33 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Link } from '@/i18n/navigation';
-import { getProductDetail } from '@/services/catalog';
-import {
-  type CartItem,
-  getCartItemCount,
-  getCartSubtotal,
-  useCartStore,
-} from '@/store/use-cart-store';
-import { getLocalizedProduct } from '@/features/products/localized-content';
-import type { ProductDetail } from '@/features/products/schemas';
-
-type RefreshResult =
-  | {
-      status: 'ready';
-      product: ProductDetail;
-    }
-  | {
-      status: 'unavailable';
-    }
-  | {
-      status: 'snapshot';
-    };
-
-type CartViewItem = {
-  id: string;
-  slug: string;
-  name: string;
-  imageUrl: string | null;
-  price: number;
-  stock: number | null;
-  quantity: number;
-  lineTotal: number;
-  isUnavailable: boolean;
-  isSnapshot: boolean;
-  wasAdjusted: boolean;
-};
+import { useCartView } from '@/features/cart/use-cart-view';
 
 function formatPrice(value: number) {
   return `THB ${value.toFixed(2)}`;
-}
-
-function getSnapshotStock(item: CartItem) {
-  return typeof item.stock === 'number' ? item.stock : null;
 }
 
 const cartCtaClassName =
   'bg-[#9f604b] !text-[#fffaf6] hover:bg-[#884d3b] hover:!text-[#fffaf6] [&_svg]:!text-[#fffaf6] dark:bg-[#5a2f26] dark:!text-[#fffaf6] dark:hover:bg-[#4a261f]';
 
 export function CartPage() {
-  const locale = useLocale();
   const t = useTranslations('cart');
-  const items = useCartStore((state) => state.items);
-  const updateItemQuantity = useCartStore((state) => state.updateItemQuantity);
-  const removeItem = useCartStore((state) => state.removeItem);
-  const clearCart = useCartStore((state) => state.clearCart);
-  const [refreshResults, setRefreshResults] = useState<
-    Record<string, RefreshResult>
-  >({});
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasRefreshError, setHasRefreshError] = useState(false);
-
-  const cartKey = useMemo(
-    () => items.map((item) => `${item.id}:${item.slug}`).join('|'),
-    [items],
-  );
-
-  useEffect(() => {
-    if (items.length === 0) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    window.queueMicrotask(() => {
-      if (isCancelled) {
-        return;
-      }
-
-      setIsRefreshing(true);
-      setHasRefreshError(false);
-    });
-
-    Promise.all(
-      items.map(async (item) => {
-        try {
-          const response = await getProductDetail(item.slug);
-
-          return {
-            id: item.id,
-            result: {
-              status: 'ready',
-              product: response.product,
-            } satisfies RefreshResult,
-          };
-        } catch (error) {
-          if (axios.isAxiosError(error) && error.response?.status === 404) {
-            return {
-              id: item.id,
-              result: {
-                status: 'unavailable',
-              } satisfies RefreshResult,
-            };
-          }
-
-          return {
-            id: item.id,
-            result: {
-              status: 'snapshot',
-            } satisfies RefreshResult,
-            hasError: true,
-          };
-        }
-      }),
-    ).then((results) => {
-      if (isCancelled) {
-        return;
-      }
-
-      const nextResults = results.reduce<Record<string, RefreshResult>>(
-        (acc, current) => {
-          acc[current.id] = current.result;
-          return acc;
-        },
-        {},
-      );
-
-      setRefreshResults(nextResults);
-      setHasRefreshError(results.some((result) => result.hasError));
-      setIsRefreshing(false);
-
-      for (const item of items) {
-        const result = nextResults[item.id];
-
-        if (result?.status !== 'ready') {
-          continue;
-        }
-
-        if (result.product.stock > 0 && item.quantity > result.product.stock) {
-          updateItemQuantity(item.id, result.product.stock);
-        }
-      }
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [cartKey, items, updateItemQuantity]);
-
-  const viewItems = useMemo<CartViewItem[]>(() => {
-    return items.map((item) => {
-      const refreshResult = refreshResults[item.id];
-
-      if (refreshResult?.status === 'ready') {
-        const localizedProduct = getLocalizedProduct(
-          refreshResult.product,
-          locale,
-        );
-        const quantity = Math.min(item.quantity, localizedProduct.stock);
-        const isUnavailable = localizedProduct.stock === 0;
-
-        return {
-          id: item.id,
-          slug: localizedProduct.slug,
-          name: localizedProduct.name,
-          imageUrl: localizedProduct.imageUrl,
-          price: localizedProduct.price,
-          stock: localizedProduct.stock,
-          quantity: isUnavailable ? item.quantity : quantity,
-          lineTotal: isUnavailable ? 0 : localizedProduct.price * quantity,
-          isUnavailable,
-          isSnapshot: false,
-          wasAdjusted: !isUnavailable && quantity !== item.quantity,
-        };
-      }
-
-      const snapshotStock = getSnapshotStock(item);
-      const isUnavailable = refreshResult?.status === 'unavailable';
-
-      return {
-        id: item.id,
-        slug: item.slug,
-        name: item.name,
-        imageUrl: item.imageUrl,
-        price: item.price,
-        stock: snapshotStock,
-        quantity: item.quantity,
-        lineTotal: isUnavailable ? 0 : item.price * item.quantity,
-        isUnavailable,
-        isSnapshot: refreshResult?.status === 'snapshot',
-        wasAdjusted: false,
-      };
-    });
-  }, [items, locale, refreshResults]);
-
-  const availableItems = viewItems.filter((item) => !item.isUnavailable);
-  const itemCount = getCartItemCount(items);
-  const subtotal = getCartSubtotal(availableItems);
-  const shipping = subtotal > 0 ? 0 : 0;
-  const total = subtotal + shipping;
-  const hasUnavailableItems = viewItems.some((item) => item.isUnavailable);
-  const hasSnapshotItems = viewItems.some((item) => item.isSnapshot);
-  const hasAdjustedItems = viewItems.some((item) => item.wasAdjusted);
+  const {
+    items,
+    viewItems,
+    itemCount,
+    subtotal,
+    shipping,
+    total,
+    isRefreshing,
+    hasRefreshError,
+    hasSnapshotItems,
+    hasAdjustedItems,
+    hasUnavailableItems,
+    updateItemQuantity,
+    removeItem,
+    clearCart,
+  } = useCartView();
   const canContinue = items.length > 0 && !hasUnavailableItems;
 
   if (items.length === 0) {
@@ -448,9 +272,9 @@ export function CartPage() {
                 size="lg"
                 className={`w-full ${cartCtaClassName}`}
               >
-                <Link href="/login">
+                <Link href="/checkout">
                   <ShoppingCartIcon data-icon="inline-start" />
-                  {t('continueToLogin')}
+                  {t('continueToCheckout')}
                 </Link>
               </Button>
             ) : (
