@@ -1,6 +1,9 @@
-import { getTranslations } from 'next-intl/server';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { BrandWordmark } from '@/components/brand-wordmark';
-import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,14 +14,195 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
+import { type AuthErrorKey, useAuthStore } from '@/store/use-auth-store';
 
 type AuthFormCardProps = {
   mode: 'login' | 'register';
 };
 
-export async function AuthFormCard({ mode }: AuthFormCardProps) {
-  const t = await getTranslations('auth');
+type AuthFormState = {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+type AuthField = keyof AuthFormState;
+
+type FieldErrorKey =
+  | AuthErrorKey
+  | 'errorConfirmPasswordRequired'
+  | 'errorEmailInvalid'
+  | 'errorEmailRequired'
+  | 'errorNameRequired'
+  | 'errorPasswordRequired'
+  | 'passwordMismatch'
+  | 'passwordTooShort';
+
+type FieldErrors = Partial<Record<AuthField, FieldErrorKey>>;
+
+const initialFormState: AuthFormState = {
+  fullName: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+};
+
+export function AuthFormCard({ mode }: AuthFormCardProps) {
+  const t = useTranslations('auth');
+  const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const isRegister = mode === 'register';
+  const loggedOut = searchParams.get('loggedOut') === '1';
+  const login = useAuthStore((state) => state.login);
+  const register = useAuthStore((state) => state.register);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const clearError = useAuthStore((state) => state.clearError);
+  const [formState, setFormState] = useState(initialFormState);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formErrorKey, setFormErrorKey] = useState<AuthErrorKey | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    window.queueMicrotask(() => {
+      if (!isCancelled) {
+        setFieldErrors({});
+        setFormErrorKey(null);
+        clearError();
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [clearError, locale, mode, pathname]);
+
+  useEffect(() => {
+    if (!loggedOut) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      router.replace(pathname);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loggedOut, pathname, router]);
+
+  const validateForm = (): FieldErrors => {
+    const nextErrors: FieldErrors = {};
+
+    if (isRegister && !formState.fullName.trim()) {
+      nextErrors.fullName = 'errorNameRequired';
+    }
+
+    if (!formState.email.trim()) {
+      nextErrors.email = 'errorEmailRequired';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formState.email.trim())) {
+      nextErrors.email = 'errorEmailInvalid';
+    }
+
+    if (!formState.password) {
+      nextErrors.password = 'errorPasswordRequired';
+    } else if (formState.password.length < 8) {
+      nextErrors.password = 'passwordTooShort';
+    }
+
+    if (isRegister) {
+      if (!formState.confirmPassword) {
+        nextErrors.confirmPassword = 'errorConfirmPasswordRequired';
+      } else if (formState.password !== formState.confirmPassword) {
+        nextErrors.confirmPassword = 'passwordMismatch';
+      }
+    }
+
+    return nextErrors;
+  };
+
+  const applyAuthError = (errorKey: AuthErrorKey) => {
+    if (errorKey === 'errorInvalidCredentials') {
+      setFieldErrors({
+        email: 'errorInvalidCredentials',
+        password: 'errorInvalidCredentials',
+      });
+      setFormErrorKey(null);
+      return;
+    }
+
+    if (errorKey === 'errorEmailExists') {
+      setFieldErrors({
+        email: 'errorEmailExists',
+      });
+      setFormErrorKey(null);
+      return;
+    }
+
+    setFieldErrors({});
+    setFormErrorKey(errorKey);
+  };
+
+  const updateField = (field: keyof AuthFormState, value: string) => {
+    setFormState((current) => ({
+      ...current,
+      [field]: value,
+    }));
+    setFieldErrors((current) => {
+      if (!current[field]) {
+        return current;
+      }
+
+      const nextErrors = { ...current };
+      delete nextErrors[field];
+
+      return nextErrors;
+    });
+    setFormErrorKey(null);
+    clearError();
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextFieldErrors = validateForm();
+
+    setFieldErrors(nextFieldErrors);
+    setFormErrorKey(null);
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      return;
+    }
+
+    try {
+      if (isRegister) {
+        await register({
+          fullName: formState.fullName,
+          email: formState.email,
+          password: formState.password,
+          confirmPassword: formState.confirmPassword,
+        });
+      } else {
+        await login({
+          email: formState.email,
+          password: formState.password,
+        });
+      }
+
+      router.push('/products');
+    } catch (error) {
+      if (typeof error === 'string') {
+        applyAuthError(error as AuthErrorKey);
+        return;
+      }
+
+      setFieldErrors({});
+      setFormErrorKey(isRegister ? 'errorRegisterFailed' : 'errorLoginFailed');
+    }
+  };
 
   return (
     <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6">
@@ -89,52 +273,129 @@ export async function AuthFormCard({ mode }: AuthFormCardProps) {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            {isRegister ? (
+          <CardContent>
+            <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+              {isRegister ? (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="name">{t('name')}</Label>
+                  <Input
+                    id="name"
+                    autoComplete="name"
+                    aria-invalid={Boolean(fieldErrors.fullName)}
+                    value={formState.fullName}
+                    placeholder={t('namePlaceholder')}
+                    onChange={(event) =>
+                      updateField('fullName', event.target.value)
+                    }
+                  />
+                  {fieldErrors.fullName ? (
+                    <p className="text-sm leading-6 text-destructive">
+                      {t(fieldErrors.fullName)}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="flex flex-col gap-2">
-                <Label htmlFor="name">{t('name')}</Label>
-                <Input id="name" placeholder={t('name')} />
-              </div>
-            ) : null}
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">{t('email')}</Label>
-              <Input id="email" type="email" placeholder={t('email')} />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">{t('password')}</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder={t('password')}
-              />
-            </div>
-
-            {isRegister ? (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="confirm-password">{t('confirmPassword')}</Label>
+                <Label htmlFor="email">{t('email')}</Label>
                 <Input
-                  id="confirm-password"
-                  type="password"
-                  placeholder={t('confirmPassword')}
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  value={formState.email}
+                  placeholder={t('emailPlaceholder')}
+                  onChange={(event) => updateField('email', event.target.value)}
                 />
+                {fieldErrors.email ? (
+                  <p className="text-sm leading-6 text-destructive">
+                    {t(fieldErrors.email)}
+                  </p>
+                ) : null}
               </div>
-            ) : null}
 
-            <Button className="w-full transition duration-200 hover:bg-primary/90">
-              {isRegister ? t('registerSubmit') : t('loginSubmit')}
-            </Button>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password">{t('password')}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete={
+                    isRegister ? 'new-password' : 'current-password'
+                  }
+                  aria-invalid={Boolean(fieldErrors.password)}
+                  value={formState.password}
+                  placeholder={t('passwordPlaceholder')}
+                  onChange={(event) =>
+                    updateField('password', event.target.value)
+                  }
+                />
+                {fieldErrors.password ? (
+                  <p className="text-sm leading-6 text-destructive">
+                    {t(fieldErrors.password)}
+                  </p>
+                ) : null}
+              </div>
 
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <span>{isRegister ? t('registerHelper') : t('loginHelper')}</span>
-              <Link
-                href={isRegister ? '/login' : '/register'}
-                className="inline-flex cursor-pointer items-center border-b border-current pb-0.5 font-medium leading-none text-foreground transition-colors hover:text-[#8c5a46]"
+              {isRegister ? (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="confirm-password">
+                    {t('confirmPassword')}
+                  </Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    autoComplete="new-password"
+                    aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                    value={formState.confirmPassword}
+                    placeholder={t('passwordPlaceholder')}
+                    onChange={(event) =>
+                      updateField('confirmPassword', event.target.value)
+                    }
+                  />
+                  {fieldErrors.confirmPassword ? (
+                    <p className="text-sm leading-6 text-destructive">
+                      {t(fieldErrors.confirmPassword)}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {loggedOut ? (
+                <p className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm leading-6 text-foreground">
+                  {t('loggedOutNotice')}
+                </p>
+              ) : null}
+
+              {formErrorKey ? (
+                <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+                  {t(formErrorKey)}
+                </p>
+              ) : null}
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full transition duration-200 hover:bg-primary/90"
               >
-                {isRegister ? t('goToLogin') : t('goToRegister')}
-              </Link>
-            </div>
+                {isLoading
+                  ? t('submitting')
+                  : isRegister
+                    ? t('registerSubmit')
+                    : t('loginSubmit')}
+              </Button>
+
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  {isRegister ? t('registerHelper') : t('loginHelper')}
+                </span>
+                <Link
+                  href={isRegister ? '/login' : '/register'}
+                  className="inline-flex cursor-pointer items-center border-b border-current pb-0.5 font-medium leading-none text-foreground transition-colors hover:text-[#8c5a46]"
+                >
+                  {isRegister ? t('goToLogin') : t('goToRegister')}
+                </Link>
+              </div>
+            </form>
           </CardContent>
         </Card>
       </div>

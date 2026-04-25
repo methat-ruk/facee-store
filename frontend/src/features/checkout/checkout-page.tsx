@@ -8,7 +8,7 @@ import {
   ShoppingCartIcon,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useCartView } from '@/features/cart/use-cart-view';
+import { useAuthStore } from '@/store/use-auth-store';
 
 const checkoutCtaClassName =
   'bg-[#9f604b] !text-[#fffaf6] hover:bg-[#884d3b] hover:!text-[#fffaf6] [&_svg]:!text-[#fffaf6] dark:bg-[#5a2f26] dark:!text-[#fffaf6] dark:hover:bg-[#4a261f]';
@@ -34,6 +35,10 @@ function formatPrice(value: number) {
 
 export function CheckoutPage() {
   const t = useTranslations('checkout');
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const isAuthLoading = useAuthStore((state) => state.isLoading);
+  const isAuthInitialized = useAuthStore((state) => state.isInitialized);
   const {
     items,
     viewItems,
@@ -48,6 +53,33 @@ export function CheckoutPage() {
     hasUnavailableItems,
   } = useCartView();
   const [showComingSoon, setShowComingSoon] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthInitialized || user) {
+      return;
+    }
+
+    router.replace('/login');
+  }, [isAuthInitialized, router, user]);
+
+  if (!isAuthInitialized || isAuthLoading) {
+    return (
+      <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex size-14 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_18px_50px_rgba(132,83,60,0.08)]">
+            <ShoppingCartIcon />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">
+            {t('checkingSession')}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   if (items.length === 0) {
     return (

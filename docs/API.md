@@ -38,6 +38,69 @@ Expected item shape:
 }
 ```
 
+### `POST /api/auth/register`
+
+Creates a customer account, sets an HttpOnly session cookie, and returns the
+authenticated profile.
+
+Request shape:
+
+```json
+{
+  "fullName": "Facee Customer",
+  "email": "customer@example.com",
+  "password": "password123",
+  "confirmPassword": "password123"
+}
+```
+
+Response shape:
+
+```json
+{
+  "id": "string",
+  "email": "customer@example.com",
+  "fullName": "Facee Customer",
+  "role": "CUSTOMER"
+}
+```
+
+Duplicate emails return `409`.
+
+### `POST /api/auth/login`
+
+Authenticates an existing customer, sets an HttpOnly session cookie, and returns
+the authenticated profile.
+
+Request shape:
+
+```json
+{
+  "email": "customer@example.com",
+  "password": "password123"
+}
+```
+
+Invalid credentials return `401`.
+
+### `POST /api/auth/logout`
+
+Clears the auth cookie.
+
+Expected response:
+
+```json
+{
+  "ok": true
+}
+```
+
+### `GET /api/auth/profile`
+
+Returns the current authenticated profile from the HttpOnly cookie session.
+
+Unauthenticated requests return `401`.
+
 ### `GET /api/products`
 
 Returns published storefront products.
@@ -108,13 +171,13 @@ Unknown or unpublished slugs return `404`.
 Implemented:
 
 - health
+- customer auth
 - category listing
 - product listing
 - product detail by slug
 
 Planned but not implemented yet:
 
-- auth
 - cart
 - checkout
 - admin CRUD
