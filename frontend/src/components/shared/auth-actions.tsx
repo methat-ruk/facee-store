@@ -18,7 +18,7 @@ export function AuthActions({
 }: AuthActionsProps) {
   const t = useTranslations('topbar');
   const user = useAuthStore((state) => state.user);
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const isLoggingOut = useAuthStore((state) => state.isLoggingOut);
   const logout = useAuthStore((state) => state.logout);
   const router = useRouter();
 
@@ -48,18 +48,22 @@ export function AuthActions({
           <Button
             type="button"
             variant="outline"
-            disabled={isLoading}
+            disabled={isLoggingOut}
             className={stacked || menu ? 'w-full justify-center' : undefined}
             onClick={() => {
               void (async () => {
-                await logout();
-                onAction?.();
-                router.replace('/login?loggedOut=1');
-                router.refresh();
+                try {
+                  await logout();
+                  onAction?.();
+                  router.replace('/login?loggedOut=1');
+                  router.refresh();
+                } catch {
+                  // Logout errors stay in the store for future handling.
+                }
               })();
             }}
           >
-            {t('logout')}
+            {isLoggingOut ? `${t('logout')}...` : t('logout')}
           </Button>
         ) : null}
       </div>

@@ -37,8 +37,8 @@ export function CheckoutPage() {
   const t = useTranslations('checkout');
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const isAuthLoading = useAuthStore((state) => state.isLoading);
   const isAuthInitialized = useAuthStore((state) => state.isInitialized);
+  const isRestoringProfile = useAuthStore((state) => state.isRestoringProfile);
   const {
     items,
     viewItems,
@@ -62,7 +62,7 @@ export function CheckoutPage() {
     router.replace('/login');
   }, [isAuthInitialized, router, user]);
 
-  if (!isAuthInitialized || isAuthLoading) {
+  if (!isAuthInitialized || isRestoringProfile) {
     return (
       <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center gap-4 text-center">

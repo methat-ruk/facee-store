@@ -67,6 +67,19 @@ Response shape:
 
 Duplicate emails return `409`.
 
+Auth errors now use a shared error envelope:
+
+```json
+{
+  "statusCode": 409,
+  "code": "AUTH_EMAIL_ALREADY_EXISTS",
+  "message": "This email is already registered.",
+  "fieldErrors": {
+    "email": ["AUTH_EMAIL_ALREADY_EXISTS"]
+  }
+}
+```
+
 ### `POST /api/auth/login`
 
 Authenticates an existing customer, sets an HttpOnly session cookie, and returns
@@ -82,6 +95,10 @@ Request shape:
 ```
 
 Invalid credentials return `401`.
+
+Validation failures return `400` with `code: "VALIDATION_FAILED"` and
+field-level codes such as `INVALID_EMAIL`, `PASSWORD_TOO_SHORT`, `REQUIRED`, or
+`PASSWORD_MISMATCH`.
 
 ### `POST /api/auth/logout`
 
@@ -100,6 +117,16 @@ Expected response:
 Returns the current authenticated profile from the HttpOnly cookie session.
 
 Unauthenticated requests return `401`.
+
+Example unauthorized response:
+
+```json
+{
+  "statusCode": 401,
+  "code": "AUTH_UNAUTHORIZED",
+  "message": "Authentication is required."
+}
+```
 
 ### `GET /api/products`
 

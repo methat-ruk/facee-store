@@ -1,6 +1,5 @@
 'use client';
 
-import axios from 'axios';
 import { create } from 'zustand';
 import {
   type AuthUser,
@@ -11,18 +10,16 @@ import {
   logout,
   register,
 } from '@/services/auth';
-
-export type AuthErrorKey =
-  | 'errorEmailExists'
-  | 'errorInvalidCredentials'
-  | 'errorLoginFailed'
-  | 'errorRegisterFailed';
+import { type ApiError, toApiError } from '@/services/api-error';
 
 type AuthStore = {
   user: AuthUser | null;
-  isLoading: boolean;
   isInitialized: boolean;
-  errorKey: AuthErrorKey | null;
+  isRestoringProfile: boolean;
+  isLoggingIn: boolean;
+  isRegistering: boolean;
+  isLoggingOut: boolean;
+  error: ApiError | null;
   refreshProfile: () => Promise<void>;
   login: (input: LoginInput) => Promise<AuthUser>;
   register: (input: RegisterInput) => Promise<AuthUser>;
@@ -30,71 +27,92 @@ type AuthStore = {
   clearError: () => void;
 };
 
-function getErrorKey(error: unknown, fallback: AuthErrorKey): AuthErrorKey {
-  if (axios.isAxiosError(error)) {
-    const status = error.response?.status;
-
-    if (status === 401) {
-      return 'errorInvalidCredentials';
-    }
-
-    if (status === 409) {
-      return 'errorEmailExists';
-    }
-  }
-
-  return fallback;
-}
-
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
-  isLoading: false,
   isInitialized: false,
-  errorKey: null,
+  isRestoringProfile: false,
+  isLoggingIn: false,
+  isRegistering: false,
+  isLoggingOut: false,
+  error: null,
   refreshProfile: async () => {
-    set({ isLoading: true, errorKey: null });
+    set({ isRestoringProfile: true, error: null });
 
     try {
       const user = await getProfile();
-      set({ user, isLoading: false, isInitialized: true });
-    } catch {
-      set({ user: null, isLoading: false, isInitialized: true });
+      set({ user, isRestoringProfile: false, isInitialized: true });
+    } catch (error) {
+      const apiError = toApiError(error, {
+        code: 'AUTH_UNAUTHORIZED',
+        message: 'Authentication is required.',
+        statusCode: 401,
+      });
+
+      set({
+        user: null,
+        isRestoringProfile: false,
+        isInitialized: true,
+        error: apiError.code === 'AUTH_UNAUTHORIZED' ? null : apiError,
+      });
     }
   },
   login: async (input) => {
-    set({ isLoading: true, errorKey: null });
+    set({ isLoggingIn: true, error: null });
 
     try {
       const user = await login(input);
-      set({ user, isLoading: false, isInitialized: true });
+      set({ user, isLoggingIn: false, isInitialized: true });
       return user;
     } catch (error) {
-      const errorKey = getErrorKey(error, 'errorLoginFailed');
-      set({ errorKey, isLoading: false, isInitialized: true });
-      throw errorKey;
+      const apiError = toApiError(error, {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Unable to sign in. Please try again.',
+      });
+
+      set({ error: apiError, isLoggingIn: false, isInitialized: true });
+      throw apiError;
     }
   },
   register: async (input) => {
-    set({ isLoading: true, errorKey: null });
+    set({ isRegistering: true, error: null });
 
     try {
       const user = await register(input);
-      set({ user, isLoading: false, isInitialized: true });
+      set({ user, isRegistering: false, isInitialized: true });
       return user;
     } catch (error) {
-      const errorKey = getErrorKey(error, 'errorRegisterFailed');
-      set({ errorKey, isLoading: false, isInitialized: true });
-      throw errorKey;
+      const apiError = toApiError(error, {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Unable to create account. Please try again.',
+      });
+
+      set({ error: apiError, isRegistering: false, isInitialized: true });
+      throw apiError;
     }
   },
   logout: async () => {
-    set({ isLoading: true, errorKey: null });
+    set({ isLoggingOut: true, error: null });
 
     try {
       await logout();
-    } finally {
-      set({ user: null, isLoading: false, isInitialized: true });
+      set({
+        user: null,
+        isLoggingOut: false,
+        isInitialized: true,
+      });
+    } catch (error) {
+      const apiError = toApiError(error, {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Unable to log out. Please try again.',
+      });
+
+      set({
+        error: apiError,
+        isLoggingOut: false,
+        isInitialized: true,
+      });
+      throw apiError;
     }
   },
-  clearError: () => set({ errorKey: null }),
+  clearError: () => set({ error: null }),
 }));

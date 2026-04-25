@@ -1,10 +1,8 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { AppException } from '../../../common/errors/app-exception';
+import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { AuthProfileResponseDto } from './dto/auth-profile-response.dto';
 import type { LoginRequestDto } from './dto/login-request.dto';
@@ -29,7 +27,14 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('Email is already registered.');
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        API_ERROR_CODES.authEmailAlreadyExists,
+        'This email is already registered.',
+        {
+          email: [API_ERROR_CODES.authEmailAlreadyExists],
+        },
+      );
     }
 
     const passwordHash = await bcrypt.hash(
@@ -59,7 +64,15 @@ export class AuthService {
     });
 
     if (!user?.passwordHash) {
-      throw new UnauthorizedException('Email or password is invalid.');
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        API_ERROR_CODES.authInvalidCredentials,
+        'Email or password is invalid.',
+        {
+          email: [API_ERROR_CODES.authInvalidCredentials],
+          password: [API_ERROR_CODES.authInvalidCredentials],
+        },
+      );
     }
 
     const isValidPassword = await bcrypt.compare(
@@ -68,7 +81,15 @@ export class AuthService {
     );
 
     if (!isValidPassword) {
-      throw new UnauthorizedException('Email or password is invalid.');
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        API_ERROR_CODES.authInvalidCredentials,
+        'Email or password is invalid.',
+        {
+          email: [API_ERROR_CODES.authInvalidCredentials],
+          password: [API_ERROR_CODES.authInvalidCredentials],
+        },
+      );
     }
 
     return {
@@ -85,7 +106,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Authentication is invalid.');
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        API_ERROR_CODES.authUnauthorized,
+        'Authentication is invalid.',
+      );
     }
 
     return this.toProfile(user);

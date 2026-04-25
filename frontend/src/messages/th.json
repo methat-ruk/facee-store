@@ -180,6 +180,7 @@
     "errorEmailInvalid": "กรุณากรอกอีเมลให้ถูกต้อง",
     "errorPasswordRequired": "กรุณากรอกรหัสผ่าน",
     "errorConfirmPasswordRequired": "กรุณายืนยันรหัสผ่าน",
+    "errorFormInvalid": "กรุณาตรวจสอบข้อมูลที่ไฮไลต์แล้วลองอีกครั้ง",
     "passwordTooShort": "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร",
     "passwordMismatch": "รหัสผ่านไม่ตรงกัน",
     "errorInvalidCredentials": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",

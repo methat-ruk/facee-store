@@ -9,6 +9,7 @@ jest.mock('../../../prisma/prisma.service', () => ({
 
 import * as bcrypt from 'bcrypt';
 import type { JwtService } from '@nestjs/jwt';
+import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import { AuthService } from './auth.service';
 
@@ -101,7 +102,14 @@ describe('AuthService', () => {
         password: 'password123',
         confirmPassword: 'password123',
       }),
-    ).rejects.toThrow('Email is already registered.');
+    ).rejects.toMatchObject({
+      response: {
+        code: API_ERROR_CODES.authEmailAlreadyExists,
+        fieldErrors: {
+          email: [API_ERROR_CODES.authEmailAlreadyExists],
+        },
+      },
+    });
   });
 
   it('logs in with valid credentials', async () => {
@@ -150,7 +158,15 @@ describe('AuthService', () => {
         email: 'customer@example.com',
         password: 'wrong-password',
       }),
-    ).rejects.toThrow('Email or password is invalid.');
+    ).rejects.toMatchObject({
+      response: {
+        code: API_ERROR_CODES.authInvalidCredentials,
+        fieldErrors: {
+          email: [API_ERROR_CODES.authInvalidCredentials],
+          password: [API_ERROR_CODES.authInvalidCredentials],
+        },
+      },
+    });
   });
 
   it('returns a profile for an authenticated user id', async () => {
@@ -170,6 +186,18 @@ describe('AuthService', () => {
       email: 'customer@example.com',
       fullName: 'Customer',
       role: 'CUSTOMER',
+    });
+  });
+
+  it('rejects unknown authenticated user ids', async () => {
+    const { service, findUnique } = buildService();
+
+    findUnique.mockResolvedValue(null);
+
+    await expect(service.getProfile('missing-user')).rejects.toMatchObject({
+      response: {
+        code: API_ERROR_CODES.authUnauthorized,
+      },
     });
   });
 });

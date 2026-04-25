@@ -15,7 +15,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
-import { type AuthErrorKey, useAuthStore } from '@/store/use-auth-store';
+import {
+  getAuthFieldErrors,
+  getAuthFormMessageKey,
+  type AuthFieldErrors,
+  type AuthMessageKey,
+} from '@/features/auth/auth-error-messages';
+import { isApiError } from '@/services/api-error';
+import { useAuthStore } from '@/store/use-auth-store';
 
 type AuthFormCardProps = {
   mode: 'login' | 'register';
@@ -27,20 +34,6 @@ type AuthFormState = {
   password: string;
   confirmPassword: string;
 };
-
-type AuthField = keyof AuthFormState;
-
-type FieldErrorKey =
-  | AuthErrorKey
-  | 'errorConfirmPasswordRequired'
-  | 'errorEmailInvalid'
-  | 'errorEmailRequired'
-  | 'errorNameRequired'
-  | 'errorPasswordRequired'
-  | 'passwordMismatch'
-  | 'passwordTooShort';
-
-type FieldErrors = Partial<Record<AuthField, FieldErrorKey>>;
 
 const initialFormState: AuthFormState = {
   fullName: '',
@@ -59,11 +52,13 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
   const loggedOut = searchParams.get('loggedOut') === '1';
   const login = useAuthStore((state) => state.login);
   const register = useAuthStore((state) => state.register);
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const isLoggingIn = useAuthStore((state) => state.isLoggingIn);
+  const isRegistering = useAuthStore((state) => state.isRegistering);
   const clearError = useAuthStore((state) => state.clearError);
   const [formState, setFormState] = useState(initialFormState);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [formErrorKey, setFormErrorKey] = useState<AuthErrorKey | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
+  const [formErrorKey, setFormErrorKey] = useState<AuthMessageKey | null>(null);
+  const isSubmitting = isRegister ? isRegistering : isLoggingIn;
 
   useEffect(() => {
     let isCancelled = false;
@@ -95,8 +90,8 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
     };
   }, [loggedOut, pathname, router]);
 
-  const validateForm = (): FieldErrors => {
-    const nextErrors: FieldErrors = {};
+  const validateForm = (): AuthFieldErrors => {
+    const nextErrors: AuthFieldErrors = {};
 
     if (isRegister && !formState.fullName.trim()) {
       nextErrors.fullName = 'errorNameRequired';
@@ -123,28 +118,6 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
     }
 
     return nextErrors;
-  };
-
-  const applyAuthError = (errorKey: AuthErrorKey) => {
-    if (errorKey === 'errorInvalidCredentials') {
-      setFieldErrors({
-        email: 'errorInvalidCredentials',
-        password: 'errorInvalidCredentials',
-      });
-      setFormErrorKey(null);
-      return;
-    }
-
-    if (errorKey === 'errorEmailExists') {
-      setFieldErrors({
-        email: 'errorEmailExists',
-      });
-      setFormErrorKey(null);
-      return;
-    }
-
-    setFieldErrors({});
-    setFormErrorKey(errorKey);
   };
 
   const updateField = (field: keyof AuthFormState, value: string) => {
@@ -194,13 +167,20 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
 
       router.push('/products');
     } catch (error) {
-      if (typeof error === 'string') {
-        applyAuthError(error as AuthErrorKey);
+      if (isApiError(error)) {
+        const nextFieldErrors = getAuthFieldErrors(error);
+        const nextFormErrorKey =
+          Object.keys(nextFieldErrors).length > 0
+            ? null
+            : getAuthFormMessageKey(mode, error.code);
+
+        setFieldErrors(nextFieldErrors);
+        setFormErrorKey(nextFormErrorKey);
         return;
       }
 
       setFieldErrors({});
-      setFormErrorKey(isRegister ? 'errorRegisterFailed' : 'errorLoginFailed');
+      setFormErrorKey(getAuthFormMessageKey(mode, 'INTERNAL_SERVER_ERROR'));
     }
   };
 
@@ -374,10 +354,10 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
 
               <Button
                 type="submit"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="w-full transition duration-200 hover:bg-primary/90"
               >
-                {isLoading
+                {isSubmitting
                   ? t('submitting')
                   : isRegister
                     ? t('registerSubmit')

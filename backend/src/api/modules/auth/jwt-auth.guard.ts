@@ -2,9 +2,11 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  UnauthorizedException,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { AppException } from '../../../common/errors/app-exception';
+import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import type { Request } from 'express';
 import { readCookie } from './auth-cookie';
 import {
@@ -25,14 +27,22 @@ export class JwtAuthGuard implements CanActivate {
     );
 
     if (!token) {
-      throw new UnauthorizedException('Authentication is required.');
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        API_ERROR_CODES.authUnauthorized,
+        'Authentication is required.',
+      );
     }
 
     try {
       request.user = await this.jwtService.verifyAsync<AuthTokenPayload>(token);
       return true;
     } catch {
-      throw new UnauthorizedException('Authentication is invalid.');
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        API_ERROR_CODES.authUnauthorized,
+        'Authentication is invalid.',
+      );
     }
   }
 }
