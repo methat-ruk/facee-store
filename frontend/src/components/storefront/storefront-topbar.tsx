@@ -1,6 +1,6 @@
 'use client';
 
-import { MenuIcon } from 'lucide-react';
+import { MenuIcon, ShoppingCartIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { BrandWordmark } from '@/components/brand-wordmark';
@@ -23,6 +23,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Link } from '@/i18n/navigation';
+import { getCartItemCount, useCartStore } from '@/store/use-cart-store';
 import { storefrontNavItems } from './storefront-nav';
 
 function StorefrontMenuPanel({
@@ -43,6 +44,13 @@ function StorefrontMenuPanel({
             {t('menuNavigate')}
           </p>
           <RouteTabs items={[...storefrontNavItems]} vertical />
+          <Button
+            asChild
+            variant="ghost"
+            className="w-full justify-start rounded-xl px-4 py-3 text-left text-foreground/80 hover:bg-muted hover:text-foreground"
+          >
+            <Link href="/cart">{t('cart')}</Link>
+          </Button>
         </div>
       ) : null}
       {showNavigation ? <Separator /> : null}
@@ -68,6 +76,7 @@ function StorefrontMenuPanel({
 
 export function StorefrontTopbar() {
   const t = useTranslations('topbar');
+  const cartItemCount = useCartStore((state) => getCartItemCount(state.items));
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -104,6 +113,23 @@ export function StorefrontTopbar() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          <Button
+            asChild
+            variant="outline"
+            size="icon"
+            className="relative shrink-0"
+            aria-label={t('cartLabel', { count: cartItemCount })}
+          >
+            <Link href="/cart">
+              <ShoppingCartIcon />
+              {cartItemCount > 0 ? (
+                <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary text-[0.68rem] font-semibold text-primary-foreground">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </span>
+              ) : null}
+            </Link>
+          </Button>
+
           <AuthActions />
 
           <div className="hidden md:block">

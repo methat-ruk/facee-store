@@ -22,7 +22,7 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
     <Card className="group h-full gap-0 overflow-hidden border-border/80 bg-card/92 py-0 shadow-[0_24px_70px_rgba(132,83,60,0.1)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(132,83,60,0.16)]">
       <Link
         href={`/products/${localizedProduct.slug}`}
-        className="relative block h-[19rem] cursor-pointer overflow-hidden bg-[linear-gradient(180deg,#fff3ea_0%,#f7ddd0_100%)]"
+        className="relative block h-76 cursor-pointer overflow-hidden bg-[linear-gradient(180deg,#fff3ea_0%,#f7ddd0_100%)]"
       >
         {localizedProduct.imageUrl ? (
           <Image

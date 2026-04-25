@@ -1,6 +1,8 @@
 {
   "topbar": {
     "products": "สินค้า",
+    "cart": "ตะกร้า",
+    "cartLabel": "เปิดตะกร้าที่มีสินค้า {count} ชิ้น",
     "login": "เข้าสู่ระบบ",
     "register": "สมัครสมาชิก",
     "theme": "ธีม",
@@ -79,6 +81,34 @@
     "stockOut": "สินค้าหมด",
     "imageSoon": "กำลังเพิ่มรูปภาพ",
     "brandFallback": "Facee"
+  },
+  "cart": {
+    "eyebrow": "ตะกร้า",
+    "title": "ตรวจดูรูทีนของคุณ",
+    "description": "เช็กสถานะสินค้า ปรับจำนวน และไปต่อที่บัญชี Facee ก่อนเข้าสู่ขั้นตอนชำระเงินในอนาคต",
+    "emptyEyebrow": "ตะกร้าว่าง",
+    "emptyTitle": "ตะกร้า Facee ของคุณยังรอสินค้าอยู่",
+    "emptyDescription": "เลือกดูไลน์อัปสกินแคร์ แล้วเพิ่มสูตรที่อยากเปรียบเทียบหรือเก็บไว้สำหรับ checkout",
+    "continueShopping": "เลือกสินค้าต่อ",
+    "itemCount": "{count} ชิ้น",
+    "snapshotNotice": "บางรายการยังรีเฟรชข้อมูลล่าสุดไม่ได้ จึงแสดงข้อมูลที่บันทึกไว้ล่าสุดในตะกร้า",
+    "adjustedNotice": "มีบางรายการที่ถูกปรับจำนวนให้ตรงกับสต็อกล่าสุด",
+    "refreshing": "กำลังอัปเดต",
+    "unavailable": "ไม่พร้อมขาย",
+    "stockCount": "เหลือ {count} ชิ้น",
+    "decreaseQuantity": "ลดจำนวน",
+    "increaseQuantity": "เพิ่มจำนวน",
+    "remove": "ลบ",
+    "summaryTitle": "สรุปคำสั่งซื้อ",
+    "summaryDescription": "ขั้นต่อไปคือเข้าสู่ระบบหรือสร้างบัญชี เพื่อเตรียมข้อมูลลูกค้าสำหรับ checkout ในรอบถัดไป",
+    "summaryBlocked": "ลบสินค้าที่ไม่พร้อมขายก่อนดำเนินการต่อ",
+    "subtotal": "ยอดรวมสินค้า",
+    "shipping": "ค่าจัดส่ง",
+    "shippingPlaceholder": "คำนวณภายหลัง",
+    "total": "รวมทั้งหมด",
+    "continueToLogin": "ไปหน้าเข้าสู่ระบบ",
+    "resolveCart": "จัดการสินค้าในตะกร้าก่อน",
+    "clearCart": "ล้างตะกร้า"
   },
   "auth": {
     "loginEyebrow": "สมาชิกเข้าสู่ระบบ",

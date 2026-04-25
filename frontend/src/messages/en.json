@@ -1,6 +1,8 @@
 {
   "topbar": {
     "products": "Products",
+    "cart": "Cart",
+    "cartLabel": "Open cart with {count, plural, one {# item} other {# items}}",
     "login": "Login",
     "register": "Register",
     "theme": "Theme",
@@ -79,6 +81,34 @@
     "stockOut": "Out of stock",
     "imageSoon": "Image coming soon",
     "brandFallback": "Facee"
+  },
+  "cart": {
+    "eyebrow": "Cart",
+    "title": "Review your routine",
+    "description": "Check the latest availability, adjust quantities, and continue toward your Facee account before checkout.",
+    "emptyEyebrow": "Empty cart",
+    "emptyTitle": "Your Facee cart is waiting.",
+    "emptyDescription": "Browse the skincare lineup and add the formulas you want to compare or keep for checkout.",
+    "continueShopping": "Continue shopping",
+    "itemCount": "{count, plural, one {# item} other {# items}}",
+    "snapshotNotice": "Some product details could not be refreshed, so the cart is showing the latest saved information.",
+    "adjustedNotice": "One or more quantities were adjusted to match the latest stock.",
+    "refreshing": "Refreshing",
+    "unavailable": "Unavailable",
+    "stockCount": "{count} in stock",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "remove": "Remove",
+    "summaryTitle": "Order summary",
+    "summaryDescription": "Next step: sign in or create an account so checkout can use your customer details later.",
+    "summaryBlocked": "Remove unavailable products before continuing.",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "shippingPlaceholder": "Calculated later",
+    "total": "Total",
+    "continueToLogin": "Continue to login",
+    "resolveCart": "Resolve cart items",
+    "clearCart": "Clear cart"
   },
   "auth": {
     "loginEyebrow": "Member Sign In",
