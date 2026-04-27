@@ -18,6 +18,7 @@ describe('AuthService', () => {
     const create = jest.fn();
     const findUnique = jest.fn();
     const signAsync = jest.fn();
+    const verifyAsync = jest.fn();
 
     const prisma = {
       user: {
@@ -30,7 +31,8 @@ describe('AuthService', () => {
 
     const jwtService = {
       signAsync,
-    } satisfies Pick<JwtService, 'signAsync'>;
+      verifyAsync,
+    } satisfies Pick<JwtService, 'signAsync' | 'verifyAsync'>;
 
     const service = new AuthService(
       prisma as unknown as PrismaService,
@@ -42,6 +44,7 @@ describe('AuthService', () => {
       create,
       findUnique,
       signAsync,
+      verifyAsync,
     };
   };
 
@@ -182,6 +185,43 @@ describe('AuthService', () => {
     await expect(
       service.getProfile('cm8user000001234567890123'),
     ).resolves.toEqual({
+      id: 'cm8user000001234567890123',
+      email: 'customer@example.com',
+      fullName: 'Customer',
+      role: 'CUSTOMER',
+    });
+  });
+
+  it('returns null session profile when no token is provided', async () => {
+    const { service } = buildService();
+
+    await expect(service.getSessionProfile(null)).resolves.toBeNull();
+  });
+
+  it('returns null session profile for invalid tokens', async () => {
+    const { service, verifyAsync } = buildService();
+
+    verifyAsync.mockRejectedValue(new Error('invalid token'));
+
+    await expect(service.getSessionProfile('bad-token')).resolves.toBeNull();
+  });
+
+  it('returns a session profile for valid tokens', async () => {
+    const { service, findUnique, verifyAsync } = buildService();
+
+    verifyAsync.mockResolvedValue({
+      sub: 'cm8user000001234567890123',
+      email: 'customer@example.com',
+      role: 'CUSTOMER',
+    });
+    findUnique.mockResolvedValue({
+      id: 'cm8user000001234567890123',
+      email: 'customer@example.com',
+      fullName: 'Customer',
+      role: 'CUSTOMER',
+    });
+
+    await expect(service.getSessionProfile('good-token')).resolves.toEqual({
       id: 'cm8user000001234567890123',
       email: 'customer@example.com',
       fullName: 'Customer',

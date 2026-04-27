@@ -1,20 +1,22 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
-import type { Response } from 'express';
-import { clearAuthCookie, setAuthCookie } from './auth-cookie';
+import { Body, Controller, Get, Req, Post, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
+import { clearAuthCookie, readCookie, setAuthCookie } from './auth-cookie';
 import { AuthService } from './auth.service';
-import type { AuthenticatedRequest } from './auth.types';
 import { AuthProfileResponseDto } from './dto/auth-profile-response.dto';
+import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { RegisterRequestDto } from './dto/register-request.dto';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { AUTH_COOKIE_NAME } from './auth.types';
+
+function applyNoStore(response: Response) {
+  response.setHeader(
+    'Cache-Control',
+    'private, no-store, no-cache, max-age=0, must-revalidate',
+  );
+  response.setHeader('Pragma', 'no-cache');
+  response.setHeader('Expires', '0');
+  response.setHeader('Vary', 'Cookie');
+}
 
 @Controller('auth')
 export class AuthController {
@@ -25,6 +27,7 @@ export class AuthController {
     @Body() body: RegisterRequestDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthProfileResponseDto> {
+    applyNoStore(response);
     const result = await this.authService.register(body);
     setAuthCookie(response, result.token);
 
@@ -36,6 +39,7 @@ export class AuthController {
     @Body() body: LoginRequestDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthProfileResponseDto> {
+    applyNoStore(response);
     const result = await this.authService.login(body);
     setAuthCookie(response, result.token);
 
@@ -44,6 +48,7 @@ export class AuthController {
 
   @Post('logout')
   logout(@Res({ passthrough: true }) response: Response) {
+    applyNoStore(response);
     clearAuthCookie(response);
 
     return {
@@ -52,10 +57,28 @@ export class AuthController {
   }
 
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
   async profile(
-    @Req() request: AuthenticatedRequest,
-  ): Promise<AuthProfileResponseDto> {
-    return this.authService.getProfile(request.user.sub);
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthSessionResponseDto> {
+    applyNoStore(response);
+    const token = readCookie(request.headers.cookie, AUTH_COOKIE_NAME);
+    const user = await this.authService.getSessionProfile(token);
+
+    if (!user) {
+      if (token) {
+        clearAuthCookie(response);
+      }
+
+      return {
+        authenticated: false,
+        user: null,
+      };
+    }
+
+    return {
+      authenticated: true,
+      user,
+    };
   }
 }

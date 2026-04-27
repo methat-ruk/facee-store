@@ -116,6 +116,20 @@ export class AuthService {
     return this.toProfile(user);
   }
 
+  async getSessionProfile(token: string | null) {
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const payload =
+        await this.jwtService.verifyAsync<AuthTokenPayload>(token);
+      return await this.getProfile(payload.sub);
+    } catch {
+      return null;
+    }
+  }
+
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
   }

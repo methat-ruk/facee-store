@@ -1,4 +1,5 @@
 import type { ApiError } from '@/services/api-error';
+import type { AuthErrorSource } from './classify-auth-error';
 
 export type AuthMode = 'login' | 'register';
 
@@ -12,9 +13,11 @@ export type AuthMessageKey =
   | 'errorFormInvalid'
   | 'errorInvalidCredentials'
   | 'errorLoginFailed'
+  | 'errorLogoutFailed'
   | 'errorNameRequired'
   | 'errorPasswordRequired'
   | 'errorRegisterFailed'
+  | 'unexpectedErrorTitle'
   | 'passwordMismatch'
   | 'passwordTooShort';
 
@@ -90,4 +93,19 @@ export function getAuthFormMessageKey(
     default:
       return mode === 'register' ? 'errorRegisterFailed' : 'errorLoginFailed';
   }
+}
+
+export function getAuthActionMessageKey(
+  source: AuthErrorSource,
+  errorCode: string,
+): AuthMessageKey {
+  if (source === 'logout') {
+    return 'errorLogoutFailed';
+  }
+
+  if (source === 'register') {
+    return getAuthFormMessageKey('register', errorCode);
+  }
+
+  return getAuthFormMessageKey('login', errorCode);
 }

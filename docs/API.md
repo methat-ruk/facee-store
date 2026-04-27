@@ -43,6 +43,8 @@ Expected item shape:
 Creates a customer account, sets an HttpOnly session cookie, and returns the
 authenticated profile.
 
+This endpoint sends `Cache-Control: private, no-store, no-cache, max-age=0, must-revalidate`.
+
 Request shape:
 
 ```json
@@ -85,6 +87,8 @@ Auth errors now use a shared error envelope:
 Authenticates an existing customer, sets an HttpOnly session cookie, and returns
 the authenticated profile.
 
+This endpoint sends `Cache-Control: private, no-store, no-cache, max-age=0, must-revalidate`.
+
 Request shape:
 
 ```json
@@ -104,6 +108,8 @@ field-level codes such as `INVALID_EMAIL`, `PASSWORD_TOO_SHORT`, `REQUIRED`, or
 
 Clears the auth cookie.
 
+This endpoint sends `Cache-Control: private, no-store, no-cache, max-age=0, must-revalidate`.
+
 Expected response:
 
 ```json
@@ -114,19 +120,37 @@ Expected response:
 
 ### `GET /api/auth/profile`
 
-Returns the current authenticated profile from the HttpOnly cookie session.
+Returns the current session state from the HttpOnly cookie session.
 
-Unauthenticated requests return `401`.
-
-Example unauthorized response:
+Guest response shape:
 
 ```json
 {
-  "statusCode": 401,
-  "code": "AUTH_UNAUTHORIZED",
-  "message": "Authentication is required."
+  "authenticated": false,
+  "user": null
 }
 ```
+
+Authenticated response shape:
+
+```json
+{
+  "authenticated": true,
+  "user": {
+    "id": "string",
+    "email": "customer@example.com",
+    "fullName": "Facee Customer",
+    "role": "CUSTOMER"
+  }
+}
+```
+
+This endpoint is guest-safe and returns `200` for both guests and authenticated
+customers so the storefront can restore session state without surfacing a `401`
+for expected guest traffic. It also sends
+`Cache-Control: private, no-store, no-cache, max-age=0, must-revalidate` so
+session state is always treated as fresh and does not rely on `304 Not Modified`
+revalidation behavior.
 
 ### `GET /api/products`
 

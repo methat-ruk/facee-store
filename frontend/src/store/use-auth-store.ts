@@ -10,6 +10,7 @@ import {
   logout,
   register,
 } from '@/services/auth';
+import type { AuthErrorSource } from '@/features/auth/classify-auth-error';
 import { type ApiError, toApiError } from '@/services/api-error';
 
 type AuthStore = {
@@ -20,6 +21,7 @@ type AuthStore = {
   isRegistering: boolean;
   isLoggingOut: boolean;
   error: ApiError | null;
+  errorSource: AuthErrorSource | null;
   refreshProfile: () => Promise<void>;
   login: (input: LoginInput) => Promise<AuthUser>;
   register: (input: RegisterInput) => Promise<AuthUser>;
@@ -35,29 +37,35 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isRegistering: false,
   isLoggingOut: false,
   error: null,
+  errorSource: null,
   refreshProfile: async () => {
-    set({ isRestoringProfile: true, error: null });
+    set({ isRestoringProfile: true, error: null, errorSource: null });
 
     try {
-      const user = await getProfile();
-      set({ user, isRestoringProfile: false, isInitialized: true });
+      const session = await getProfile();
+      set({
+        user: session.user,
+        isRestoringProfile: false,
+        isInitialized: true,
+      });
     } catch (error) {
       const apiError = toApiError(error, {
-        code: 'AUTH_UNAUTHORIZED',
-        message: 'Authentication is required.',
-        statusCode: 401,
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Unable to restore the current session.',
+        statusCode: 500,
       });
 
       set({
         user: null,
         isRestoringProfile: false,
         isInitialized: true,
-        error: apiError.code === 'AUTH_UNAUTHORIZED' ? null : apiError,
+        error: apiError,
+        errorSource: 'profile-restore',
       });
     }
   },
   login: async (input) => {
-    set({ isLoggingIn: true, error: null });
+    set({ isLoggingIn: true, error: null, errorSource: null });
 
     try {
       const user = await login(input);
@@ -69,12 +77,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
         message: 'Unable to sign in. Please try again.',
       });
 
-      set({ error: apiError, isLoggingIn: false, isInitialized: true });
+      set({
+        error: apiError,
+        errorSource: 'login',
+        isLoggingIn: false,
+        isInitialized: true,
+      });
       throw apiError;
     }
   },
   register: async (input) => {
-    set({ isRegistering: true, error: null });
+    set({ isRegistering: true, error: null, errorSource: null });
 
     try {
       const user = await register(input);
@@ -86,12 +99,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
         message: 'Unable to create account. Please try again.',
       });
 
-      set({ error: apiError, isRegistering: false, isInitialized: true });
+      set({
+        error: apiError,
+        errorSource: 'register',
+        isRegistering: false,
+        isInitialized: true,
+      });
       throw apiError;
     }
   },
   logout: async () => {
-    set({ isLoggingOut: true, error: null });
+    set({ isLoggingOut: true, error: null, errorSource: null });
 
     try {
       await logout();
@@ -99,6 +117,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         user: null,
         isLoggingOut: false,
         isInitialized: true,
+        errorSource: null,
       });
     } catch (error) {
       const apiError = toApiError(error, {
@@ -108,11 +127,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       set({
         error: apiError,
+        errorSource: 'logout',
         isLoggingOut: false,
         isInitialized: true,
       });
       throw apiError;
     }
   },
-  clearError: () => set({ error: null }),
+  clearError: () => set({ error: null, errorSource: null }),
 }));

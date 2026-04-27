@@ -50,6 +50,7 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
   const searchParams = useSearchParams();
   const isRegister = mode === 'register';
   const loggedOut = searchParams.get('loggedOut') === '1';
+  const noticeReason = searchParams.get('reason');
   const login = useAuthStore((state) => state.login);
   const register = useAuthStore((state) => state.register);
   const isLoggingIn = useAuthStore((state) => state.isLoggingIn);
@@ -59,6 +60,15 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [formErrorKey, setFormErrorKey] = useState<AuthMessageKey | null>(null);
   const isSubmitting = isRegister ? isRegistering : isLoggingIn;
+  const noticeKey = loggedOut
+    ? 'loggedOutNotice'
+    : noticeReason === 'session-expired'
+      ? 'sessionExpiredNotice'
+      : noticeReason === 'access-denied'
+        ? 'accessDeniedNotice'
+        : noticeReason === 'auth-required'
+          ? 'loginRequiredNotice'
+          : null;
 
   useEffect(() => {
     let isCancelled = false;
@@ -77,7 +87,7 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
   }, [clearError, locale, mode, pathname]);
 
   useEffect(() => {
-    if (!loggedOut) {
+    if (!loggedOut && !noticeReason) {
       return;
     }
 
@@ -88,7 +98,7 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [loggedOut, pathname, router]);
+  }, [loggedOut, noticeReason, pathname, router]);
 
   const validateForm = (): AuthFieldErrors => {
     const nextErrors: AuthFieldErrors = {};
@@ -340,9 +350,9 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
                 </div>
               ) : null}
 
-              {loggedOut ? (
+              {noticeKey ? (
                 <p className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm leading-6 text-foreground">
-                  {t('loggedOutNotice')}
+                  {t(noticeKey)}
                 </p>
               ) : null}
 

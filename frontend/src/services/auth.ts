@@ -9,6 +9,11 @@ export const authUserSchema = z.object({
   role: z.enum(['ADMIN', 'CUSTOMER']),
 });
 
+export const authSessionSchema = z.object({
+  authenticated: z.boolean(),
+  user: authUserSchema.nullable(),
+});
+
 export const loginInputSchema = z.object({
   email: z.email().trim().toLowerCase(),
   password: z.string().min(8),
@@ -27,6 +32,7 @@ export const registerInputSchema = z
   });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
+export type AuthSession = z.infer<typeof authSessionSchema>;
 export type LoginInput = z.infer<typeof loginInputSchema>;
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
@@ -50,7 +56,7 @@ export async function register(input: RegisterInput) {
 export async function getProfile() {
   const response = await api.get(apiConfig.endpoints.auth.profile);
 
-  return authUserSchema.parse(response.data);
+  return authSessionSchema.parse(response.data);
 }
 
 export async function logout() {

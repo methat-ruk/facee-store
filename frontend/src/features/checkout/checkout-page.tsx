@@ -59,7 +59,7 @@ export function CheckoutPage() {
       return;
     }
 
-    router.replace('/login');
+    router.replace('/login?reason=auth-required');
   }, [isAuthInitialized, router, user]);
 
   if (!isAuthInitialized || isRestoringProfile) {
