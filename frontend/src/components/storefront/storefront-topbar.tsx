@@ -27,9 +27,11 @@ import { getCartItemCount, useCartStore } from '@/store/use-cart-store';
 import { storefrontNavItems } from './storefront-nav';
 
 function StorefrontMenuPanel({
+  onAction,
   showBrand = true,
   showNavigation = true,
 }: {
+  onAction?: () => void;
   showBrand?: boolean;
   showNavigation?: boolean;
 }) {
@@ -43,13 +45,19 @@ function StorefrontMenuPanel({
           <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {t('menuNavigate')}
           </p>
-          <RouteTabs items={[...storefrontNavItems]} vertical />
+          <RouteTabs
+            items={[...storefrontNavItems]}
+            vertical
+            onAction={onAction}
+          />
           <Button
             asChild
             variant="ghost"
             className="w-full justify-start rounded-xl px-4 py-3 text-left text-foreground/80 hover:bg-muted hover:text-foreground"
           >
-            <Link href="/cart">{t('cart')}</Link>
+            <Link href="/cart" onClick={onAction}>
+              {t('cart')}
+            </Link>
           </Button>
         </div>
       ) : null}
@@ -59,8 +67,8 @@ function StorefrontMenuPanel({
           {t('menuPreferences')}
         </p>
         <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/80 px-4 py-3">
-          <LocaleSwitcher />
-          <ThemeSwitch />
+          <LocaleSwitcher onAction={onAction} />
+          <ThemeSwitch onAction={onAction} />
         </div>
       </div>
       <Separator />
@@ -68,7 +76,7 @@ function StorefrontMenuPanel({
         <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {t('menuAccount')}
         </p>
-        <AuthActions menu />
+        <AuthActions menu onAction={onAction} />
       </div>
     </div>
   );
@@ -155,7 +163,10 @@ export function StorefrontTopbar() {
                 sideOffset={16}
                 className="mt-4 w-100 max-w-[calc(100vw-2rem)] rounded-[1.75rem] p-4"
               >
-                <StorefrontMenuPanel showNavigation={false} />
+                <StorefrontMenuPanel
+                  showNavigation={false}
+                  onAction={() => setDesktopMenuOpen(false)}
+                />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -185,7 +196,9 @@ export function StorefrontTopbar() {
                   controls.
                 </SheetDescription>
 
-                <StorefrontMenuPanel />
+                <StorefrontMenuPanel
+                  onAction={() => setMobileMenuOpen(false)}
+                />
               </SheetContent>
             </Sheet>
           </div>

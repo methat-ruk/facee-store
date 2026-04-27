@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AuthModule } from './api/modules/auth/auth.module';
 import { CategoriesModule } from './api/modules/categories/categories.module';
 import { HealthModule } from './api/modules/health/health.module';
 import { ProductsModule } from './api/modules/products/products.module';
@@ -21,6 +22,7 @@ import { PrismaModule } from './prisma/prisma.module';
       },
     ]),
     PrismaModule,
+    AuthModule,
     CategoriesModule,
     HealthModule,
     ProductsModule,

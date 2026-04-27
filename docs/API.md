@@ -38,6 +38,120 @@ Expected item shape:
 }
 ```
 
+### `POST /api/auth/register`
+
+Creates a customer account, sets an HttpOnly session cookie, and returns the
+authenticated profile.
+
+This endpoint sends `Cache-Control: private, no-store, no-cache, max-age=0, must-revalidate`.
+
+Request shape:
+
+```json
+{
+  "fullName": "Facee Customer",
+  "email": "customer@example.com",
+  "password": "password123",
+  "confirmPassword": "password123"
+}
+```
+
+Response shape:
+
+```json
+{
+  "id": "string",
+  "email": "customer@example.com",
+  "fullName": "Facee Customer",
+  "role": "CUSTOMER"
+}
+```
+
+Duplicate emails return `409`.
+
+Auth errors now use a shared error envelope:
+
+```json
+{
+  "statusCode": 409,
+  "code": "AUTH_EMAIL_ALREADY_EXISTS",
+  "message": "This email is already registered.",
+  "fieldErrors": {
+    "email": ["AUTH_EMAIL_ALREADY_EXISTS"]
+  }
+}
+```
+
+### `POST /api/auth/login`
+
+Authenticates an existing customer, sets an HttpOnly session cookie, and returns
+the authenticated profile.
+
+This endpoint sends `Cache-Control: private, no-store, no-cache, max-age=0, must-revalidate`.
+
+Request shape:
+
+```json
+{
+  "email": "customer@example.com",
+  "password": "password123"
+}
+```
+
+Invalid credentials return `401`.
+
+Validation failures return `400` with `code: "VALIDATION_FAILED"` and
+field-level codes such as `INVALID_EMAIL`, `PASSWORD_TOO_SHORT`, `REQUIRED`, or
+`PASSWORD_MISMATCH`.
+
+### `POST /api/auth/logout`
+
+Clears the auth cookie.
+
+This endpoint sends `Cache-Control: private, no-store, no-cache, max-age=0, must-revalidate`.
+
+Expected response:
+
+```json
+{
+  "ok": true
+}
+```
+
+### `GET /api/auth/profile`
+
+Returns the current session state from the HttpOnly cookie session.
+
+Guest response shape:
+
+```json
+{
+  "authenticated": false,
+  "user": null
+}
+```
+
+Authenticated response shape:
+
+```json
+{
+  "authenticated": true,
+  "user": {
+    "id": "string",
+    "email": "customer@example.com",
+    "fullName": "Facee Customer",
+    "role": "CUSTOMER"
+  }
+}
+```
+
+This endpoint is guest-safe and returns `200` for both guests and authenticated
+customers so the storefront can restore session state without surfacing a `401`
+for expected guest traffic. It also sends
+`Cache-Control: private, no-store, no-cache, max-age=0, must-revalidate` so
+session state is always treated as fresh and does not rely on `304 Not Modified`
+revalidation behavior.
+
 ### `GET /api/products`
 
 Returns published storefront products.
@@ -108,13 +222,13 @@ Unknown or unpublished slugs return `404`.
 Implemented:
 
 - health
+- customer auth
 - category listing
 - product listing
 - product detail by slug
 
 Planned but not implemented yet:
 
-- auth
 - cart
 - checkout
 - admin CRUD

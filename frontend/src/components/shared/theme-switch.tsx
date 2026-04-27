@@ -6,7 +6,11 @@ import { useTheme } from '@/components/providers/theme-provider';
 import { useHydrated } from '@/hooks/use-hydrated';
 import { Switch } from '@/components/ui/switch';
 
-export function ThemeSwitch() {
+type ThemeSwitchProps = {
+  onAction?: () => void;
+};
+
+export function ThemeSwitch({ onAction }: ThemeSwitchProps) {
   const t = useTranslations('topbar');
   const { resolvedTheme, setTheme } = useTheme();
   const isHydrated = useHydrated();
@@ -19,7 +23,10 @@ export function ThemeSwitch() {
       <span className="min-w-0">{t('theme')}</span>
       <Switch
         checked={isDark}
-        onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+        onCheckedChange={(checked) => {
+          setTheme(checked ? 'dark' : 'light');
+          onAction?.();
+        }}
         aria-label={isDark ? t('themeDark') : t('themeLight')}
         disabled={!isHydrated}
         className="justify-self-end"

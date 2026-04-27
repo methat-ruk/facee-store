@@ -7,7 +7,11 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import { Switch } from '@/components/ui/switch';
 
-export function LocaleSwitcher() {
+type LocaleSwitcherProps = {
+  onAction?: () => void;
+};
+
+export function LocaleSwitcher({ onAction }: LocaleSwitcherProps) {
   const locale = useLocale() as AppLocale;
   const pathname = usePathname();
   const router = useRouter();
@@ -28,6 +32,8 @@ export function LocaleSwitcher() {
         locale: nextLocale as AppLocale,
       });
     });
+
+    onAction?.();
   }
 
   return (
