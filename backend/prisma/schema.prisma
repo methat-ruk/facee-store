@@ -16,6 +16,10 @@ model User {
   email        String   @unique
   fullName     String
   passwordHash String?
+  phone        String?
+  addressLine  String?
+  city         String?
+  postalCode   String?
   role         UserRole @default(CUSTOMER)
   orders       Order[]
   createdAt    DateTime @default(now())

@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Link, useRouter } from '@/i18n/navigation';
+import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
 import { useCartView } from '@/features/cart/use-cart-view';
 import { useAuthStore } from '@/store/use-auth-store';
 
@@ -59,7 +60,7 @@ export function CheckoutPage() {
       return;
     }
 
-    router.replace('/login?reason=auth-required');
+    router.replace(buildAuthNoticeHref('/login', 'auth-required', '/checkout'));
   }, [isAuthInitialized, router, user]);
 
   if (!isAuthInitialized || isRestoringProfile) {

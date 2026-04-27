@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
+import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
 import { useAuthStore } from '@/store/use-auth-store';
 
 type AuthActionsProps = {
@@ -55,7 +56,7 @@ export function AuthActions({
                 try {
                   await logout();
                   onAction?.();
-                  router.replace('/login?loggedOut=1');
+                  router.replace(buildAuthNoticeHref('/login', 'logged-out'));
                   router.refresh();
                 } catch {
                   // Logout errors stay in the store for future handling.

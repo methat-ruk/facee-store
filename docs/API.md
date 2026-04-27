@@ -63,6 +63,10 @@ Response shape:
   "id": "string",
   "email": "customer@example.com",
   "fullName": "Facee Customer",
+  "phone": null,
+  "addressLine": null,
+  "city": null,
+  "postalCode": null,
   "role": "CUSTOMER"
 }
 ```
@@ -140,6 +144,10 @@ Authenticated response shape:
     "id": "string",
     "email": "customer@example.com",
     "fullName": "Facee Customer",
+    "phone": null,
+    "addressLine": null,
+    "city": null,
+    "postalCode": null,
     "role": "CUSTOMER"
   }
 }

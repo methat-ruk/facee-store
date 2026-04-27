@@ -138,12 +138,20 @@ export class AuthService {
     id: string;
     email: string;
     fullName: string;
+    phone: string | null;
+    addressLine: string | null;
+    city: string | null;
+    postalCode: string | null;
     role: 'ADMIN' | 'CUSTOMER';
   }): AuthProfileResponseDto {
     return {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
+      phone: user.phone,
+      addressLine: user.addressLine,
+      city: user.city,
+      postalCode: user.postalCode,
       role: user.role,
     };
   }
