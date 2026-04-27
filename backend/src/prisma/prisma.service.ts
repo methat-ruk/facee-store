@@ -39,6 +39,14 @@ export class PrismaService implements OnModuleDestroy {
     return this.client.$disconnect();
   }
 
+  $transaction<T>(
+    fn: (
+      transaction: Omit<PrismaClient, '$connect' | '$disconnect'>,
+    ) => Promise<T>,
+  ) {
+    return this.client.$transaction(fn);
+  }
+
   async onModuleDestroy() {
     await this.$disconnect();
   }

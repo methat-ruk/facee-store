@@ -6,6 +6,7 @@ import { AuthModule } from './api/modules/auth/auth.module';
 import { CategoriesModule } from './api/modules/categories/categories.module';
 import { HealthModule } from './api/modules/health/health.module';
 import { ProductsModule } from './api/modules/products/products.module';
+import { OrdersModule } from './api/modules/orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     CategoriesModule,
     HealthModule,
+    OrdersModule,
     ProductsModule,
   ],
   providers: [

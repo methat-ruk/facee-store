@@ -57,25 +57,36 @@ model Product {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  orderNo    String      @unique
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
-  status     OrderStatus @default(PENDING)
-  total      Decimal     @db.Decimal(10, 2)
-  items      OrderItem[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id                  String      @id @default(cuid())
+  orderNo             String      @unique
+  userId              String
+  user                User        @relation(fields: [userId], references: [id])
+  status              OrderStatus @default(PENDING)
+  customerFullName    String?
+  customerEmail       String?
+  customerPhone       String?
+  shippingAddressLine String?
+  shippingCity        String?
+  shippingPostalCode  String?
+  subtotal            Decimal?    @db.Decimal(10, 2)
+  shippingTotal       Decimal?    @db.Decimal(10, 2)
+  total               Decimal     @db.Decimal(10, 2)
+  items               OrderItem[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  unitPrice Decimal  @db.Decimal(10, 2)
-  order     Order    @relation(fields: [orderId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  id             String   @id @default(cuid())
+  orderId        String
+  productId      String
+  productName    String?
+  productSlug    String?
+  productImageUrl String?
+  quantity       Int
+  unitPrice      Decimal  @db.Decimal(10, 2)
+  order          Order    @relation(fields: [orderId], references: [id])
+  product        Product  @relation(fields: [productId], references: [id])
 }
 
 enum UserRole {

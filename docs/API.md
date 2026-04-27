@@ -160,6 +160,74 @@ for expected guest traffic. It also sends
 session state is always treated as fresh and does not rely on `304 Not Modified`
 revalidation behavior.
 
+### `POST /api/orders`
+
+Creates a real pending order for the authenticated customer, recalculates totals
+on the server, deducts stock immediately, and syncs the latest checkout contact
+details back to the user profile.
+
+Request shape:
+
+```json
+{
+  "fullName": "Facee Customer",
+  "email": "customer@example.com",
+  "phone": "0800000000",
+  "addressLine": "123 Facee Road",
+  "city": "Bangkok",
+  "postalCode": "10110",
+  "items": [
+    {
+      "productId": "string",
+      "quantity": 2
+    }
+  ]
+}
+```
+
+Success response:
+
+```json
+{
+  "orderNo": "FC-20260427-123456"
+}
+```
+
+Order creation errors may return:
+
+- `ORDER_EMPTY`
+- `ORDER_STOCK_CHANGED`
+- `ORDER_UNAVAILABLE_ITEMS`
+
+### `GET /api/orders/:orderNo`
+
+Returns one owned order by order number for the authenticated customer.
+
+Response shape:
+
+```json
+{
+  "orderNo": "FC-20260427-123456",
+  "status": "PENDING",
+  "createdAt": "2026-04-27T10:00:00.000Z",
+  "contact": {
+    "fullName": "Facee Customer",
+    "email": "customer@example.com",
+    "phone": "0800000000",
+    "addressLine": "123 Facee Road",
+    "city": "Bangkok",
+    "postalCode": "10110"
+  },
+  "items": [],
+  "subtotal": 900,
+  "shippingTotal": 0,
+  "total": 900
+}
+```
+
+Unknown or inaccessible order numbers return `404` with
+`code: "ORDER_NOT_FOUND"`.
+
 ### `GET /api/products`
 
 Returns published storefront products.

@@ -3,6 +3,7 @@
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
+import { getShippingFee } from '@/features/checkout/checkout-ui';
 import { getLocalizedProduct } from '@/features/products/localized-content';
 import type { ProductDetail } from '@/features/products/schemas';
 import { getProductDetail } from '@/services/catalog';
@@ -58,6 +59,7 @@ export function useCartView() {
   >({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasRefreshError, setHasRefreshError] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const cartKey = useMemo(
     () => items.map((item) => `${item.id}:${item.slug}`).join('|'),
@@ -65,11 +67,23 @@ export function useCartView() {
   );
 
   useEffect(() => {
-    if (items.length === 0) {
-      return;
-    }
-
     let isCancelled = false;
+
+    if (items.length === 0) {
+      window.queueMicrotask(() => {
+        if (isCancelled) {
+          return;
+        }
+
+        setRefreshResults({});
+        setIsRefreshing(false);
+        setHasRefreshError(false);
+      });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
 
     window.queueMicrotask(() => {
       if (isCancelled) {
@@ -144,7 +158,7 @@ export function useCartView() {
     return () => {
       isCancelled = true;
     };
-  }, [cartKey, items, updateItemQuantity]);
+  }, [cartKey, items, refreshToken, updateItemQuantity]);
 
   const viewItems = useMemo<CartViewItem[]>(() => {
     return items.map((item) => {
@@ -193,7 +207,7 @@ export function useCartView() {
   }, [items, locale, refreshResults]);
 
   const subtotal = getCartTotal(viewItems);
-  const shipping = subtotal > 0 ? 0 : 0;
+  const shipping = getShippingFee(subtotal);
   const total = subtotal + shipping;
 
   return {
@@ -208,6 +222,7 @@ export function useCartView() {
     hasSnapshotItems: viewItems.some((item) => item.isSnapshot),
     hasAdjustedItems: viewItems.some((item) => item.wasAdjusted),
     hasUnavailableItems: viewItems.some((item) => item.isUnavailable),
+    refreshCart: () => setRefreshToken((current) => current + 1),
     updateItemQuantity,
     removeItem,
     clearCart,
