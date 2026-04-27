@@ -1,0 +1,5 @@
+ALTER TABLE "User"
+ADD COLUMN "phone" TEXT,
+ADD COLUMN "addressLine" TEXT,
+ADD COLUMN "city" TEXT,
+ADD COLUMN "postalCode" TEXT;

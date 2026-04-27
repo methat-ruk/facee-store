@@ -61,6 +61,10 @@ describe('AuthService', () => {
       id: 'cm8user000001234567890123',
       email: 'new@example.com',
       fullName: 'New Customer',
+      phone: null,
+      addressLine: null,
+      city: null,
+      postalCode: null,
       role: 'CUSTOMER',
     });
     signAsync.mockResolvedValue('jwt-token');
@@ -77,6 +81,10 @@ describe('AuthService', () => {
         id: 'cm8user000001234567890123',
         email: 'new@example.com',
         fullName: 'New Customer',
+        phone: null,
+        addressLine: null,
+        city: null,
+        postalCode: null,
         role: 'CUSTOMER',
       },
       token: 'jwt-token',
@@ -123,6 +131,10 @@ describe('AuthService', () => {
       email: 'customer@example.com',
       fullName: 'Customer',
       passwordHash: 'hashed-password',
+      phone: null,
+      addressLine: null,
+      city: null,
+      postalCode: null,
       role: 'CUSTOMER',
     });
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
@@ -138,6 +150,10 @@ describe('AuthService', () => {
         id: 'cm8user000001234567890123',
         email: 'customer@example.com',
         fullName: 'Customer',
+        phone: null,
+        addressLine: null,
+        city: null,
+        postalCode: null,
         role: 'CUSTOMER',
       },
       token: 'jwt-token',
@@ -152,6 +168,10 @@ describe('AuthService', () => {
       email: 'customer@example.com',
       fullName: 'Customer',
       passwordHash: 'hashed-password',
+      phone: null,
+      addressLine: null,
+      city: null,
+      postalCode: null,
       role: 'CUSTOMER',
     });
     jest.mocked(bcrypt.compare).mockResolvedValue(false as never);
@@ -179,6 +199,10 @@ describe('AuthService', () => {
       id: 'cm8user000001234567890123',
       email: 'customer@example.com',
       fullName: 'Customer',
+      phone: '0800000000',
+      addressLine: '123 Facee Road',
+      city: 'Bangkok',
+      postalCode: '10110',
       role: 'CUSTOMER',
     });
 
@@ -188,6 +212,10 @@ describe('AuthService', () => {
       id: 'cm8user000001234567890123',
       email: 'customer@example.com',
       fullName: 'Customer',
+      phone: '0800000000',
+      addressLine: '123 Facee Road',
+      city: 'Bangkok',
+      postalCode: '10110',
       role: 'CUSTOMER',
     });
   });
@@ -218,6 +246,10 @@ describe('AuthService', () => {
       id: 'cm8user000001234567890123',
       email: 'customer@example.com',
       fullName: 'Customer',
+      phone: null,
+      addressLine: null,
+      city: null,
+      postalCode: null,
       role: 'CUSTOMER',
     });
 
@@ -225,6 +257,10 @@ describe('AuthService', () => {
       id: 'cm8user000001234567890123',
       email: 'customer@example.com',
       fullName: 'Customer',
+      phone: null,
+      addressLine: null,
+      city: null,
+      postalCode: null,
       role: 'CUSTOMER',
     });
   });

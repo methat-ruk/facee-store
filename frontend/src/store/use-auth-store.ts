@@ -27,6 +27,7 @@ type AuthStore = {
   register: (input: RegisterInput) => Promise<AuthUser>;
   logout: () => Promise<void>;
   clearError: () => void;
+  clearSession: () => void;
 };
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -135,4 +136,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
   clearError: () => set({ error: null, errorSource: null }),
+  clearSession: () =>
+    set({
+      user: null,
+      isInitialized: true,
+      isRestoringProfile: false,
+      error: null,
+      errorSource: null,
+    }),
 }));

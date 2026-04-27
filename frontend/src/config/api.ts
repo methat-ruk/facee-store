@@ -20,6 +20,7 @@ export const apiConfig = {
     },
     cart: '/cart',
     orders: '/orders',
+    orderDetail: (orderNo: string) => `/orders/${orderNo}`,
     admin: {
       dashboard: '/admin/dashboard',
       products: '/admin/products',

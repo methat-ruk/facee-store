@@ -21,6 +21,10 @@ import {
   type AuthFieldErrors,
   type AuthMessageKey,
 } from '@/features/auth/auth-error-messages';
+import {
+  buildAuthNoticeHref,
+  sanitizeReturnTo,
+} from '@/features/auth/auth-routing';
 import { isApiError } from '@/services/api-error';
 import { useAuthStore } from '@/store/use-auth-store';
 
@@ -51,6 +55,7 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
   const isRegister = mode === 'register';
   const loggedOut = searchParams.get('loggedOut') === '1';
   const noticeReason = searchParams.get('reason');
+  const returnTo = sanitizeReturnTo(searchParams.get('returnTo'));
   const login = useAuthStore((state) => state.login);
   const register = useAuthStore((state) => state.register);
   const isLoggingIn = useAuthStore((state) => state.isLoggingIn);
@@ -69,6 +74,22 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
         : noticeReason === 'auth-required'
           ? 'loginRequiredNotice'
           : null;
+  const alternateAuthPath = isRegister ? '/login' : '/register';
+  const alternateAuthHref = (() => {
+    if (
+      noticeReason === 'auth-required' ||
+      noticeReason === 'session-expired' ||
+      noticeReason === 'access-denied'
+    ) {
+      return buildAuthNoticeHref(alternateAuthPath, noticeReason, returnTo);
+    }
+
+    if (!returnTo) {
+      return alternateAuthPath;
+    }
+
+    return `${alternateAuthPath}?returnTo=${encodeURIComponent(returnTo)}`;
+  })();
 
   useEffect(() => {
     let isCancelled = false;
@@ -92,13 +113,18 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
     }
 
     const timeoutId = window.setTimeout(() => {
+      if (returnTo) {
+        router.replace(`${pathname}?returnTo=${encodeURIComponent(returnTo)}`);
+        return;
+      }
+
       router.replace(pathname);
     }, 3000);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [loggedOut, noticeReason, pathname, router]);
+  }, [loggedOut, noticeReason, pathname, returnTo, router]);
 
   const validateForm = (): AuthFieldErrors => {
     const nextErrors: AuthFieldErrors = {};
@@ -175,7 +201,7 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
         });
       }
 
-      router.push('/products');
+      router.push(returnTo ?? '/products');
     } catch (error) {
       if (isApiError(error)) {
         const nextFieldErrors = getAuthFieldErrors(error);
@@ -193,7 +219,6 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
       setFormErrorKey(getAuthFormMessageKey(mode, 'INTERNAL_SERVER_ERROR'));
     }
   };
-
   return (
     <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6">
       <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
@@ -379,7 +404,7 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
                   {isRegister ? t('registerHelper') : t('loginHelper')}
                 </span>
                 <Link
-                  href={isRegister ? '/login' : '/register'}
+                  href={alternateAuthHref}
                   className="inline-flex cursor-pointer items-center border-b border-current pb-0.5 font-medium leading-none text-foreground transition-colors hover:text-[#8c5a46]"
                 >
                   {isRegister ? t('goToLogin') : t('goToRegister')}

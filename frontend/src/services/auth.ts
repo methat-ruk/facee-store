@@ -6,6 +6,10 @@ export const authUserSchema = z.object({
   id: z.string(),
   email: z.email(),
   fullName: z.string(),
+  phone: z.string().nullable(),
+  addressLine: z.string().nullable(),
+  city: z.string().nullable(),
+  postalCode: z.string().nullable(),
   role: z.enum(['ADMIN', 'CUSTOMER']),
 });
 

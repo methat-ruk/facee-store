@@ -5,6 +5,10 @@ export const authProfileResponseSchema = z.object({
   id: z.cuid(),
   email: z.email(),
   fullName: z.string(),
+  phone: z.string().nullable(),
+  addressLine: z.string().nullable(),
+  city: z.string().nullable(),
+  postalCode: z.string().nullable(),
   role: z.enum(['ADMIN', 'CUSTOMER']),
 });
 

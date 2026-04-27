@@ -47,6 +47,10 @@ function getIssueFieldCode(field: string, issue: ZodIssueLike): ApiErrorCode {
     return API_ERROR_CODES.invalidEmail;
   }
 
+  if (field === 'phone' && issue.code === 'invalid_format') {
+    return API_ERROR_CODES.invalidPhone;
+  }
+
   if (field === 'password' && issue.code === 'too_small') {
     return API_ERROR_CODES.passwordTooShort;
   }
