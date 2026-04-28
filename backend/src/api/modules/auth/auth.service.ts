@@ -169,4 +169,12 @@ export class AuthService {
 
     return this.jwtService.signAsync(payload);
   }
+
+  issueUserToken(user: {
+    id: string;
+    email: string;
+    role: 'ADMIN' | 'CUSTOMER';
+  }) {
+    return this.signUserToken(user);
+  }
 }

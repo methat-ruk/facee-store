@@ -4,32 +4,33 @@ import {
   AlertTriangleIcon,
   ArrowLeftIcon,
   ClipboardListIcon,
+  MapPinIcon,
   ShoppingCartIcon,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Link, useRouter } from '@/i18n/navigation';
 import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
+import type { Address } from '@/features/account/schemas';
 import { useCartView } from '@/features/cart/use-cart-view';
 import {
   checkoutPrimaryButtonClassName,
   FREE_SHIPPING_THRESHOLD,
-  normalizePhoneInput,
 } from '@/features/checkout/checkout-ui';
+import { Link, useRouter } from '@/i18n/navigation';
 import { isApiError } from '@/services/api-error';
+import { listAddresses } from '@/services/account';
 import { createOrder } from '@/services/orders';
 import { useAuthStore } from '@/store/use-auth-store';
 
@@ -37,47 +38,12 @@ function formatPrice(value: number) {
   return `THB ${value.toFixed(2)}`;
 }
 
-type CheckoutField =
-  | 'fullName'
-  | 'email'
-  | 'phone'
-  | 'addressLine'
-  | 'city'
-  | 'postalCode';
-
-type CheckoutFieldMessageKey =
-  | 'errorFullNameRequired'
-  | 'errorEmailRequired'
-  | 'errorEmailInvalid'
-  | 'errorEmailExists'
-  | 'errorPhoneRequired'
-  | 'errorPhoneInvalid'
-  | 'errorAddressLineRequired'
-  | 'errorCityRequired'
-  | 'errorPostalCodeRequired';
-
-type CheckoutFieldErrors = Partial<
-  Record<CheckoutField, CheckoutFieldMessageKey>
->;
-
-type CheckoutFormState = Record<CheckoutField, string>;
-
-const initialFormState: CheckoutFormState = {
-  fullName: '',
-  email: '',
-  phone: '',
-  addressLine: '',
-  city: '',
-  postalCode: '',
-};
-
 export function CheckoutPage() {
   const t = useTranslations('checkout');
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const isAuthInitialized = useAuthStore((state) => state.isInitialized);
   const isRestoringProfile = useAuthStore((state) => state.isRestoringProfile);
-  const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const {
     items,
     viewItems,
@@ -93,9 +59,12 @@ export function CheckoutPage() {
     refreshCart,
     clearCart,
   } = useCartView();
-  const [formState, setFormState] =
-    useState<CheckoutFormState>(initialFormState);
-  const [fieldErrors, setFieldErrors] = useState<CheckoutFieldErrors>({});
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null,
+  );
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
+  const [addressError, setAddressError] = useState<string | null>(null);
   const [formErrorKey, setFormErrorKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -114,139 +83,42 @@ export function CheckoutPage() {
 
     let isCancelled = false;
 
-    window.queueMicrotask(() => {
-      if (isCancelled) {
-        return;
-      }
+    void listAddresses()
+      .then((response) => {
+        if (isCancelled) {
+          return;
+        }
 
-      setFormState({
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone ?? '',
-        addressLine: user.addressLine ?? '',
-        city: user.city ?? '',
-        postalCode: user.postalCode ?? '',
+        setAddresses(response.items);
+        setSelectedAddressId(
+          response.items.find((address) => address.isDefault)?.id ??
+            response.items[0]?.id ??
+            null,
+        );
+        setIsLoadingAddresses(false);
+      })
+      .catch(() => {
+        if (isCancelled) {
+          return;
+        }
+
+        setAddressError('errorAddressLoadFailed');
+        setIsLoadingAddresses(false);
       });
-    });
 
     return () => {
       isCancelled = true;
     };
   }, [user]);
 
-  const updateField = (field: CheckoutField, value: string) => {
-    setFormState((current) => ({
-      ...current,
-      [field]: value,
-    }));
-    setFieldErrors((current) => {
-      if (!current[field]) {
-        return current;
-      }
+  const selectedAddress = useMemo(
+    () => addresses.find((address) => address.id === selectedAddressId) ?? null,
+    [addresses, selectedAddressId],
+  );
 
-      const nextErrors = { ...current };
-      delete nextErrors[field];
-
-      return nextErrors;
-    });
-    setFormErrorKey(null);
-  };
-
-  const validateForm = (): CheckoutFieldErrors => {
-    const nextErrors: CheckoutFieldErrors = {};
-
-    if (!formState.fullName.trim()) {
-      nextErrors.fullName = 'errorFullNameRequired';
-    }
-
-    if (!formState.email.trim()) {
-      nextErrors.email = 'errorEmailRequired';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formState.email.trim())) {
-      nextErrors.email = 'errorEmailInvalid';
-    }
-
-    if (!formState.phone.trim()) {
-      nextErrors.phone = 'errorPhoneRequired';
-    } else if (!/^\d{1,10}$/.test(formState.phone.trim())) {
-      nextErrors.phone = 'errorPhoneInvalid';
-    }
-
-    if (!formState.addressLine.trim()) {
-      nextErrors.addressLine = 'errorAddressLineRequired';
-    }
-
-    if (!formState.city.trim()) {
-      nextErrors.city = 'errorCityRequired';
-    }
-
-    if (!formState.postalCode.trim()) {
-      nextErrors.postalCode = 'errorPostalCodeRequired';
-    }
-
-    return nextErrors;
-  };
-
-  const getCheckoutFieldErrors = (error: unknown): CheckoutFieldErrors => {
-    if (!isApiError(error)) {
-      return {};
-    }
-
-    const nextErrors: CheckoutFieldErrors = {};
-
-    for (const [field, codes] of Object.entries(error.fieldErrors ?? {})) {
-      if (
-        field !== 'fullName' &&
-        field !== 'email' &&
-        field !== 'phone' &&
-        field !== 'addressLine' &&
-        field !== 'city' &&
-        field !== 'postalCode'
-      ) {
-        continue;
-      }
-
-      if (codes.includes('AUTH_EMAIL_ALREADY_EXISTS')) {
-        nextErrors[field] = 'errorEmailExists';
-        continue;
-      }
-
-      if (codes.includes('INVALID_EMAIL')) {
-        nextErrors[field] = 'errorEmailInvalid';
-        continue;
-      }
-
-      if (codes.includes('REQUIRED')) {
-        nextErrors[field] =
-          field === 'fullName'
-            ? 'errorFullNameRequired'
-            : field === 'email'
-              ? 'errorEmailRequired'
-              : field === 'phone'
-                ? 'errorPhoneRequired'
-                : field === 'addressLine'
-                  ? 'errorAddressLineRequired'
-                  : field === 'city'
-                    ? 'errorCityRequired'
-                    : 'errorPostalCodeRequired';
-        continue;
-      }
-
-      if (field === 'phone' && codes.includes('INVALID_PHONE')) {
-        nextErrors.phone = 'errorPhoneInvalid';
-      }
-    }
-
-    return nextErrors;
-  };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const nextFieldErrors = validateForm();
-    setFieldErrors(nextFieldErrors);
-    setFormErrorKey(null);
-
-    if (Object.keys(nextFieldErrors).length > 0) {
+  const handleSubmit = async () => {
+    if (!selectedAddressId) {
+      setFormErrorKey('errorAddressRequired');
       return;
     }
 
@@ -256,15 +128,11 @@ export function CheckoutPage() {
     }
 
     setIsSubmitting(true);
+    setFormErrorKey(null);
 
     try {
       const response = await createOrder({
-        fullName: formState.fullName,
-        email: formState.email,
-        phone: formState.phone,
-        addressLine: formState.addressLine,
-        city: formState.city,
-        postalCode: formState.postalCode,
+        addressId: selectedAddressId,
         items: viewItems
           .filter((item) => !item.isUnavailable)
           .map((item) => ({
@@ -274,32 +142,21 @@ export function CheckoutPage() {
       });
 
       clearCart();
-      await refreshProfile();
       router.push(`/checkout/success/${response.orderNo}`);
     } catch (error) {
-      const nextFieldErrorsFromApi = getCheckoutFieldErrors(error);
-      setFieldErrors(nextFieldErrorsFromApi);
-
       if (isApiError(error)) {
-        if (
-          error.code === 'ORDER_STOCK_CHANGED' ||
-          error.code === 'ORDER_UNAVAILABLE_ITEMS' ||
-          error.code === 'ORDER_EMPTY'
-        ) {
-          setFormErrorKey(
-            error.code === 'ORDER_STOCK_CHANGED'
-              ? 'errorStockChanged'
-              : error.code === 'ORDER_UNAVAILABLE_ITEMS'
-                ? 'errorUnavailableItems'
-                : 'errorEmptyOrder',
-          );
+        if (error.code === 'ORDER_STOCK_CHANGED') {
+          setFormErrorKey('errorStockChanged');
           refreshCart();
-        } else if (Object.keys(nextFieldErrorsFromApi).length === 0) {
-          setFormErrorKey(
-            error.code === 'AUTH_EMAIL_ALREADY_EXISTS'
-              ? 'errorEmailExists'
-              : 'errorSubmitFailed',
-          );
+        } else if (error.code === 'ORDER_UNAVAILABLE_ITEMS') {
+          setFormErrorKey('errorUnavailableItems');
+          refreshCart();
+        } else if (error.code === 'ORDER_EMPTY') {
+          setFormErrorKey('errorEmptyOrder');
+        } else if (error.code === 'ADDRESS_NOT_FOUND') {
+          setFormErrorKey('errorAddressMissing');
+        } else {
+          setFormErrorKey('errorSubmitFailed');
         }
       } else {
         setFormErrorKey('errorSubmitFailed');
@@ -309,7 +166,7 @@ export function CheckoutPage() {
     }
   };
 
-  if (!isAuthInitialized || isRestoringProfile) {
+  if (!isAuthInitialized || isRestoringProfile || isLoadingAddresses) {
     return (
       <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center gap-4 text-center">
@@ -413,151 +270,85 @@ export function CheckoutPage() {
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
         <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
-          <CardHeader className="gap-3">
-            <CardTitle>{t('contactTitle')}</CardTitle>
-            <p className="text-sm leading-7 text-muted-foreground">
-              {t('contactDescription')}
-            </p>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 items-center justify-center rounded-full border border-border bg-muted text-foreground">
+                <MapPinIcon />
+              </div>
+              <div className="flex flex-col gap-1">
+                <CardTitle>{t('addressTitle')}</CardTitle>
+                <CardDescription>{t('addressDescription')}</CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <form
-              id="checkout-contact-form"
-              className="grid gap-5 sm:grid-cols-2"
-              onSubmit={handleSubmit}
-            >
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="checkout-name">{t('fullName')}</Label>
-                <Input
-                  id="checkout-name"
-                  autoComplete="name"
-                  aria-invalid={Boolean(fieldErrors.fullName)}
-                  value={formState.fullName}
-                  placeholder={t('fullName')}
-                  onChange={(event) =>
-                    updateField('fullName', event.target.value)
-                  }
-                />
-                {fieldErrors.fullName ? (
-                  <p className="text-sm leading-6 text-destructive">
-                    {t(fieldErrors.fullName)}
-                  </p>
-                ) : null}
+          <CardContent className="flex flex-col gap-4">
+            {addressError ? (
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {t(addressError)}
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="checkout-email">{t('email')}</Label>
-                <Input
-                  id="checkout-email"
-                  type="email"
-                  autoComplete="email"
-                  aria-invalid={Boolean(fieldErrors.email)}
-                  value={formState.email}
-                  placeholder={t('email')}
-                  onChange={(event) => updateField('email', event.target.value)}
-                />
-                {fieldErrors.email ? (
-                  <p className="text-sm leading-6 text-destructive">
-                    {t(fieldErrors.email)}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="checkout-phone">{t('phone')}</Label>
-                <Input
-                  id="checkout-phone"
-                  type="tel"
-                  autoComplete="tel"
-                  aria-invalid={Boolean(fieldErrors.phone)}
-                  value={formState.phone}
-                  placeholder={t('phone')}
-                  inputMode="numeric"
-                  maxLength={10}
-                  onChange={(event) =>
-                    updateField(
-                      'phone',
-                      normalizePhoneInput(event.target.value),
-                    )
-                  }
-                />
-                {fieldErrors.phone ? (
-                  <p className="text-sm leading-6 text-destructive">
-                    {t(fieldErrors.phone)}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-2 sm:col-span-2">
-                <Label htmlFor="checkout-address">{t('addressLine')}</Label>
-                <Input
-                  id="checkout-address"
-                  autoComplete="street-address"
-                  aria-invalid={Boolean(fieldErrors.addressLine)}
-                  value={formState.addressLine}
-                  placeholder={t('addressLine')}
-                  onChange={(event) =>
-                    updateField('addressLine', event.target.value)
-                  }
-                />
-                {fieldErrors.addressLine ? (
-                  <p className="text-sm leading-6 text-destructive">
-                    {t(fieldErrors.addressLine)}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="checkout-city">{t('city')}</Label>
-                <Input
-                  id="checkout-city"
-                  autoComplete="address-level2"
-                  aria-invalid={Boolean(fieldErrors.city)}
-                  value={formState.city}
-                  placeholder={t('city')}
-                  onChange={(event) => updateField('city', event.target.value)}
-                />
-                {fieldErrors.city ? (
-                  <p className="text-sm leading-6 text-destructive">
-                    {t(fieldErrors.city)}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="checkout-postal-code">{t('postalCode')}</Label>
-                <Input
-                  id="checkout-postal-code"
-                  autoComplete="postal-code"
-                  aria-invalid={Boolean(fieldErrors.postalCode)}
-                  value={formState.postalCode}
-                  placeholder={t('postalCode')}
-                  onChange={(event) =>
-                    updateField('postalCode', event.target.value)
-                  }
-                />
-                {fieldErrors.postalCode ? (
-                  <p className="text-sm leading-6 text-destructive">
-                    {t(fieldErrors.postalCode)}
-                  </p>
-                ) : null}
-              </div>
+            ) : null}
 
-              {formErrorKey ? (
-                <div className="sm:col-span-2">
-                  <div className="flex flex-col gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-7 text-destructive">
-                    <p>{t(formErrorKey)}</p>
-                    {formErrorKey === 'errorStockChanged' ||
-                    formErrorKey === 'errorUnavailableItems' ||
-                    formErrorKey === 'errorEmptyOrder' ? (
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="w-fit"
-                      >
-                        <Link href="/cart">{t('fixCart')}</Link>
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-            </form>
+            {addresses.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-sm leading-7 text-muted-foreground">
+                <p>{t('addressEmpty')}</p>
+                <Button asChild variant="outline" size="sm" className="mt-3">
+                  <Link href="/profile">{t('manageAddresses')}</Link>
+                </Button>
+              </div>
+            ) : (
+              addresses.map((address) => {
+                const isSelected = address.id === selectedAddressId;
+
+                return (
+                  <button
+                    key={address.id}
+                    type="button"
+                    className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                      isSelected
+                        ? 'border-foreground bg-background/90'
+                        : 'border-border bg-background/70 hover:border-foreground/40'
+                    }`}
+                    onClick={() => {
+                      setSelectedAddressId(address.id);
+                      setFormErrorKey(null);
+                    }}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">
+                        {address.label}
+                      </p>
+                      {address.isDefault ? (
+                        <Badge variant="secondary">{t('defaultBadge')}</Badge>
+                      ) : null}
+                      {isSelected ? (
+                        <Badge variant="outline">{t('selectedBadge')}</Badge>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-sm leading-7 text-muted-foreground">
+                      <p>{address.recipientFullName}</p>
+                      <p>{address.recipientEmail}</p>
+                      <p>{address.recipientPhone}</p>
+                      <p>
+                        {address.addressLine}, {address.city}{' '}
+                        {address.postalCode}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+
+            {selectedAddress ? (
+              <p className="text-sm leading-7 text-muted-foreground">
+                {t('addressSnapshotNote')}
+              </p>
+            ) : null}
           </CardContent>
+          <CardFooter>
+            <Button asChild variant="outline">
+              <Link href="/profile">{t('manageAddresses')}</Link>
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)] lg:sticky lg:top-28">
@@ -611,9 +402,6 @@ export function CheckoutPage() {
                           {t('stockCount', { count: item.stock })}
                         </Badge>
                       ) : null}
-                      {isRefreshing ? (
-                        <Badge variant="secondary">{t('refreshing')}</Badge>
-                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -651,6 +439,12 @@ export function CheckoutPage() {
                 {formatPrice(total)}
               </span>
             </div>
+
+            {formErrorKey ? (
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {t(formErrorKey)}
+              </div>
+            ) : null}
           </CardContent>
           <CardFooter className="flex flex-col gap-3 bg-transparent">
             {hasUnavailableItems ? (
@@ -662,11 +456,11 @@ export function CheckoutPage() {
               </Button>
             ) : (
               <Button
-                type="submit"
-                form="checkout-contact-form"
+                type="button"
                 size="lg"
                 className={`w-full ${checkoutPrimaryButtonClassName}`}
-                disabled={isSubmitting || isRefreshing}
+                disabled={isSubmitting || isRefreshing || !selectedAddressId}
+                onClick={handleSubmit}
               >
                 <ClipboardListIcon data-icon="inline-start" />
                 {isSubmitting ? t('placingOrder') : t('placeOrder')}

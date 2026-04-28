@@ -1,28 +1,55 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { randomInt } from 'node:crypto';
-import type { Prisma } from '../../../generated/prisma/client.cjs';
+import type {
+  Order,
+  OrderCancellationRequest,
+  RefundStatus,
+  User,
+} from '../../../generated/prisma/client.cjs';
 import { AppException } from '../../../common/errors/app-exception';
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import { PrismaService } from '../../../prisma/prisma.service';
+import type { CreateCancellationRequest } from './dto/create-cancellation-request.dto';
 import type { CreateOrderRequest } from './dto/create-order-request.dto';
+import type { AdminReviewCancellationRequest } from './dto/admin-review-cancellation-request.dto';
 import type { OrderDetailResponseDto } from './dto/order-detail-response.dto';
+import type { OrderListResponseDto } from './dto/order-list-response.dto';
+import type { UpdateRefundStatusInput } from './dto/update-refund-status.dto';
 import { getShippingFee } from './order-pricing';
 
-type OrdersTransactionPrisma = {
-  order: Pick<PrismaService['order'], 'create'>;
-  product: Pick<PrismaService['product'], 'updateMany'>;
-  user: Pick<PrismaService['user'], 'update'>;
+type OrderContactSource = Pick<
+  Order,
+  | 'customerFullName'
+  | 'customerEmail'
+  | 'customerPhone'
+  | 'shippingAddressLine'
+  | 'shippingCity'
+  | 'shippingPostalCode'
+> & {
+  user: Pick<
+    User,
+    'fullName' | 'email' | 'phone' | 'addressLine' | 'city' | 'postalCode'
+  > | null;
 };
 
-type OrdersPrisma = {
-  client: {
-    $transaction: <T>(
-      fn: (transaction: OrdersTransactionPrisma) => Promise<T>,
-    ) => Promise<T>;
-  };
-  order: Pick<PrismaService['order'], 'findFirst'>;
-  product: Pick<PrismaService['product'], 'findMany'>;
-  user: Pick<PrismaService['user'], 'findFirst' | 'findUnique'>;
+type OrderDetailSource = OrderContactSource & {
+  orderNo: string;
+  status: Order['status'];
+  refundStatus: RefundStatus;
+  createdAt: Date;
+  subtotal: unknown;
+  shippingTotal: unknown;
+  total: unknown;
+  items: Array<{
+    id: string;
+    productId: string;
+    productName: string | null;
+    productSlug: string | null;
+    productImageUrl: string | null;
+    quantity: number;
+    unitPrice: unknown;
+  }>;
+  cancellationRequests: OrderCancellationRequest[];
 };
 
 const orderProductSelect = {
@@ -33,11 +60,13 @@ const orderProductSelect = {
   isPublished: true,
   price: true,
   stock: true,
-} satisfies Prisma.ProductSelect;
+} as const;
 
 const orderDetailSelect = {
+  id: true,
   orderNo: true,
   status: true,
+  refundStatus: true,
   createdAt: true,
   customerFullName: true,
   customerEmail: true,
@@ -69,47 +98,59 @@ const orderDetailSelect = {
       unitPrice: true,
     },
   },
-} satisfies Prisma.OrderSelect;
+  cancellationRequests: {
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 1,
+  },
+} as const;
+
+const orderListSelect = {
+  orderNo: true,
+  status: true,
+  refundStatus: true,
+  createdAt: true,
+  total: true,
+  customerFullName: true,
+  customerEmail: true,
+  customerPhone: true,
+  shippingAddressLine: true,
+  shippingCity: true,
+  shippingPostalCode: true,
+  user: {
+    select: {
+      fullName: true,
+      email: true,
+      phone: true,
+      addressLine: true,
+      city: true,
+      postalCode: true,
+    },
+  },
+  items: {
+    select: {
+      id: true,
+      productName: true,
+      productImageUrl: true,
+    },
+  },
+  cancellationRequests: {
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 1,
+  },
+} as const;
 
 @Injectable()
 export class OrdersService {
-  constructor(
-    @Inject(PrismaService)
-    private readonly prisma: OrdersPrisma,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async createOrder(userId: string, input: CreateOrderRequest) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
+    await this.ensureOwnedUser(userId);
 
-    if (!user) {
-      throw new AppException(
-        HttpStatus.UNAUTHORIZED,
-        API_ERROR_CODES.authUnauthorized,
-        'Authentication is required.',
-      );
-    }
-
-    const email = input.email.trim().toLowerCase();
-
-    if (email !== user.email) {
-      const existingUser = await this.prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (existingUser && existingUser.id !== userId) {
-        throw new AppException(
-          HttpStatus.CONFLICT,
-          API_ERROR_CODES.authEmailAlreadyExists,
-          'This email is already registered.',
-          {
-            email: [API_ERROR_CODES.authEmailAlreadyExists],
-          },
-        );
-      }
-    }
-
+    const address = await this.ensureOwnedAddress(userId, input.addressId);
     const normalizedItems = this.normalizeItems(input.items);
 
     if (normalizedItems.length === 0) {
@@ -158,9 +199,11 @@ export class OrdersService {
       }
 
       return {
-        product,
+        product: {
+          ...product,
+          price: Number(product.price),
+        },
         quantity: item.quantity,
-        unitPrice: Number(product.price),
         lineTotal: Number(product.price) * item.quantity,
       };
     });
@@ -171,7 +214,7 @@ export class OrdersService {
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
-        return await this.prisma.client.$transaction(async (transaction) => {
+        return await this.prisma.$transaction(async (transaction) => {
           for (const item of pricedItems) {
             const result = await transaction.product.updateMany({
               where: {
@@ -203,12 +246,12 @@ export class OrdersService {
           await transaction.user.update({
             where: { id: userId },
             data: {
-              fullName: input.fullName.trim(),
-              email,
-              phone: input.phone.trim(),
-              addressLine: input.addressLine.trim(),
-              city: input.city.trim(),
-              postalCode: input.postalCode.trim(),
+              fullName: address.recipientFullName,
+              email: address.recipientEmail,
+              phone: address.recipientPhone,
+              addressLine: address.addressLine,
+              city: address.city,
+              postalCode: address.postalCode,
             },
           });
 
@@ -217,12 +260,13 @@ export class OrdersService {
               orderNo: this.generateOrderNo(),
               userId,
               status: 'PENDING',
-              customerFullName: input.fullName.trim(),
-              customerEmail: email,
-              customerPhone: input.phone.trim(),
-              shippingAddressLine: input.addressLine.trim(),
-              shippingCity: input.city.trim(),
-              shippingPostalCode: input.postalCode.trim(),
+              refundStatus: 'NONE',
+              customerFullName: address.recipientFullName,
+              customerEmail: address.recipientEmail,
+              customerPhone: address.recipientPhone,
+              shippingAddressLine: address.addressLine,
+              shippingCity: address.city,
+              shippingPostalCode: address.postalCode,
               subtotal,
               shippingTotal,
               total,
@@ -233,7 +277,7 @@ export class OrdersService {
                   productSlug: item.product.slug,
                   productImageUrl: item.product.imageUrl,
                   quantity: item.quantity,
-                  unitPrice: item.unitPrice,
+                  unitPrice: item.product.price,
                 })),
               },
             },
@@ -260,6 +304,20 @@ export class OrdersService {
     );
   }
 
+  async listOrders(userId: string): Promise<OrderListResponseDto> {
+    const orders = await this.prisma.order.findMany({
+      where: { userId },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: orderListSelect,
+    });
+
+    return {
+      items: orders.map((order) => this.toOrderListItem(order)),
+    };
+  }
+
   async getOrderByOrderNo(
     userId: string,
     orderNo: string,
@@ -273,41 +331,326 @@ export class OrdersService {
     });
 
     if (!order) {
+      throw this.buildOrderNotFound();
+    }
+
+    return this.toOrderDetail(order);
+  }
+
+  async cancelOrder(
+    userId: string,
+    orderNo: string,
+  ): Promise<OrderDetailResponseDto> {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        orderNo,
+        userId,
+      },
+      select: {
+        id: true,
+        status: true,
+        items: {
+          select: {
+            productId: true,
+            quantity: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw this.buildOrderNotFound();
+    }
+
+    if (order.status !== 'PENDING') {
       throw new AppException(
-        HttpStatus.NOT_FOUND,
-        API_ERROR_CODES.orderNotFound,
-        'The requested order was not found.',
+        HttpStatus.CONFLICT,
+        API_ERROR_CODES.orderCancelNotAllowed,
+        'This order can no longer be canceled directly.',
       );
     }
 
-    const contact = {
-      fullName: order.customerFullName ?? order.user.fullName ?? '',
-      email: order.customerEmail ?? order.user.email ?? '',
-      phone: order.customerPhone ?? order.user.phone ?? '',
-      addressLine: order.shippingAddressLine ?? order.user.addressLine ?? '',
-      city: order.shippingCity ?? order.user.city ?? '',
-      postalCode: order.shippingPostalCode ?? order.user.postalCode ?? '',
-    };
+    await this.prisma.$transaction(async (transaction) => {
+      for (const item of order.items) {
+        await transaction.product.update({
+          where: {
+            id: item.productId,
+          },
+          data: {
+            stock: {
+              increment: item.quantity,
+            },
+          },
+        });
+      }
+
+      await transaction.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          status: 'CANCELED',
+        },
+      });
+    });
+
+    return this.getOrderByOrderNo(userId, orderNo);
+  }
+
+  async createCancellationRequest(
+    userId: string,
+    orderNo: string,
+    input: CreateCancellationRequest,
+  ): Promise<OrderDetailResponseDto> {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        orderNo,
+        userId,
+      },
+      select: {
+        id: true,
+        status: true,
+        cancellationRequests: {
+          where: {
+            status: 'REQUESTED',
+          },
+          select: {
+            id: true,
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (!order) {
+      throw this.buildOrderNotFound();
+    }
+
+    if (!this.canRequestCancellation(order.status)) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        API_ERROR_CODES.orderCancelNotAllowed,
+        'This order cannot accept a cancellation request right now.',
+      );
+    }
+
+    if (order.cancellationRequests.length > 0) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        API_ERROR_CODES.cancellationRequestExists,
+        'A cancellation request is already pending for this order.',
+      );
+    }
+
+    await this.prisma.orderCancellationRequest.create({
+      data: {
+        orderId: order.id,
+        requesterUserId: userId,
+        reasonCode: input.reasonCode,
+        details: input.details?.trim() || null,
+        status: 'REQUESTED',
+      },
+    });
+
+    return this.getOrderByOrderNo(userId, orderNo);
+  }
+
+  async listAdminOrders(): Promise<OrderListResponseDto> {
+    const orders = await this.prisma.order.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: orderListSelect,
+    });
 
     return {
-      orderNo: order.orderNo,
-      status: order.status,
-      createdAt: order.createdAt.toISOString(),
-      contact,
-      items: order.items.map((item) => ({
-        id: item.id,
-        productId: item.productId,
-        productName: item.productName ?? '',
-        productSlug: item.productSlug ?? '',
-        productImageUrl: item.productImageUrl,
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice),
-        lineTotal: Number(item.unitPrice) * item.quantity,
-      })),
-      subtotal: Number(order.subtotal ?? order.total),
-      shippingTotal: Number(order.shippingTotal ?? 0),
-      total: Number(order.total),
+      items: orders.map((order) => this.toOrderListItem(order)),
     };
+  }
+
+  async getAdminOrderByOrderNo(
+    orderNo: string,
+  ): Promise<OrderDetailResponseDto> {
+    const order = await this.prisma.order.findUnique({
+      where: {
+        orderNo,
+      },
+      select: orderDetailSelect,
+    });
+
+    if (!order) {
+      throw this.buildOrderNotFound();
+    }
+
+    return this.toOrderDetail(order);
+  }
+
+  async reviewCancellationRequest(
+    adminUserId: string,
+    requestId: string,
+    input: AdminReviewCancellationRequest,
+  ): Promise<OrderDetailResponseDto> {
+    const request = await this.prisma.orderCancellationRequest.findUnique({
+      where: {
+        id: requestId,
+      },
+      select: {
+        id: true,
+        status: true,
+        orderId: true,
+        order: {
+          select: {
+            orderNo: true,
+            status: true,
+            items: {
+              select: {
+                productId: true,
+                quantity: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new AppException(
+        HttpStatus.NOT_FOUND,
+        API_ERROR_CODES.cancellationRequestNotFound,
+        'The requested cancellation request was not found.',
+      );
+    }
+
+    if (request.status !== 'REQUESTED') {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        API_ERROR_CODES.orderCancelNotAllowed,
+        'This cancellation request has already been reviewed.',
+      );
+    }
+
+    if (input.decision === 'APPROVE') {
+      await this.prisma.$transaction(async (transaction) => {
+        for (const item of request.order.items) {
+          await transaction.product.update({
+            where: {
+              id: item.productId,
+            },
+            data: {
+              stock: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
+
+        await transaction.orderCancellationRequest.update({
+          where: {
+            id: request.id,
+          },
+          data: {
+            status: 'APPROVED',
+            reviewNote: input.reviewNote?.trim() || null,
+            reviewedByUserId: adminUserId,
+            reviewedAt: new Date(),
+          },
+        });
+
+        await transaction.order.update({
+          where: {
+            id: request.orderId,
+          },
+          data: {
+            status: 'CANCELED',
+            refundStatus: 'PENDING_MANUAL',
+          },
+        });
+      });
+    } else {
+      await this.prisma.orderCancellationRequest.update({
+        where: {
+          id: request.id,
+        },
+        data: {
+          status: 'REJECTED',
+          reviewNote: input.reviewNote?.trim() || null,
+          reviewedByUserId: adminUserId,
+          reviewedAt: new Date(),
+        },
+      });
+    }
+
+    return this.getAdminOrderByOrderNo(request.order.orderNo);
+  }
+
+  async updateRefundStatus(
+    orderNo: string,
+    input: UpdateRefundStatusInput,
+  ): Promise<OrderDetailResponseDto> {
+    const order = await this.prisma.order.findUnique({
+      where: {
+        orderNo,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!order) {
+      throw this.buildOrderNotFound();
+    }
+
+    await this.prisma.order.update({
+      where: {
+        id: order.id,
+      },
+      data: {
+        refundStatus: input.refundStatus,
+      },
+    });
+
+    return this.getAdminOrderByOrderNo(orderNo);
+  }
+
+  private async ensureOwnedUser(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        API_ERROR_CODES.authUnauthorized,
+        'Authentication is required.',
+      );
+    }
+
+    return user;
+  }
+
+  private async ensureOwnedAddress(userId: string, addressId: string) {
+    const address = await this.prisma.address.findFirst({
+      where: {
+        id: addressId,
+        userId,
+      },
+    });
+
+    if (!address) {
+      throw new AppException(
+        HttpStatus.NOT_FOUND,
+        API_ERROR_CODES.addressNotFound,
+        'The requested address was not found.',
+        {
+          addressId: [API_ERROR_CODES.addressNotFound],
+        },
+      );
+    }
+
+    return address;
   }
 
   private normalizeItems(items: CreateOrderRequest['items']) {
@@ -326,6 +669,108 @@ export class OrdersService {
     }));
   }
 
+  private toOrderListItem(order: {
+    status: Order['status'];
+    refundStatus: RefundStatus;
+    orderNo: string;
+    createdAt: Date;
+    total: unknown;
+    customerFullName: string | null;
+    customerEmail: string | null;
+    customerPhone: string | null;
+    shippingAddressLine: string | null;
+    shippingCity: string | null;
+    shippingPostalCode: string | null;
+    user: Pick<
+      User,
+      'fullName' | 'email' | 'phone' | 'addressLine' | 'city' | 'postalCode'
+    > | null;
+    items: Array<{
+      id: string;
+      productName: string | null;
+      productImageUrl: string | null;
+    }>;
+    cancellationRequests: Array<Pick<OrderCancellationRequest, 'status'>>;
+  }) {
+    const latestRequest = order.cancellationRequests[0] ?? null;
+
+    return {
+      orderNo: order.orderNo,
+      status: order.status,
+      refundStatus: order.refundStatus,
+      createdAt: order.createdAt.toISOString(),
+      total: Number(order.total),
+      itemCount: order.items.length,
+      previewItems: order.items.slice(0, 3).map((item) => ({
+        id: item.id,
+        productName: item.productName ?? '',
+        productImageUrl: item.productImageUrl,
+      })),
+      contact: this.toContact(order),
+      hasPendingCancellationRequest: latestRequest?.status === 'REQUESTED',
+      latestCancellationRequestStatus: latestRequest?.status ?? null,
+    };
+  }
+
+  private toOrderDetail(order: OrderDetailSource): OrderDetailResponseDto {
+    return {
+      orderNo: order.orderNo,
+      status: order.status,
+      refundStatus: order.refundStatus,
+      createdAt: order.createdAt.toISOString(),
+      contact: this.toContact(order),
+      items: order.items.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName ?? '',
+        productSlug: item.productSlug ?? '',
+        productImageUrl: item.productImageUrl,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        lineTotal: Number(item.unitPrice) * item.quantity,
+      })),
+      subtotal: Number(order.subtotal ?? order.total),
+      shippingTotal: Number(order.shippingTotal ?? 0),
+      total: Number(order.total),
+      latestCancellationRequest: this.toCancellationSummary(
+        order.cancellationRequests[0] ?? null,
+      ),
+    };
+  }
+
+  private toContact(order: OrderContactSource) {
+    return {
+      fullName: order.customerFullName ?? order.user?.fullName ?? '',
+      email: order.customerEmail ?? order.user?.email ?? '',
+      phone: order.customerPhone ?? order.user?.phone ?? '',
+      addressLine: order.shippingAddressLine ?? order.user?.addressLine ?? '',
+      city: order.shippingCity ?? order.user?.city ?? '',
+      postalCode: order.shippingPostalCode ?? order.user?.postalCode ?? '',
+    };
+  }
+
+  private toCancellationSummary(
+    request: OrderCancellationRequest | null,
+  ): OrderDetailResponseDto['latestCancellationRequest'] {
+    if (!request) {
+      return null;
+    }
+
+    return {
+      id: request.id,
+      reasonCode: request.reasonCode,
+      details: request.details,
+      status: request.status,
+      reviewNote: request.reviewNote,
+      reviewedAt: request.reviewedAt?.toISOString() ?? null,
+      createdAt: request.createdAt.toISOString(),
+    };
+  }
+
+  private canRequestCancellation(status: Order['status']) {
+    return status === 'PAID' || status === 'PACKING';
+  }
+
   private generateOrderNo() {
     const now = new Date();
     const year = now.getUTCFullYear();
@@ -342,6 +787,14 @@ export class OrdersService {
       error !== null &&
       'code' in error &&
       error.code === 'P2002'
+    );
+  }
+
+  private buildOrderNotFound() {
+    return new AppException(
+      HttpStatus.NOT_FOUND,
+      API_ERROR_CODES.orderNotFound,
+      'The requested order was not found.',
     );
   }
 }

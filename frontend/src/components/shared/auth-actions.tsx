@@ -46,6 +46,36 @@ export function AuthActions({
           {user.fullName || user.email}
         </div>
         {showInlineLogout ? (
+          <>
+            <Button
+              asChild
+              variant="ghost"
+              className={
+                stacked || menu
+                  ? 'w-full justify-center text-foreground'
+                  : undefined
+              }
+            >
+              <Link href="/profile" onClick={onAction}>
+                {t('profile')}
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              className={
+                stacked || menu
+                  ? 'w-full justify-center text-foreground'
+                  : undefined
+              }
+            >
+              <Link href="/orders" onClick={onAction}>
+                {t('myPurchases')}
+              </Link>
+            </Button>
+          </>
+        ) : null}
+        {showInlineLogout ? (
           <Button
             type="button"
             variant="outline"

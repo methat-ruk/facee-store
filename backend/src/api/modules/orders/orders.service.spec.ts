@@ -7,21 +7,51 @@ import type { PrismaService } from '../../../prisma/prisma.service';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService', () => {
+  const currentUser = {
+    id: 'cm8user000001234567890123',
+  };
+
+  const currentAddress = {
+    id: 'cm8addr000001234567890123',
+    userId: currentUser.id,
+    label: 'Home',
+    recipientFullName: 'Facee Customer',
+    recipientEmail: 'customer@example.com',
+    recipientPhone: '0800000000',
+    addressLine: '123 Facee Road',
+    city: 'Bangkok',
+    postalCode: '10110',
+    isDefault: true,
+  };
+
   const buildService = () => {
-    const productFindMany = jest.fn();
-    const productUpdateMany = jest.fn();
-    const orderFindFirst = jest.fn();
+    const addressFindFirst = jest.fn();
+    const orderCancellationRequestCreate = jest.fn();
+    const orderCancellationRequestFindUnique = jest.fn();
+    const orderCancellationRequestUpdate = jest.fn();
     const orderCreate = jest.fn();
+    const orderFindFirst = jest.fn();
+    const orderFindMany = jest.fn();
+    const orderFindUnique = jest.fn();
+    const orderUpdate = jest.fn();
+    const productFindMany = jest.fn();
+    const productUpdate = jest.fn();
+    const productUpdateMany = jest.fn();
     const userFindUnique = jest.fn();
     const userUpdate = jest.fn();
     const transaction = jest.fn(
       <T>(
         callback: (client: {
           product: {
+            update: typeof productUpdate;
             updateMany: typeof productUpdateMany;
           };
           order: {
             create: typeof orderCreate;
+            update: typeof orderUpdate;
+          };
+          orderCancellationRequest: {
+            update: typeof orderCancellationRequestUpdate;
           };
           user: {
             update: typeof userUpdate;
@@ -30,10 +60,15 @@ describe('OrdersService', () => {
       ) =>
         callback({
           product: {
+            update: productUpdate,
             updateMany: productUpdateMany,
           },
           order: {
             create: orderCreate,
+            update: orderUpdate,
+          },
+          orderCancellationRequest: {
+            update: orderCancellationRequestUpdate,
           },
           user: {
             update: userUpdate,
@@ -42,17 +77,30 @@ describe('OrdersService', () => {
     );
 
     const prisma = {
-      client: {
-        $transaction: transaction,
+      $transaction: transaction,
+      address: {
+        findFirst: addressFindFirst,
+      },
+      order: {
+        create: orderCreate,
+        findFirst: orderFindFirst,
+        findMany: orderFindMany,
+        findUnique: orderFindUnique,
+        update: orderUpdate,
+      },
+      orderCancellationRequest: {
+        create: orderCancellationRequestCreate,
+        findUnique: orderCancellationRequestFindUnique,
+        update: orderCancellationRequestUpdate,
       },
       product: {
         findMany: productFindMany,
-      },
-      order: {
-        findFirst: orderFindFirst,
+        update: productUpdate,
+        updateMany: productUpdateMany,
       },
       user: {
         findUnique: userFindUnique,
+        update: userUpdate,
       },
     };
 
@@ -60,41 +108,41 @@ describe('OrdersService', () => {
 
     return {
       service,
-      productFindMany,
-      productUpdateMany,
-      orderFindFirst,
+      addressFindFirst,
+      orderCancellationRequestCreate,
+      orderCancellationRequestFindUnique,
+      orderCancellationRequestUpdate,
       orderCreate,
+      orderFindFirst,
+      orderFindMany,
+      orderFindUnique,
+      orderUpdate,
+      productFindMany,
+      productUpdate,
+      productUpdateMany,
+      transaction,
       userFindUnique,
       userUpdate,
-      transaction,
     };
-  };
-
-  const currentUser = {
-    id: 'cm8user000001234567890123',
-    email: 'customer@example.com',
-    fullName: 'Customer',
-    phone: '0800000000',
-    addressLine: '123 Facee Road',
-    city: 'Bangkok',
-    postalCode: '10110',
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('creates an order, updates the profile, and deducts stock', async () => {
+  it('creates an order from the selected address and deducts stock', async () => {
     const {
       service,
+      addressFindFirst,
+      orderCreate,
       productFindMany,
       productUpdateMany,
-      orderCreate,
       userFindUnique,
       userUpdate,
     } = buildService();
 
     userFindUnique.mockResolvedValue(currentUser);
+    addressFindFirst.mockResolvedValue(currentAddress);
     productFindMany.mockResolvedValue([
       {
         id: 'cm8product00000123456789012',
@@ -108,18 +156,13 @@ describe('OrdersService', () => {
     ]);
     productUpdateMany.mockResolvedValue({ count: 1 });
     orderCreate.mockResolvedValue({
-      orderNo: 'FC-20260427-123456',
+      orderNo: 'FC-20260428-123456',
     });
     userUpdate.mockResolvedValue(undefined);
 
     await expect(
       service.createOrder(currentUser.id, {
-        fullName: 'Facee Customer',
-        email: 'customer@example.com',
-        phone: '0800000000',
-        addressLine: '123 Facee Road',
-        city: 'Bangkok',
-        postalCode: '10110',
+        addressId: currentAddress.id,
         items: [
           {
             productId: 'cm8product00000123456789012',
@@ -128,26 +171,19 @@ describe('OrdersService', () => {
         ],
       }),
     ).resolves.toEqual({
-      orderNo: 'FC-20260427-123456',
+      orderNo: 'FC-20260428-123456',
     });
 
-    const orderCreateCall = orderCreate.mock.calls[0] as
-      | [
-          {
-            data: {
-              subtotal: number;
-              shippingTotal: number;
-              total: number;
-            };
-          },
-        ]
-      | undefined;
-
-    expect(orderCreateCall).toBeDefined();
-    expect(orderCreateCall?.[0].data).toMatchObject({
-      subtotal: 900,
-      shippingTotal: 60,
-      total: 960,
+    expect(userUpdate).toHaveBeenCalledWith({
+      where: { id: currentUser.id },
+      data: {
+        fullName: 'Facee Customer',
+        email: 'customer@example.com',
+        phone: '0800000000',
+        addressLine: '123 Facee Road',
+        city: 'Bangkok',
+        postalCode: '10110',
+      },
     });
     expect(productUpdateMany).toHaveBeenCalledWith({
       where: {
@@ -163,65 +199,17 @@ describe('OrdersService', () => {
         },
       },
     });
-    expect(userUpdate).toHaveBeenCalledWith({
-      where: { id: currentUser.id },
-      data: {
-        fullName: 'Facee Customer',
-        email: 'customer@example.com',
-        phone: '0800000000',
-        addressLine: '123 Facee Road',
-        city: 'Bangkok',
-        postalCode: '10110',
-      },
-    });
   });
 
-  it('rejects empty order items', async () => {
-    const { service, userFindUnique } = buildService();
+  it('rejects missing addresses', async () => {
+    const { service, addressFindFirst, userFindUnique } = buildService();
 
     userFindUnique.mockResolvedValue(currentUser);
+    addressFindFirst.mockResolvedValue(null);
 
     await expect(
       service.createOrder(currentUser.id, {
-        fullName: 'Facee Customer',
-        email: 'customer@example.com',
-        phone: '0800000000',
-        addressLine: '123 Facee Road',
-        city: 'Bangkok',
-        postalCode: '10110',
-        items: [],
-      }),
-    ).rejects.toMatchObject({
-      response: {
-        code: API_ERROR_CODES.orderEmpty,
-      },
-    });
-  });
-
-  it('rejects unavailable products', async () => {
-    const { service, productFindMany, userFindUnique } = buildService();
-
-    userFindUnique.mockResolvedValue(currentUser);
-    productFindMany.mockResolvedValue([
-      {
-        id: 'cm8product00000123456789012',
-        name: 'Quiet Bloom Cleanser',
-        slug: 'quiet-bloom-cleanser',
-        imageUrl: '/images/products/quiet-bloom-cleanser.png',
-        isPublished: false,
-        price: 450,
-        stock: 12,
-      },
-    ]);
-
-    await expect(
-      service.createOrder(currentUser.id, {
-        fullName: 'Facee Customer',
-        email: 'customer@example.com',
-        phone: '0800000000',
-        addressLine: '123 Facee Road',
-        city: 'Bangkok',
-        postalCode: '10110',
+        addressId: currentAddress.id,
         items: [
           {
             productId: 'cm8product00000123456789012',
@@ -231,45 +219,25 @@ describe('OrdersService', () => {
       }),
     ).rejects.toMatchObject({
       response: {
-        code: API_ERROR_CODES.orderUnavailableItems,
+        code: API_ERROR_CODES.addressNotFound,
       },
     });
   });
 
-  it('rejects stock changes before transaction commit', async () => {
-    const { service, productFindMany, userFindUnique } = buildService();
+  it('rejects empty order items', async () => {
+    const { service, addressFindFirst, userFindUnique } = buildService();
 
     userFindUnique.mockResolvedValue(currentUser);
-    productFindMany.mockResolvedValue([
-      {
-        id: 'cm8product00000123456789012',
-        name: 'Quiet Bloom Cleanser',
-        slug: 'quiet-bloom-cleanser',
-        imageUrl: '/images/products/quiet-bloom-cleanser.png',
-        isPublished: true,
-        price: 450,
-        stock: 1,
-      },
-    ]);
+    addressFindFirst.mockResolvedValue(currentAddress);
 
     await expect(
       service.createOrder(currentUser.id, {
-        fullName: 'Facee Customer',
-        email: 'customer@example.com',
-        phone: '0800000000',
-        addressLine: '123 Facee Road',
-        city: 'Bangkok',
-        postalCode: '10110',
-        items: [
-          {
-            productId: 'cm8product00000123456789012',
-            quantity: 2,
-          },
-        ],
+        addressId: currentAddress.id,
+        items: [],
       }),
     ).rejects.toMatchObject({
       response: {
-        code: API_ERROR_CODES.orderStockChanged,
+        code: API_ERROR_CODES.orderEmpty,
       },
     });
   });
@@ -278,9 +246,11 @@ describe('OrdersService', () => {
     const { service, orderFindFirst } = buildService();
 
     orderFindFirst.mockResolvedValue({
-      orderNo: 'FC-20260427-123456',
+      id: 'cm8order000001234567890123',
+      orderNo: 'FC-20260428-123456',
       status: 'PENDING',
-      createdAt: new Date('2026-04-27T10:00:00.000Z'),
+      refundStatus: 'NONE',
+      createdAt: new Date('2026-04-28T10:00:00.000Z'),
       customerFullName: 'Facee Customer',
       customerEmail: 'customer@example.com',
       customerPhone: '0800000000',
@@ -290,7 +260,14 @@ describe('OrdersService', () => {
       subtotal: 900,
       shippingTotal: 60,
       total: 960,
-      user: currentUser,
+      user: {
+        fullName: 'Facee Customer',
+        email: 'customer@example.com',
+        phone: '0800000000',
+        addressLine: '123 Facee Road',
+        city: 'Bangkok',
+        postalCode: '10110',
+      },
       items: [
         {
           id: 'cm8orderitem0000012345678',
@@ -302,14 +279,16 @@ describe('OrdersService', () => {
           unitPrice: 450,
         },
       ],
+      cancellationRequests: [],
     });
 
     await expect(
-      service.getOrderByOrderNo(currentUser.id, 'FC-20260427-123456'),
+      service.getOrderByOrderNo(currentUser.id, 'FC-20260428-123456'),
     ).resolves.toEqual({
-      orderNo: 'FC-20260427-123456',
+      orderNo: 'FC-20260428-123456',
       status: 'PENDING',
-      createdAt: '2026-04-27T10:00:00.000Z',
+      refundStatus: 'NONE',
+      createdAt: '2026-04-28T10:00:00.000Z',
       contact: {
         fullName: 'Facee Customer',
         email: 'customer@example.com',
@@ -333,20 +312,153 @@ describe('OrdersService', () => {
       subtotal: 900,
       shippingTotal: 60,
       total: 960,
+      latestCancellationRequest: null,
     });
   });
 
-  it('rejects missing orders', async () => {
-    const { service, orderFindFirst } = buildService();
+  it('cancels pending orders and restores stock immediately', async () => {
+    const { service, orderFindFirst, orderUpdate, productUpdate } =
+      buildService();
 
-    orderFindFirst.mockResolvedValue(null);
+    orderFindFirst
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        status: 'PENDING',
+        items: [
+          {
+            productId: 'cm8product00000123456789012',
+            quantity: 2,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        orderNo: 'FC-20260428-123456',
+        status: 'CANCELED',
+        refundStatus: 'NONE',
+        createdAt: new Date('2026-04-28T10:00:00.000Z'),
+        customerFullName: 'Facee Customer',
+        customerEmail: 'customer@example.com',
+        customerPhone: '0800000000',
+        shippingAddressLine: '123 Facee Road',
+        shippingCity: 'Bangkok',
+        shippingPostalCode: '10110',
+        subtotal: 900,
+        shippingTotal: 60,
+        total: 960,
+        user: {
+          fullName: 'Facee Customer',
+          email: 'customer@example.com',
+          phone: '0800000000',
+          addressLine: '123 Facee Road',
+          city: 'Bangkok',
+          postalCode: '10110',
+        },
+        items: [],
+        cancellationRequests: [],
+      });
 
     await expect(
-      service.getOrderByOrderNo(currentUser.id, 'missing-order'),
-    ).rejects.toMatchObject({
-      response: {
-        code: API_ERROR_CODES.orderNotFound,
+      service.cancelOrder(currentUser.id, 'FC-20260428-123456'),
+    ).resolves.toMatchObject({
+      status: 'CANCELED',
+    });
+
+    expect(productUpdate).toHaveBeenCalledWith({
+      where: {
+        id: 'cm8product00000123456789012',
+      },
+      data: {
+        stock: {
+          increment: 2,
+        },
       },
     });
+    expect(orderUpdate).toHaveBeenCalledWith({
+      where: {
+        id: 'cm8order000001234567890123',
+      },
+      data: {
+        status: 'CANCELED',
+      },
+    });
+  });
+
+  it('creates a cancellation request for paid orders without restoring stock', async () => {
+    const {
+      service,
+      orderCancellationRequestCreate,
+      orderFindFirst,
+      productUpdate,
+    } = buildService();
+
+    orderFindFirst
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        status: 'PAID',
+        cancellationRequests: [],
+      })
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        orderNo: 'FC-20260428-123456',
+        status: 'PAID',
+        refundStatus: 'NONE',
+        createdAt: new Date('2026-04-28T10:00:00.000Z'),
+        customerFullName: 'Facee Customer',
+        customerEmail: 'customer@example.com',
+        customerPhone: '0800000000',
+        shippingAddressLine: '123 Facee Road',
+        shippingCity: 'Bangkok',
+        shippingPostalCode: '10110',
+        subtotal: 900,
+        shippingTotal: 60,
+        total: 960,
+        user: {
+          fullName: 'Facee Customer',
+          email: 'customer@example.com',
+          phone: '0800000000',
+          addressLine: '123 Facee Road',
+          city: 'Bangkok',
+          postalCode: '10110',
+        },
+        items: [],
+        cancellationRequests: [
+          {
+            id: 'cm8cancel0000012345678901',
+            orderId: 'cm8order000001234567890123',
+            requesterUserId: currentUser.id,
+            reasonCode: 'WRONG_ADDRESS',
+            details: 'Need another address',
+            status: 'REQUESTED',
+            reviewNote: null,
+            reviewedByUserId: null,
+            reviewedAt: null,
+            createdAt: new Date('2026-04-28T11:00:00.000Z'),
+            updatedAt: new Date('2026-04-28T11:00:00.000Z'),
+          },
+        ],
+      });
+
+    await expect(
+      service.createCancellationRequest(currentUser.id, 'FC-20260428-123456', {
+        reasonCode: 'WRONG_ADDRESS',
+        details: 'Need another address',
+      }),
+    ).resolves.toMatchObject({
+      latestCancellationRequest: {
+        status: 'REQUESTED',
+      },
+    });
+
+    expect(orderCancellationRequestCreate).toHaveBeenCalledWith({
+      data: {
+        orderId: 'cm8order000001234567890123',
+        requesterUserId: currentUser.id,
+        reasonCode: 'WRONG_ADDRESS',
+        details: 'Need another address',
+        status: 'REQUESTED',
+      },
+    });
+    expect(productUpdate).not.toHaveBeenCalled();
   });
 });

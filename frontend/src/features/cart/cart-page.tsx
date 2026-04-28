@@ -9,9 +9,11 @@ import {
   Trash2Icon,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import {
   Card,
   CardContent,
@@ -48,6 +50,7 @@ export function CartPage() {
     removeItem,
     clearCart,
   } = useCartView();
+  const [isConfirmingClearCart, setIsConfirmingClearCart] = useState(false);
   const canContinue = items.length > 0 && !hasUnavailableItems;
 
   if (items.length === 0) {
@@ -292,13 +295,26 @@ export function CartPage() {
               type="button"
               variant="ghost"
               className="w-full text-muted-foreground"
-              onClick={clearCart}
+              onClick={() => setIsConfirmingClearCart(true)}
             >
               {t('clearCart')}
             </Button>
           </CardFooter>
         </Card>
       </section>
+      <ConfirmDialog
+        open={isConfirmingClearCart}
+        title={t('confirmClearCartTitle')}
+        description={t('confirmClearCartDescription')}
+        confirmLabel={t('confirmClearCart')}
+        cancelLabel={t('cancelConfirm')}
+        destructive
+        onClose={() => setIsConfirmingClearCart(false)}
+        onConfirm={() => {
+          clearCart();
+          setIsConfirmingClearCart(false);
+        }}
+      />
     </main>
   );
 }

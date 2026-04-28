@@ -26,6 +26,7 @@ export function ProductCatalogPage() {
   const searchParams = useSearchParams();
 
   const category = searchParams.get('category') ?? undefined;
+  const query = searchParams.get('query') ?? undefined;
   const sort = (searchParams.get('sort') as ProductSort | null) ?? DEFAULT_SORT;
   const page = Number(searchParams.get('page') ?? '1');
 
@@ -46,6 +47,7 @@ export function ProductCatalogPage() {
           getCategories(),
           getProducts({
             category,
+            query,
             sort,
             page: Number.isNaN(page) || page < 1 ? 1 : page,
             limit: DEFAULT_LIMIT,
@@ -80,16 +82,18 @@ export function ProductCatalogPage() {
     return () => {
       isCancelled = true;
     };
-  }, [category, page, sort]);
+  }, [category, page, query, sort]);
 
   function updateQuery(nextValues: {
     category?: string;
+    query?: string;
     sort?: ProductSort;
     page?: number;
   }) {
     const params = new URLSearchParams(searchParams.toString());
 
     const nextCategory = nextValues.category;
+    const nextQuery = nextValues.query;
     const nextSort = nextValues.sort ?? sort;
     const nextPage = nextValues.page ?? page;
 
@@ -97,6 +101,12 @@ export function ProductCatalogPage() {
       params.set('category', nextCategory);
     } else {
       params.delete('category');
+    }
+
+    if (nextQuery) {
+      params.set('query', nextQuery);
+    } else {
+      params.delete('query');
     }
 
     if (nextSort === DEFAULT_SORT) {
@@ -136,11 +146,13 @@ export function ProductCatalogPage() {
           onCategoryChange={(nextCategory) =>
             updateQuery({
               category: nextCategory,
+              query,
               page: 1,
             })
           }
           onSortChange={(nextSort) =>
             updateQuery({
+              query,
               sort: nextSort,
               page: 1,
             })
