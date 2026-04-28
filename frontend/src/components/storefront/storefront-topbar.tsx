@@ -72,7 +72,7 @@ function TopbarSearchForm({
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder={placeholder}
-          className="h-8 border-none bg-transparent px-0 shadow-none focus-visible:ring-0 dark:!bg-transparent"
+          className="h-8 border-none bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent!"
           aria-label={submitLabel}
         />
         {searchValue ? (

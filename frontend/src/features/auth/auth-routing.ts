@@ -1,19 +1,47 @@
+import type { ReadonlyURLSearchParams } from 'next/navigation';
+import { routing } from '@/i18n/routing';
+
 const AUTH_ROUTE_PREFIXES = ['/login', '/register'];
 
+function isAuthRoute(pathname: string) {
+  if (AUTH_ROUTE_PREFIXES.some((prefix) => pathname === prefix)) {
+    return true;
+  }
+
+  return routing.locales.some(
+    (locale) =>
+      pathname === `/${locale}/login` || pathname === `/${locale}/register`,
+  );
+}
+
 export function sanitizeReturnTo(value: string | null | undefined) {
-  if (!value || !value.startsWith('/')) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue || !normalizedValue.startsWith('/')) {
     return null;
   }
 
-  if (value.startsWith('//')) {
+  if (normalizedValue.startsWith('//')) {
     return null;
   }
 
-  if (AUTH_ROUTE_PREFIXES.some((prefix) => value.startsWith(prefix))) {
+  const [pathname] = normalizedValue.split(/[?#]/, 1);
+
+  if (!pathname || isAuthRoute(pathname)) {
     return null;
   }
 
-  return value;
+  return normalizedValue;
+}
+
+export function buildReturnTo(
+  pathname: string,
+  searchParams?: URLSearchParams | ReadonlyURLSearchParams | null,
+) {
+  const query = searchParams?.toString();
+  const nextValue = query ? `${pathname}?${query}` : pathname;
+
+  return sanitizeReturnTo(nextValue);
 }
 
 export function buildAuthNoticeHref(
