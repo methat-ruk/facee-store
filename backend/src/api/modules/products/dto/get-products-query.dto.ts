@@ -10,6 +10,7 @@ export const productSortSchema = z.enum([
 
 export const getProductsQuerySchema = z.object({
   category: z.string().trim().min(1).optional(),
+  query: z.string().trim().min(1).optional(),
   sort: productSortSchema.default('newest'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(24).default(9),

@@ -21,6 +21,37 @@ export const orderDetailContactSchema = z.object({
   postalCode: z.string(),
 });
 
+export const refundStatusSchema = z.enum([
+  'NONE',
+  'PENDING_MANUAL',
+  'REFUNDED',
+]);
+
+export const cancellationReasonCodeSchema = z.enum([
+  'WRONG_ADDRESS',
+  'DUPLICATE_ORDER',
+  'CHANGED_MIND',
+  'PAYMENT_ISSUE',
+  'ORDER_DELAY',
+  'OTHER',
+]);
+
+export const cancellationRequestStatusSchema = z.enum([
+  'REQUESTED',
+  'APPROVED',
+  'REJECTED',
+]);
+
+export const cancellationRequestSummarySchema = z.object({
+  id: z.cuid(),
+  reasonCode: cancellationReasonCodeSchema,
+  details: z.string().nullable(),
+  status: cancellationRequestStatusSchema,
+  reviewNote: z.string().nullable(),
+  reviewedAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+});
+
 export const orderDetailResponseSchema = z.object({
   orderNo: z.string(),
   status: z.enum([
@@ -31,12 +62,14 @@ export const orderDetailResponseSchema = z.object({
     'DELIVERED',
     'CANCELED',
   ]),
+  refundStatus: refundStatusSchema,
   createdAt: z.string().datetime(),
   contact: orderDetailContactSchema,
   items: z.array(orderDetailItemSchema),
   subtotal: z.number().nonnegative(),
   shippingTotal: z.number().nonnegative(),
   total: z.number().nonnegative(),
+  latestCancellationRequest: cancellationRequestSummarySchema.nullable(),
 });
 
 export class OrderDetailResponseDto extends createZodDto(

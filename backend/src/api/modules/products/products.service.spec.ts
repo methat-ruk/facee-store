@@ -46,11 +46,13 @@ describe('ProductsService', () => {
       getProductsQuerySchema.parse({
         page: '2',
         limit: '12',
+        query: 'serum',
         sort: 'price-desc',
       }),
     ).toEqual({
       page: 2,
       limit: 12,
+      query: 'serum',
       sort: 'price-desc',
     });
   });
@@ -162,6 +164,46 @@ describe('ProductsService', () => {
         },
       }),
     );
+  });
+
+  it('applies text search across published products', async () => {
+    const { service, count, findMany } = buildService();
+
+    count.mockResolvedValue(0);
+    findMany.mockResolvedValue([]);
+
+    await service.findAll({
+      query: 'cleanser',
+      sort: 'newest',
+      page: 1,
+      limit: 9,
+    });
+
+    expect(count).toHaveBeenCalledWith({
+      where: {
+        isPublished: true,
+        OR: [
+          {
+            name: {
+              contains: 'cleanser',
+              mode: 'insensitive',
+            },
+          },
+          {
+            description: {
+              contains: 'cleanser',
+              mode: 'insensitive',
+            },
+          },
+          {
+            subtitle: {
+              contains: 'cleanser',
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+    });
   });
 
   it('clamps requested page to the last available page', async () => {

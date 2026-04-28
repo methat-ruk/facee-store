@@ -19,6 +19,10 @@ export class PrismaService implements OnModuleDestroy {
     return this.client.category;
   }
 
+  get address() {
+    return this.client.address;
+  }
+
   get product() {
     return this.client.product;
   }
@@ -29,6 +33,10 @@ export class PrismaService implements OnModuleDestroy {
 
   get orderItem() {
     return this.client.orderItem;
+  }
+
+  get orderCancellationRequest() {
+    return this.client.orderCancellationRequest;
   }
 
   $connect() {

@@ -7,15 +7,7 @@ export const createOrderItemSchema = z.object({
 });
 
 export const createOrderRequestSchema = z.object({
-  fullName: z.string().trim().min(1),
-  email: z.email().trim().toLowerCase(),
-  phone: z
-    .string()
-    .trim()
-    .regex(/^\d{1,10}$/),
-  addressLine: z.string().trim().min(1),
-  city: z.string().trim().min(1),
-  postalCode: z.string().trim().min(1),
+  addressId: z.cuid(),
   items: z.array(createOrderItemSchema).min(1),
 });
 

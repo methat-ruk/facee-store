@@ -12,6 +12,13 @@ export const apiConfig = {
       profile: '/auth/profile',
       logout: '/auth/logout',
     },
+    account: {
+      profile: '/account/profile',
+      addresses: '/account/addresses',
+      addressDetail: (addressId: string) => `/account/addresses/${addressId}`,
+      addressDefault: (addressId: string) =>
+        `/account/addresses/${addressId}/default`,
+    },
     storefront: {
       products: '/products',
       productDetail: (slug: string) => `/products/${slug}`,
@@ -21,13 +28,16 @@ export const apiConfig = {
     cart: '/cart',
     orders: '/orders',
     orderDetail: (orderNo: string) => `/orders/${orderNo}`,
+    orderCancel: (orderNo: string) => `/orders/${orderNo}/cancel`,
+    orderCancellationRequests: (orderNo: string) =>
+      `/orders/${orderNo}/cancellation-requests`,
     admin: {
-      dashboard: '/admin/dashboard',
-      products: '/admin/products',
-      categories: '/admin/categories',
       orders: '/admin/orders',
-      customers: '/admin/customers',
-      campaigns: '/admin/campaigns',
+      orderDetail: (orderNo: string) => `/admin/orders/${orderNo}`,
+      cancellationReview: (requestId: string) =>
+        `/admin/cancellation-requests/${requestId}/review`,
+      refundStatus: (orderNo: string) =>
+        `/admin/orders/${orderNo}/refund-status`,
     },
   },
 } as const;

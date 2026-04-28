@@ -45,6 +45,30 @@ export class ProductsService {
   async findAll(query: GetProductsQuery): Promise<ProductListResponseDto> {
     const where: Prisma.ProductWhereInput = {
       isPublished: true,
+      ...(query.query
+        ? {
+            OR: [
+              {
+                name: {
+                  contains: query.query,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                description: {
+                  contains: query.query,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                subtitle: {
+                  contains: query.query,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : {}),
       ...(query.category
         ? {
             category: {

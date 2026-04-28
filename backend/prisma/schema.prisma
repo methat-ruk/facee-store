@@ -12,18 +12,39 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  fullName     String
-  passwordHash String?
-  phone        String?
-  addressLine  String?
-  city         String?
-  postalCode   String?
-  role         UserRole @default(CUSTOMER)
-  orders       Order[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                     String                     @id @default(cuid())
+  email                  String                     @unique
+  fullName               String
+  passwordHash           String?
+  phone                  String?
+  addressLine            String?
+  city                   String?
+  postalCode             String?
+  role                   UserRole                   @default(CUSTOMER)
+  addresses              Address[]
+  orders                 Order[]
+  requestedCancellations OrderCancellationRequest[] @relation("CancellationRequester")
+  reviewedCancellations  OrderCancellationRequest[] @relation("CancellationReviewer")
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+}
+
+model Address {
+  id                 String   @id @default(cuid())
+  userId             String
+  label              String
+  recipientFullName  String
+  recipientEmail     String
+  recipientPhone     String
+  addressLine        String
+  city               String
+  postalCode         String
+  isDefault          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }
 
 model Category {
@@ -62,6 +83,7 @@ model Order {
   userId              String
   user                User        @relation(fields: [userId], references: [id])
   status              OrderStatus @default(PENDING)
+  refundStatus        RefundStatus @default(NONE)
   customerFullName    String?
   customerEmail       String?
   customerPhone       String?
@@ -72,8 +94,29 @@ model Order {
   shippingTotal       Decimal?    @db.Decimal(10, 2)
   total               Decimal     @db.Decimal(10, 2)
   items               OrderItem[]
+  cancellationRequests OrderCancellationRequest[]
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
+}
+
+model OrderCancellationRequest {
+  id               String                    @id @default(cuid())
+  orderId          String
+  requesterUserId  String
+  reasonCode       CancellationReasonCode
+  details          String?
+  status           CancellationRequestStatus @default(REQUESTED)
+  reviewNote       String?
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  order            Order                     @relation(fields: [orderId], references: [id])
+  requester        User                      @relation("CancellationRequester", fields: [requesterUserId], references: [id])
+  reviewedBy       User?                     @relation("CancellationReviewer", fields: [reviewedByUserId], references: [id])
+
+  @@index([orderId, createdAt])
+  @@index([requesterUserId, createdAt])
 }
 
 model OrderItem {
@@ -101,4 +144,25 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELED
+}
+
+enum RefundStatus {
+  NONE
+  PENDING_MANUAL
+  REFUNDED
+}
+
+enum CancellationReasonCode {
+  WRONG_ADDRESS
+  DUPLICATE_ORDER
+  CHANGED_MIND
+  PAYMENT_ISSUE
+  ORDER_DELAY
+  OTHER
+}
+
+enum CancellationRequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
 }
