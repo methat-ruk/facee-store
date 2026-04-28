@@ -11,6 +11,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ import {
   updateAccountProfile,
   updateAddress,
 } from '@/services/account';
+import { useLockBodyScroll } from '@/hooks/use-lock-body-scroll';
 import { useAuthStore } from '@/store/use-auth-store';
 
 const emptyAddressForm: UpsertAddressInput = {
@@ -87,6 +89,8 @@ export function ProfilePage() {
   const [confirmDeleteAddressId, setConfirmDeleteAddressId] = useState<
     string | null
   >(null);
+
+  useLockBodyScroll(isAddressDialogOpen);
 
   useEffect(() => {
     if (!isAuthInitialized || user) {
@@ -329,7 +333,7 @@ export function ProfilePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <section className="flex flex-col gap-3">
         <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
           {t('eyebrow')}
@@ -342,14 +346,14 @@ export function ProfilePage() {
         </p>
       </section>
 
-      <Tabs defaultValue="account" className="gap-6">
+      <Tabs defaultValue="account" className="flex-1 gap-6">
         <TabsList variant="line" className="w-full justify-start overflow-auto">
           <TabsTrigger value="account">{t('accountTab')}</TabsTrigger>
           <TabsTrigger value="addresses">{t('addressesTab')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="account">
-          <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+        <TabsContent value="account" className="flex flex-1 flex-col">
+          <Card className="flex-1 border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex size-11 items-center justify-center rounded-full border border-border bg-muted text-foreground">
@@ -421,8 +425,8 @@ export function ProfilePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="addresses">
-          <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+        <TabsContent value="addresses" className="flex flex-1 flex-col">
+          <Card className="flex-1 border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
             <CardHeader className="gap-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-center gap-3">
@@ -542,217 +546,237 @@ export function ProfilePage() {
           </Card>
         </TabsContent>
       </Tabs>
-      {isAddressDialogOpen ? (
-        <div className="fixed inset-0 z-80 flex items-center justify-center bg-[rgba(28,18,14,0.52)] px-4 py-6 backdrop-blur-sm">
-          <Card className="max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-auto border-border/90 bg-background/98 shadow-[0_30px_90px_rgba(28,18,14,0.28)]">
-            <CardHeader className="gap-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex flex-col gap-1">
-                  <CardTitle>
-                    {editingAddressId
-                      ? t('editAddressTitle')
-                      : t('addAddressTitle')}
-                  </CardTitle>
-                  <CardDescription>
-                    {t('addressFormDescription')}
-                  </CardDescription>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={resetAddressForm}
-                  aria-label={t('cancelEditing')}
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form
-                className="flex flex-col gap-4"
-                onSubmit={handleAddressSubmit}
-              >
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="address-label">{t('addressLabel')}</Label>
-                  <Input
-                    id="address-label"
-                    aria-invalid={Boolean(addressFieldErrors.label)}
-                    value={addressForm.label}
-                    onChange={(event) =>
-                      setAddressForm((current) => ({
-                        ...current,
-                        label: event.target.value,
-                      }))
-                    }
-                  />
-                  {addressFieldErrors.label ? (
-                    <p className="text-sm text-destructive">
-                      {t(addressFieldErrors.label)}
-                    </p>
-                  ) : null}
-                </div>
+      {isAddressDialogOpen
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(28,18,14,0.52)] px-4 py-6 backdrop-blur-sm sm:px-6"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="address-dialog-title"
+            >
+              <Card className="flex max-h-[calc(100dvh-8rem)] w-full max-w-2xl flex-col border-border/90 bg-background/98 py-0 shadow-[0_30px_90px_rgba(28,18,14,0.28)] sm:max-h-[calc(100dvh-3rem)]">
+                <CardHeader className="gap-3 border-b border-border/80 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-1">
+                      <CardTitle id="address-dialog-title">
+                        {editingAddressId
+                          ? t('editAddressTitle')
+                          : t('addAddressTitle')}
+                      </CardTitle>
+                      <CardDescription>
+                        {t('addressFormDescription')}
+                      </CardDescription>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={resetAddressForm}
+                      aria-label={t('cancelEditing')}
+                    >
+                      <XIcon />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="min-h-0 flex-1 overflow-y-auto py-4">
+                  <form
+                    id="address-dialog-form"
+                    className="flex flex-col gap-4"
+                    onSubmit={handleAddressSubmit}
+                  >
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="address-label">{t('addressLabel')}</Label>
+                      <Input
+                        id="address-label"
+                        aria-invalid={Boolean(addressFieldErrors.label)}
+                        value={addressForm.label}
+                        onChange={(event) =>
+                          setAddressForm((current) => ({
+                            ...current,
+                            label: event.target.value,
+                          }))
+                        }
+                      />
+                      {addressFieldErrors.label ? (
+                        <p className="text-sm text-destructive">
+                          {t(addressFieldErrors.label)}
+                        </p>
+                      ) : null}
+                    </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="recipient-name">
-                    {t('recipientFullName')}
-                  </Label>
-                  <Input
-                    id="recipient-name"
-                    aria-invalid={Boolean(addressFieldErrors.recipientFullName)}
-                    value={addressForm.recipientFullName}
-                    onChange={(event) =>
-                      setAddressForm((current) => ({
-                        ...current,
-                        recipientFullName: event.target.value,
-                      }))
-                    }
-                  />
-                  {addressFieldErrors.recipientFullName ? (
-                    <p className="text-sm text-destructive">
-                      {t(addressFieldErrors.recipientFullName)}
-                    </p>
-                  ) : null}
-                </div>
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="recipient-name">
+                        {t('recipientFullName')}
+                      </Label>
+                      <Input
+                        id="recipient-name"
+                        aria-invalid={Boolean(
+                          addressFieldErrors.recipientFullName,
+                        )}
+                        value={addressForm.recipientFullName}
+                        onChange={(event) =>
+                          setAddressForm((current) => ({
+                            ...current,
+                            recipientFullName: event.target.value,
+                          }))
+                        }
+                      />
+                      {addressFieldErrors.recipientFullName ? (
+                        <p className="text-sm text-destructive">
+                          {t(addressFieldErrors.recipientFullName)}
+                        </p>
+                      ) : null}
+                    </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="recipient-email">
-                      {t('recipientEmail')}
-                    </Label>
-                    <Input
-                      id="recipient-email"
-                      type="email"
-                      aria-invalid={Boolean(addressFieldErrors.recipientEmail)}
-                      value={addressForm.recipientEmail}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({
-                          ...current,
-                          recipientEmail: event.target.value,
-                        }))
-                      }
-                    />
-                    {addressFieldErrors.recipientEmail ? (
-                      <p className="text-sm text-destructive">
-                        {t(addressFieldErrors.recipientEmail)}
-                      </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="recipient-email">
+                          {t('recipientEmail')}
+                        </Label>
+                        <Input
+                          id="recipient-email"
+                          type="email"
+                          aria-invalid={Boolean(
+                            addressFieldErrors.recipientEmail,
+                          )}
+                          value={addressForm.recipientEmail}
+                          onChange={(event) =>
+                            setAddressForm((current) => ({
+                              ...current,
+                              recipientEmail: event.target.value,
+                            }))
+                          }
+                        />
+                        {addressFieldErrors.recipientEmail ? (
+                          <p className="text-sm text-destructive">
+                            {t(addressFieldErrors.recipientEmail)}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="recipient-phone">
+                          {t('recipientPhone')}
+                        </Label>
+                        <Input
+                          id="recipient-phone"
+                          inputMode="numeric"
+                          maxLength={10}
+                          aria-invalid={Boolean(
+                            addressFieldErrors.recipientPhone,
+                          )}
+                          value={addressForm.recipientPhone}
+                          onChange={(event) =>
+                            setAddressForm((current) => ({
+                              ...current,
+                              recipientPhone: normalizePhoneInput(
+                                event.target.value,
+                              ),
+                            }))
+                          }
+                        />
+                        {addressFieldErrors.recipientPhone ? (
+                          <p className="text-sm text-destructive">
+                            {t(addressFieldErrors.recipientPhone)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="address-line">{t('addressLine')}</Label>
+                      <Input
+                        id="address-line"
+                        aria-invalid={Boolean(addressFieldErrors.addressLine)}
+                        value={addressForm.addressLine}
+                        onChange={(event) =>
+                          setAddressForm((current) => ({
+                            ...current,
+                            addressLine: event.target.value,
+                          }))
+                        }
+                      />
+                      {addressFieldErrors.addressLine ? (
+                        <p className="text-sm text-destructive">
+                          {t(addressFieldErrors.addressLine)}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="address-city">{t('city')}</Label>
+                        <Input
+                          id="address-city"
+                          aria-invalid={Boolean(addressFieldErrors.city)}
+                          value={addressForm.city}
+                          onChange={(event) =>
+                            setAddressForm((current) => ({
+                              ...current,
+                              city: event.target.value,
+                            }))
+                          }
+                        />
+                        {addressFieldErrors.city ? (
+                          <p className="text-sm text-destructive">
+                            {t(addressFieldErrors.city)}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="address-postal-code">
+                          {t('postalCode')}
+                        </Label>
+                        <Input
+                          id="address-postal-code"
+                          aria-invalid={Boolean(addressFieldErrors.postalCode)}
+                          value={addressForm.postalCode}
+                          onChange={(event) =>
+                            setAddressForm((current) => ({
+                              ...current,
+                              postalCode: event.target.value,
+                            }))
+                          }
+                        />
+                        {addressFieldErrors.postalCode ? (
+                          <p className="text-sm text-destructive">
+                            {t(addressFieldErrors.postalCode)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {addressError ? (
+                      <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        <AlertTriangleIcon className="mt-0.5 shrink-0" />
+                        <p>{t(addressError)}</p>
+                      </div>
                     ) : null}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="recipient-phone">
-                      {t('recipientPhone')}
-                    </Label>
-                    <Input
-                      id="recipient-phone"
-                      inputMode="numeric"
-                      maxLength={10}
-                      aria-invalid={Boolean(addressFieldErrors.recipientPhone)}
-                      value={addressForm.recipientPhone}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({
-                          ...current,
-                          recipientPhone: normalizePhoneInput(
-                            event.target.value,
-                          ),
-                        }))
-                      }
-                    />
-                    {addressFieldErrors.recipientPhone ? (
-                      <p className="text-sm text-destructive">
-                        {t(addressFieldErrors.recipientPhone)}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="address-line">{t('addressLine')}</Label>
-                  <Input
-                    id="address-line"
-                    aria-invalid={Boolean(addressFieldErrors.addressLine)}
-                    value={addressForm.addressLine}
-                    onChange={(event) =>
-                      setAddressForm((current) => ({
-                        ...current,
-                        addressLine: event.target.value,
-                      }))
-                    }
-                  />
-                  {addressFieldErrors.addressLine ? (
-                    <p className="text-sm text-destructive">
-                      {t(addressFieldErrors.addressLine)}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="address-city">{t('city')}</Label>
-                    <Input
-                      id="address-city"
-                      aria-invalid={Boolean(addressFieldErrors.city)}
-                      value={addressForm.city}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({
-                          ...current,
-                          city: event.target.value,
-                        }))
-                      }
-                    />
-                    {addressFieldErrors.city ? (
-                      <p className="text-sm text-destructive">
-                        {t(addressFieldErrors.city)}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="address-postal-code">
-                      {t('postalCode')}
-                    </Label>
-                    <Input
-                      id="address-postal-code"
-                      aria-invalid={Boolean(addressFieldErrors.postalCode)}
-                      value={addressForm.postalCode}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({
-                          ...current,
-                          postalCode: event.target.value,
-                        }))
-                      }
-                    />
-                    {addressFieldErrors.postalCode ? (
-                      <p className="text-sm text-destructive">
-                        {t(addressFieldErrors.postalCode)}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-
-                {addressError ? (
-                  <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    <AlertTriangleIcon className="mt-0.5 shrink-0" />
-                    <p>{t(addressError)}</p>
-                  </div>
-                ) : null}
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  </form>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-3 border-t border-border/80 bg-background/96 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"
+                    className="w-full sm:w-auto"
                     onClick={resetAddressForm}
                   >
                     {t('cancelEditing')}
                   </Button>
-                  <Button type="submit" disabled={isSavingAddress}>
+                  <Button
+                    type="submit"
+                    form="address-dialog-form"
+                    className="w-full sm:w-auto"
+                    disabled={isSavingAddress}
+                  >
                     <SaveIcon data-icon="inline-start" />
                     {isSavingAddress ? t('savingAddress') : submitLabel}
                   </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      ) : null}
+                </CardFooter>
+              </Card>
+            </div>,
+            document.body,
+          )
+        : null}
       <ConfirmDialog
         open={Boolean(confirmDeleteAddressId)}
         title={t('confirmDeleteAddressTitle')}

@@ -174,17 +174,7 @@ describe('OrdersService', () => {
       orderNo: 'FC-20260428-123456',
     });
 
-    expect(userUpdate).toHaveBeenCalledWith({
-      where: { id: currentUser.id },
-      data: {
-        fullName: 'Facee Customer',
-        email: 'customer@example.com',
-        phone: '0800000000',
-        addressLine: '123 Facee Road',
-        city: 'Bangkok',
-        postalCode: '10110',
-      },
-    });
+    expect(userUpdate).not.toHaveBeenCalled();
     expect(productUpdateMany).toHaveBeenCalledWith({
       where: {
         id: 'cm8product00000123456789012',

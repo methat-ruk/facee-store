@@ -243,18 +243,6 @@ export class OrdersService {
             }
           }
 
-          await transaction.user.update({
-            where: { id: userId },
-            data: {
-              fullName: address.recipientFullName,
-              email: address.recipientEmail,
-              phone: address.recipientPhone,
-              addressLine: address.addressLine,
-              city: address.city,
-              postalCode: address.postalCode,
-            },
-          });
-
           const order = await transaction.order.create({
             data: {
               orderNo: this.generateOrderNo(),
