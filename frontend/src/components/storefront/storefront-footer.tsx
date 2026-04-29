@@ -31,18 +31,31 @@ export function StorefrontFooter() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   className="hover:text-primary"
                 >
                   {topbarT(item.labelKey)}
                 </Link>
               ))}
-              <Link href="/login" className="hover:text-primary">
+              <Link
+                href="/login"
+                prefetch={false}
+                className="hover:text-primary"
+              >
                 {topbarT('login')}
               </Link>
-              <Link href="/cart" className="hover:text-primary">
+              <Link
+                href="/cart"
+                prefetch={false}
+                className="hover:text-primary"
+              >
                 {topbarT('cart')}
               </Link>
-              <Link href="/register" className="hover:text-primary">
+              <Link
+                href="/register"
+                prefetch={false}
+                className="hover:text-primary"
+              >
                 {topbarT('register')}
               </Link>
             </nav>

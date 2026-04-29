@@ -70,6 +70,7 @@ export function ProfilePage() {
   }));
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [addressForm, setAddressForm] =
@@ -100,6 +101,28 @@ export function ProfilePage() {
     router.replace(buildAuthNoticeHref('/login', 'auth-required', '/profile'));
   }, [isAuthInitialized, router, user]);
 
+  const loadAccountData = async () => {
+    setLoadError(false);
+    setIsLoading(true);
+
+    try {
+      const [profile, addressList] = await Promise.all([
+        getAccountProfile(),
+        listAddresses(),
+      ]);
+
+      setProfileForm({
+        fullName: profile.fullName,
+        email: profile.email,
+      });
+      setAddresses(addressList.items);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       return;
@@ -125,7 +148,7 @@ export function ProfilePage() {
           return;
         }
 
-        setProfileError('loadFailed');
+        setLoadError(true);
         setIsLoading(false);
       });
 
@@ -275,6 +298,7 @@ export function ProfilePage() {
 
   const handleSetDefault = async (addressId: string) => {
     setIsSwitchingDefaultId(addressId);
+    setAddressError(null);
 
     try {
       const updatedAddress = await setDefaultAddress(addressId);
@@ -285,6 +309,8 @@ export function ProfilePage() {
             : { ...address, isDefault: false },
         ),
       );
+    } catch {
+      setAddressError('errorAddressDefaultFailed');
     } finally {
       setIsSwitchingDefaultId(null);
     }
@@ -330,6 +356,27 @@ export function ProfilePage() {
 
   if (!user) {
     return null;
+  }
+
+  if (loadError) {
+    return (
+      <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8">
+        <Card className="mx-auto w-full max-w-2xl border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+          <CardHeader className="text-center">
+            <CardTitle>{t('loadFailed')}</CardTitle>
+            <CardDescription>{t('loadFailedDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button type="button" onClick={() => void loadAccountData()}>
+              {t('retryLoad')}
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/orders">{t('viewOrders')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
   }
 
   return (
@@ -549,7 +596,7 @@ export function ProfilePage() {
       {isAddressDialogOpen
         ? createPortal(
             <div
-              className="fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(28,18,14,0.52)] px-4 py-6 backdrop-blur-sm sm:px-6"
+              className="fixed inset-0 z-90 flex items-center justify-center bg-[rgba(28,18,14,0.52)] px-4 py-6 backdrop-blur-sm sm:px-6"
               role="dialog"
               aria-modal="true"
               aria-labelledby="address-dialog-title"

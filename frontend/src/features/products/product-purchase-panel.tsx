@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCartStore } from '@/store/use-cart-store';
+import { animateAddToCartFlight } from './cart-fly-animation';
 import type { ProductDetail } from './schemas';
 
 type ProductPurchasePanelProps = {
@@ -97,7 +98,12 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           type="button"
           size="lg"
           disabled={isOutOfStock}
-          onClick={() => {
+          className={`relative isolate overflow-hidden transition-transform ${
+            isAdded
+              ? 'motion-safe:animate-[cart-confirm-pop_420ms_ease-out]'
+              : ''
+          }`}
+          onClick={(event) => {
             addItem({
               id: product.id,
               slug: product.slug,
@@ -107,15 +113,32 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
               stock: product.stock,
               quantity,
             });
+            animateAddToCartFlight(event.currentTarget);
             setIsAdded(true);
           }}
         >
-          {isAdded ? (
-            <CheckIcon data-icon="inline-start" />
-          ) : (
-            <ShoppingCartIcon data-icon="inline-start" />
-          )}
-          {isAdded ? t('addedToCart') : t('addToCart')}
+          <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute top-1/2 left-1/2 size-24 rounded-full bg-primary-foreground/35 ${
+              isAdded
+                ? 'motion-safe:animate-[cart-confirm-ripple_620ms_ease-out]'
+                : 'opacity-0'
+            }`}
+          />
+          <span
+            className={`relative z-1 inline-flex items-center gap-1.5 ${
+              isAdded
+                ? 'motion-safe:animate-[cart-confirm-icon_380ms_ease-out]'
+                : ''
+            }`}
+          >
+            {isAdded ? (
+              <CheckIcon data-icon="inline-start" />
+            ) : (
+              <ShoppingCartIcon data-icon="inline-start" />
+            )}
+            {isAdded ? t('addedToCart') : t('addToCart')}
+          </span>
         </Button>
 
         <p className="text-sm leading-7 text-muted-foreground">

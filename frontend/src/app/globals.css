@@ -167,3 +167,67 @@ a {
     @apply font-sans;
   }
 }
+
+@keyframes cart-confirm-ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0.25);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.28;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes cart-confirm-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.04);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes cart-confirm-icon {
+  0% {
+    transform: translateY(0) scale(0.92);
+    opacity: 0.72;
+  }
+
+  40% {
+    transform: translateY(-1px) scale(1.08);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes cart-target-bump {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(201, 165, 148, 0);
+  }
+
+  35% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 0.42rem rgba(201, 165, 148, 0.2);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(201, 165, 148, 0);
+  }
+}

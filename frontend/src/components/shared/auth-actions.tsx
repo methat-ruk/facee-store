@@ -69,7 +69,7 @@ export function AuthActions({
                   : undefined
               }
             >
-              <Link href="/profile" onClick={onAction}>
+              <Link href="/profile" prefetch={false} onClick={onAction}>
                 {t('profile')}
               </Link>
             </Button>
@@ -82,7 +82,7 @@ export function AuthActions({
                   : undefined
               }
             >
-              <Link href="/orders" onClick={onAction}>
+              <Link href="/orders" prefetch={false} onClick={onAction}>
                 {t('myPurchases')}
               </Link>
             </Button>
@@ -135,6 +135,7 @@ export function AuthActions({
       >
         <Link
           href={loginHref}
+          prefetch={false}
           onClick={() => {
             onAction?.();
           }}
@@ -149,6 +150,7 @@ export function AuthActions({
       >
         <Link
           href={registerHref}
+          prefetch={false}
           onClick={() => {
             onAction?.();
           }}

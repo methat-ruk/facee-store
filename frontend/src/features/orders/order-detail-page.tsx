@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -40,6 +40,7 @@ import {
 import {
   canDirectCancel,
   canRequestCancellation,
+  formatOrderDate,
   formatOrderPrice,
   getOrderStatusBadgeClassName,
   getOrderStatusBadgeVariant,
@@ -55,18 +56,12 @@ import { useAuthStore } from '@/store/use-auth-store';
 
 const cancellationReasonOptions = cancellationReasonCodeSchema.options;
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
 type OrderDetailPageProps = {
   orderNo: string;
 };
 
 export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
+  const locale = useLocale();
   const t = useTranslations('orders');
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -93,6 +88,24 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
   const latestRequest = order?.latestCancellationRequest ?? null;
   const hasPendingRequest = latestRequest?.status === 'REQUESTED';
   const shouldRequireDetails = cancellationForm.reasonCode === 'OTHER';
+
+  const loadOrder = async () => {
+    setErrorState(null);
+    setIsLoading(true);
+
+    try {
+      const response = await getOrderDetail(orderNo);
+      setOrder(response);
+    } catch (error) {
+      setErrorState(
+        isApiError(error) && error.code === 'ORDER_NOT_FOUND'
+          ? 'not-found'
+          : 'generic',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthInitialized || user) {
@@ -157,6 +170,7 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
     try {
       const nextOrder = await cancelOrder(order.orderNo);
       setOrder(nextOrder);
+      setActionError(null);
     } catch {
       setActionError('errorCancelFailed');
     } finally {
@@ -184,6 +198,11 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
         cancellationForm,
       );
       setOrder(nextOrder);
+      setActionError(null);
+      setCancellationForm({
+        reasonCode: 'WRONG_ADDRESS',
+        details: '',
+      });
     } catch (error) {
       setActionError(
         isApiError(error) && error.code === 'CANCELLATION_REQUEST_EXISTS'
@@ -212,16 +231,35 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
 
   if (errorState) {
     return (
-      <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <p
-          className={
-            errorState === 'not-found'
-              ? 'text-sm font-medium text-muted-foreground'
-              : 'text-sm font-medium text-destructive'
-          }
-        >
-          {t(errorState === 'not-found' ? 'errorNotFound' : 'errorLoadFailed')}
-        </p>
+      <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8">
+        <Card className="mx-auto w-full max-w-2xl border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+          <CardHeader className="text-center">
+            <CardTitle>
+              {t(
+                errorState === 'not-found'
+                  ? 'errorNotFound'
+                  : 'errorLoadFailed',
+              )}
+            </CardTitle>
+            <CardDescription>
+              {t(
+                errorState === 'not-found'
+                  ? 'errorNotFoundDescription'
+                  : 'errorLoadDescription',
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            {errorState === 'generic' ? (
+              <Button type="button" onClick={() => void loadOrder()}>
+                {t('retryLoad')}
+              </Button>
+            ) : null}
+            <Button asChild variant="outline">
+              <Link href="/orders">{t('backToOrders')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </main>
     );
   }
@@ -263,7 +301,7 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
               ) : null}
             </div>
             <p className="text-base leading-8 text-muted-foreground">
-              {formatDate(order.createdAt)}
+              {formatOrderDate(order.createdAt, locale)}
             </p>
           </div>
         </div>
@@ -318,15 +356,24 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {item.productName}
-                        </p>
+                        {item.productSlug ? (
+                          <Link
+                            href={`/products/${item.productSlug}`}
+                            className="truncate text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                          >
+                            {item.productName}
+                          </Link>
+                        ) : (
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {item.productName}
+                          </p>
+                        )}
                         <p className="mt-1 text-xs text-muted-foreground">
                           {t('itemQuantity', { count: item.quantity })}
                         </p>
                       </div>
                       <p className="shrink-0 text-sm font-medium text-foreground">
-                        {formatOrderPrice(item.lineTotal)}
+                        {formatOrderPrice(item.lineTotal, locale)}
                       </p>
                     </div>
                   </div>
@@ -345,13 +392,13 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('subtotal')}</span>
                 <span className="font-medium text-foreground">
-                  {formatOrderPrice(order.subtotal)}
+                  {formatOrderPrice(order.subtotal, locale)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('shipping')}</span>
                 <span className="font-medium text-foreground">
-                  {formatOrderPrice(order.shippingTotal)}
+                  {formatOrderPrice(order.shippingTotal, locale)}
                 </span>
               </div>
               <Separator />
@@ -360,7 +407,7 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
                   {t('total')}
                 </span>
                 <span className="text-2xl font-semibold text-foreground">
-                  {formatOrderPrice(order.total)}
+                  {formatOrderPrice(order.total, locale)}
                 </span>
               </div>
             </CardContent>
@@ -377,12 +424,24 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
                   <p className="font-medium text-foreground">
                     {cancellationNotice}
                   </p>
+                  <p>
+                    {t('requestedAtLabel')}:{' '}
+                    {formatOrderDate(latestRequest.createdAt, locale)}
+                  </p>
                   <p>{t(`cancellationReason.${latestRequest.reasonCode}`)}</p>
                   {latestRequest.details ? (
                     <p>{latestRequest.details}</p>
                   ) : null}
+                  {latestRequest.reviewedAt ? (
+                    <p>
+                      {t('reviewedAtLabel')}:{' '}
+                      {formatOrderDate(latestRequest.reviewedAt, locale)}
+                    </p>
+                  ) : null}
                   {latestRequest.reviewNote ? (
-                    <p>{latestRequest.reviewNote}</p>
+                    <p>
+                      {t('reviewNoteLabel')}: {latestRequest.reviewNote}
+                    </p>
                   ) : null}
                 </div>
               ) : null}
@@ -418,6 +477,7 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
                           ...current,
                           reasonCode:
                             value as CreateCancellationRequestInput['reasonCode'],
+                          details: value === 'OTHER' ? current.details : '',
                         }))
                       }
                     >
@@ -471,8 +531,18 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
                 </>
               ) : null}
 
+              {order.status === 'CANCELED' ? (
+                <div className="rounded-2xl border border-emerald-300 bg-emerald-100/70 px-4 py-3 text-sm leading-7 text-emerald-900 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-100">
+                  <p className="font-medium">
+                    {t('cancellationCompletedTitle')}
+                  </p>
+                  <p>{t('cancellationCompletedDescription')}</p>
+                </div>
+              ) : null}
+
               {!canDirectCancel(order.status) &&
-              !canRequestCancellation(order.status) ? (
+              !canRequestCancellation(order.status) &&
+              order.status !== 'CANCELED' ? (
                 <p className="text-sm leading-7 text-muted-foreground">
                   {t('cancellationUnavailable')}
                 </p>

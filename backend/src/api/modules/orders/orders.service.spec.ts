@@ -306,6 +306,58 @@ describe('OrdersService', () => {
     });
   });
 
+  it('sums quantities for the order list item count', async () => {
+    const { service, orderFindMany } = buildService();
+
+    orderFindMany.mockResolvedValue([
+      {
+        orderNo: 'FC-20260428-123456',
+        status: 'PAID',
+        refundStatus: 'NONE',
+        createdAt: new Date('2026-04-28T10:00:00.000Z'),
+        total: 960,
+        customerFullName: 'Facee Customer',
+        customerEmail: 'customer@example.com',
+        customerPhone: '0800000000',
+        shippingAddressLine: '123 Facee Road',
+        shippingCity: 'Bangkok',
+        shippingPostalCode: '10110',
+        user: {
+          fullName: 'Facee Customer',
+          email: 'customer@example.com',
+          phone: '0800000000',
+          addressLine: '123 Facee Road',
+          city: 'Bangkok',
+          postalCode: '10110',
+        },
+        items: [
+          {
+            id: 'cm8orderitem0000012345678',
+            productName: 'Quiet Bloom Cleanser',
+            productImageUrl: '/images/products/quiet-bloom-cleanser.png',
+            quantity: 2,
+          },
+          {
+            id: 'cm8orderitem0000012345679',
+            productName: 'Soft Cloud Toner',
+            productImageUrl: '/images/products/soft-cloud-toner.png',
+            quantity: 1,
+          },
+        ],
+        cancellationRequests: [],
+      },
+    ]);
+
+    await expect(service.listOrders(currentUser.id)).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          orderNo: 'FC-20260428-123456',
+          itemCount: 3,
+        }),
+      ],
+    });
+  });
+
   it('cancels pending orders and restores stock immediately', async () => {
     const { service, orderFindFirst, orderUpdate, productUpdate } =
       buildService();

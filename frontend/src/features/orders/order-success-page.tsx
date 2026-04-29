@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,27 +25,18 @@ import {
   FREE_SHIPPING_THRESHOLD,
 } from '@/features/checkout/checkout-ui';
 import type { OrderDetail } from '@/features/orders/schemas';
+import { formatOrderDate, formatOrderPrice } from '@/features/orders/ui';
 import { Link, useRouter } from '@/i18n/navigation';
 import { isApiError } from '@/services/api-error';
 import { getOrderDetail } from '@/services/orders';
 import { useAuthStore } from '@/store/use-auth-store';
-
-function formatPrice(value: number) {
-  return `THB ${value.toFixed(2)}`;
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
 
 type CheckoutSuccessPageProps = {
   orderNo: string;
 };
 
 export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
+  const locale = useLocale();
   const t = useTranslations('checkoutSuccess');
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -238,7 +229,7 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
                   {t('createdAtLabel')}
                 </p>
                 <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                  {formatDate(order.createdAt)}
+                  {formatOrderDate(order.createdAt, locale)}
                 </p>
               </div>
             </div>
@@ -294,7 +285,7 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
                           </p>
                         </div>
                         <p className="shrink-0 text-sm font-medium text-foreground">
-                          {formatPrice(item.lineTotal)}
+                          {formatOrderPrice(item.lineTotal, locale)}
                         </p>
                       </div>
                     </div>
@@ -316,30 +307,36 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="text-muted-foreground">{t('subtotal')}</span>
               <span className="font-medium text-foreground">
-                {formatPrice(order.subtotal)}
+                {formatOrderPrice(order.subtotal, locale)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="text-muted-foreground">{t('shipping')}</span>
               <span className="font-medium text-foreground">
-                {formatPrice(order.shippingTotal)}
+                {formatOrderPrice(order.shippingTotal, locale)}
               </span>
             </div>
             <p className="text-xs leading-6 text-muted-foreground">
               {order.shippingTotal === 0
                 ? t('shippingFreeThreshold', {
-                    threshold: formatPrice(FREE_SHIPPING_THRESHOLD),
+                    threshold: formatOrderPrice(
+                      FREE_SHIPPING_THRESHOLD,
+                      locale,
+                    ),
                   })
                 : t('shippingFlatRate', {
-                    amount: formatPrice(order.shippingTotal),
-                    threshold: formatPrice(FREE_SHIPPING_THRESHOLD),
+                    amount: formatOrderPrice(order.shippingTotal, locale),
+                    threshold: formatOrderPrice(
+                      FREE_SHIPPING_THRESHOLD,
+                      locale,
+                    ),
                   })}
             </p>
             <Separator />
             <div className="flex items-center justify-between gap-4">
               <span className="font-medium text-foreground">{t('total')}</span>
               <span className="text-2xl font-semibold text-foreground">
-                {formatPrice(order.total)}
+                {formatOrderPrice(order.total, locale)}
               </span>
             </div>
           </CardContent>

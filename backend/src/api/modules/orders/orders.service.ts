@@ -133,6 +133,7 @@ const orderListSelect = {
       id: true,
       productName: true,
       productImageUrl: true,
+      quantity: true,
     },
   },
   cancellationRequests: {
@@ -677,6 +678,7 @@ export class OrdersService {
       id: string;
       productName: string | null;
       productImageUrl: string | null;
+      quantity: number;
     }>;
     cancellationRequests: Array<Pick<OrderCancellationRequest, 'status'>>;
   }) {
@@ -688,7 +690,7 @@ export class OrdersService {
       refundStatus: order.refundStatus,
       createdAt: order.createdAt.toISOString(),
       total: Number(order.total),
-      itemCount: order.items.length,
+      itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
       previewItems: order.items.slice(0, 3).map((item) => ({
         id: item.id,
         productName: item.productName ?? '',

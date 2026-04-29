@@ -1,7 +1,19 @@
 import type { OrderDetail, OrderListItem } from '@/features/orders/schemas';
 
-export function formatOrderPrice(value: number) {
-  return `THB ${value.toFixed(2)}`;
+export function formatOrderPrice(value: number, locale = 'en') {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'THB',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+export function formatOrderDate(value: string, locale = 'en') {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
 
 export function getOrderStatusBadgeVariant(

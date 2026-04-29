@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { getCartItemCount, useCartStore } from '@/store/use-cart-store';
+import { CART_HIGHLIGHT_EVENT } from '@/features/products/cart-fly-animation';
 import { storefrontNavItems } from './storefront-nav';
 
 function TopbarSearchForm({
@@ -124,7 +125,7 @@ function StorefrontMenuPanel({
             variant="ghost"
             className="w-full justify-start rounded-xl px-4 py-3 text-left text-foreground/80 hover:bg-muted hover:text-foreground"
           >
-            <Link href="/cart" onClick={onAction}>
+            <Link href="/cart" prefetch={false} onClick={onAction}>
               {t('cart')}
             </Link>
           </Button>
@@ -162,6 +163,7 @@ export function StorefrontTopbar() {
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [isCartHighlighted, setIsCartHighlighted] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
@@ -176,6 +178,25 @@ export function StorefrontTopbar() {
 
     return () => {
       mediaQuery.removeEventListener('change', closeMenus);
+    };
+  }, []);
+
+  useEffect(() => {
+    let timeoutId = 0;
+
+    const handleCartHighlight = () => {
+      window.clearTimeout(timeoutId);
+      setIsCartHighlighted(true);
+      timeoutId = window.setTimeout(() => {
+        setIsCartHighlighted(false);
+      }, 520);
+    };
+
+    window.addEventListener(CART_HIGHLIGHT_EVENT, handleCartHighlight);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener(CART_HIGHLIGHT_EVENT, handleCartHighlight);
     };
   }, []);
 
@@ -206,6 +227,7 @@ export function StorefrontTopbar() {
           <div className="flex min-w-0 items-center gap-6 lg:gap-10">
             <Link
               href="/products"
+              prefetch={false}
               className="rounded-[1.4rem] px-1 py-0.5 transition hover:opacity-85"
               aria-label="Go to Facee products"
             >
@@ -245,10 +267,14 @@ export function StorefrontTopbar() {
               asChild
               variant="outline"
               size="icon"
-              className="relative shrink-0"
+              className={`relative shrink-0 ${
+                isCartHighlighted
+                  ? 'motion-safe:animate-[cart-target-bump_520ms_cubic-bezier(0.2,0.9,0.25,1)]'
+                  : ''
+              }`}
               aria-label={t('cartLabel', { count: cartItemCount })}
             >
-              <Link href="/cart">
+              <Link href="/cart" prefetch={false} data-cart-anchor="storefront">
                 <ShoppingCartIcon />
                 {cartItemCount > 0 ? (
                   <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary text-[0.68rem] font-semibold text-primary-foreground">
