@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,17 +28,15 @@ import {
   checkoutPrimaryButtonClassName,
   FREE_SHIPPING_THRESHOLD,
 } from '@/features/checkout/checkout-ui';
+import { formatOrderPrice } from '@/features/orders/ui';
 import { Link, useRouter } from '@/i18n/navigation';
 import { isApiError } from '@/services/api-error';
 import { listAddresses } from '@/services/account';
 import { createOrder } from '@/services/orders';
 import { useAuthStore } from '@/store/use-auth-store';
 
-function formatPrice(value: number) {
-  return `THB ${value.toFixed(2)}`;
-}
-
 export function CheckoutPage() {
+  const locale = useLocale();
   const t = useTranslations('checkout');
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -67,6 +65,25 @@ export function CheckoutPage() {
   const [addressError, setAddressError] = useState<string | null>(null);
   const [formErrorKey, setFormErrorKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadAddresses = async () => {
+    setAddressError(null);
+    setIsLoadingAddresses(true);
+
+    try {
+      const response = await listAddresses();
+      setAddresses(response.items);
+      setSelectedAddressId(
+        response.items.find((address) => address.isDefault)?.id ??
+          response.items[0]?.id ??
+          null,
+      );
+    } catch {
+      setAddressError('errorAddressLoadFailed');
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthInitialized || user) {
@@ -284,7 +301,20 @@ export function CheckoutPage() {
           <CardContent className="flex flex-col gap-4">
             {addressError ? (
               <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {t(addressError)}
+                <p>{t(addressError)}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void loadAddresses()}
+                  >
+                    {t('retryAddresses')}
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/profile">{t('manageAddresses')}</Link>
+                  </Button>
+                </div>
               </div>
             ) : null}
 
@@ -303,7 +333,7 @@ export function CheckoutPage() {
                   <button
                     key={address.id}
                     type="button"
-                    className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                    className={`cursor-pointer rounded-2xl border px-4 py-4 text-left transition-colors ${
                       isSelected
                         ? 'border-foreground bg-background/90'
                         : 'border-border bg-background/70 hover:border-foreground/40'
@@ -390,7 +420,7 @@ export function CheckoutPage() {
                         </p>
                       </Link>
                       <p className="shrink-0 text-sm font-medium text-foreground">
-                        {formatPrice(item.lineTotal)}
+                        {formatOrderPrice(item.lineTotal, locale)}
                       </p>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -413,30 +443,36 @@ export function CheckoutPage() {
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="text-muted-foreground">{t('subtotal')}</span>
               <span className="font-medium text-foreground">
-                {formatPrice(subtotal)}
+                {formatOrderPrice(subtotal, locale)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="text-muted-foreground">{t('shipping')}</span>
               <span className="font-medium text-foreground">
-                {formatPrice(shipping)}
+                {formatOrderPrice(shipping, locale)}
               </span>
             </div>
             <p className="text-xs leading-6 text-muted-foreground">
               {shipping === 0
                 ? t('shippingFreeThreshold', {
-                    threshold: formatPrice(FREE_SHIPPING_THRESHOLD),
+                    threshold: formatOrderPrice(
+                      FREE_SHIPPING_THRESHOLD,
+                      locale,
+                    ),
                   })
                 : t('shippingFlatRate', {
-                    amount: formatPrice(shipping),
-                    threshold: formatPrice(FREE_SHIPPING_THRESHOLD),
+                    amount: formatOrderPrice(shipping, locale),
+                    threshold: formatOrderPrice(
+                      FREE_SHIPPING_THRESHOLD,
+                      locale,
+                    ),
                   })}
             </p>
             <Separator />
             <div className="flex items-center justify-between gap-4">
               <span className="font-medium text-foreground">{t('total')}</span>
               <span className="text-2xl font-semibold text-foreground">
-                {formatPrice(total)}
+                {formatOrderPrice(total, locale)}
               </span>
             </div>
 

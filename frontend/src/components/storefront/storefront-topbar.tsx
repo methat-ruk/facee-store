@@ -1,8 +1,16 @@
 'use client';
 
+import Image from 'next/image';
 import { MenuIcon, SearchIcon, ShoppingCartIcon, XIcon } from 'lucide-react';
-import { FormEvent, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import {
+  FormEvent,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { BrandWordmark } from '@/components/brand-wordmark';
 import { AuthActions } from '@/components/shared/auth-actions';
@@ -24,10 +32,29 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/cn';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
+import { getProducts } from '@/services/catalog';
 import { getCartItemCount, useCartStore } from '@/store/use-cart-store';
 import { CART_HIGHLIGHT_EVENT } from '@/features/products/cart-fly-animation';
+import { getLocalizedProduct } from '@/features/products/localized-content';
+import type { Product } from '@/features/products/schemas';
+import { formatOrderPrice } from '@/features/orders/ui';
 import { storefrontNavItems } from './storefront-nav';
+
+function buildProductsSearchHref(query: string) {
+  const normalizedQuery = query.trim();
+
+  if (!normalizedQuery) {
+    return '/products';
+  }
+
+  const params = new URLSearchParams({
+    query: normalizedQuery,
+  });
+
+  return `/products?${params.toString()}`;
+}
 
 function TopbarSearchForm({
   initialQuery,
@@ -35,27 +62,115 @@ function TopbarSearchForm({
   placeholder,
   submitLabel,
   clearLabel,
+  loadingLabel,
+  noResultsLabel,
+  viewAllLabel,
   mobile = false,
+  onNavigate,
 }: {
   initialQuery: string;
   onSubmit: (value: string) => void;
   placeholder: string;
   submitLabel: string;
   clearLabel: string;
+  loadingLabel: string;
+  noResultsLabel: string;
+  viewAllLabel: string;
   mobile?: boolean;
+  onNavigate?: () => void;
 }) {
+  const locale = useLocale();
   const [searchValue, setSearchValue] = useState(initialQuery);
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(
+    () => initialQuery.trim().length > 0,
+  );
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [suggestionQuery, setSuggestionQuery] = useState('');
+  const normalizedQuery = searchValue.trim();
+  const deferredQuery = useDeferredValue(normalizedQuery);
+  const formRef = useRef<HTMLFormElement | null>(null);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!formRef.current?.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!deferredQuery) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const response = await getProducts({
+          query: deferredQuery,
+          sort: 'name-asc',
+          page: 1,
+          limit: 5,
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        setSuggestions(response.items);
+        setSuggestionQuery(deferredQuery);
+      } catch {
+        if (isCancelled) {
+          return;
+        }
+
+        setSuggestions([]);
+        setSuggestionQuery(deferredQuery);
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingSuggestions(false);
+        }
+      }
+    }, 180);
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [deferredQuery]);
+
+  const localizedSuggestions = useMemo(
+    () => suggestions.map((product) => getLocalizedProduct(product, locale)),
+    [locale, suggestions],
+  );
+
+  const shouldShowDropdown =
+    isDropdownOpen &&
+    normalizedQuery.length > 0 &&
+    (isLoadingSuggestions || suggestionQuery === deferredQuery);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsDropdownOpen(false);
     onSubmit(searchValue.trim());
   };
 
   return (
     <form
       key={initialQuery}
+      ref={formRef}
       className={
-        mobile ? 'flex items-center' : 'hidden items-center gap-3 md:flex'
+        mobile
+          ? 'relative flex items-center'
+          : 'relative hidden items-center gap-3 md:flex'
       }
       onSubmit={handleSubmit}
     >
@@ -71,10 +186,32 @@ function TopbarSearchForm({
           type="text"
           name="query"
           value={searchValue}
-          onChange={(event) => setSearchValue(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            const nextNormalizedQuery = nextValue.trim();
+
+            setSearchValue(nextValue);
+
+            if (!nextNormalizedQuery) {
+              setSuggestions([]);
+              setSuggestionQuery('');
+              setIsLoadingSuggestions(false);
+              return;
+            }
+
+            setIsLoadingSuggestions(true);
+          }}
+          onFocus={() => setIsDropdownOpen(true)}
           placeholder={placeholder}
           className="h-8 border-none bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent!"
           aria-label={submitLabel}
+          aria-expanded={shouldShowDropdown}
+          aria-controls={
+            mobile
+              ? 'topbar-search-suggestions-mobile'
+              : 'topbar-search-suggestions'
+          }
+          autoComplete="off"
         />
         {searchValue ? (
           <Button
@@ -85,6 +222,10 @@ function TopbarSearchForm({
             aria-label={clearLabel}
             onClick={() => {
               setSearchValue('');
+              setSuggestions([]);
+              setSuggestionQuery('');
+              setIsLoadingSuggestions(false);
+              setIsDropdownOpen(false);
               onSubmit('');
             }}
           >
@@ -92,6 +233,90 @@ function TopbarSearchForm({
           </Button>
         ) : null}
       </div>
+
+      {shouldShowDropdown ? (
+        <div
+          id={
+            mobile
+              ? 'topbar-search-suggestions-mobile'
+              : 'topbar-search-suggestions'
+          }
+          className={cn(
+            'absolute top-[calc(100%+0.75rem)] z-[95] w-full overflow-hidden rounded-[1.5rem] border border-border/80 bg-background/96 shadow-[0_24px_70px_rgba(88,51,38,0.18)] backdrop-blur-xl',
+            mobile ? 'left-0' : 'right-0',
+          )}
+          role="listbox"
+        >
+          {isLoadingSuggestions ? (
+            <div className="px-4 py-4 text-sm text-muted-foreground">
+              {loadingLabel}
+            </div>
+          ) : localizedSuggestions.length > 0 ? (
+            <div className="flex flex-col">
+              {localizedSuggestions.map((product) => (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="flex items-center gap-3 border-b border-border/60 px-4 py-3 transition-colors hover:bg-foreground/[0.04]"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    onNavigate?.();
+                  }}
+                >
+                  <div className="relative flex h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-border/70 bg-[linear-gradient(180deg,#fff3ea_0%,#f7ddd0_100%)]">
+                    {product.imageUrl ? (
+                      <Image
+                        src={product.imageUrl}
+                        alt={product.name}
+                        fill
+                        sizes="56px"
+                        className="object-cover object-top"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                        Facee
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                      {product.category.name}
+                    </p>
+                    <p className="mt-1 line-clamp-1 text-sm font-medium text-foreground">
+                      {product.name}
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold text-foreground">
+                      {formatOrderPrice(product.price, locale)}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+
+              <Link
+                href={buildProductsSearchHref(normalizedQuery)}
+                className="flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.04]"
+                onClick={() => {
+                  setIsDropdownOpen(false);
+                  onNavigate?.();
+                }}
+              >
+                <span>{viewAllLabel}</span>
+                <span className="text-muted-foreground">
+                  &ldquo;{normalizedQuery}&rdquo;
+                </span>
+              </Link>
+            </div>
+          ) : (
+            <div className="px-4 py-4 text-sm text-muted-foreground">
+              {noResultsLabel}
+            </div>
+          )}
+        </div>
+      ) : null}
     </form>
   );
 }
@@ -246,6 +471,9 @@ export function StorefrontTopbar() {
               placeholder={t('searchPlaceholder')}
               submitLabel={t('searchSubmit')}
               clearLabel={t('clearSearch')}
+              loadingLabel={t('searchLoading')}
+              noResultsLabel={t('searchNoResults')}
+              viewAllLabel={t('searchViewAll')}
             />
 
             <div className="hidden self-stretch px-1 md:flex md:items-center">
@@ -360,6 +588,10 @@ export function StorefrontTopbar() {
               placeholder={t('searchPlaceholder')}
               submitLabel={t('searchSubmit')}
               clearLabel={t('clearSearch')}
+              loadingLabel={t('searchLoading')}
+              noResultsLabel={t('searchNoResults')}
+              viewAllLabel={t('searchViewAll')}
+              onNavigate={() => setMobileSearchOpen(false)}
             />
           </div>
         ) : null}

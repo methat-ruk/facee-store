@@ -20,7 +20,10 @@
     "myPurchases": "การซื้อของฉัน",
     "searchPlaceholder": "ค้นหาสินค้า",
     "searchSubmit": "ค้นหาสินค้า",
-    "clearSearch": "ล้างคำค้นหา"
+    "clearSearch": "ล้างคำค้นหา",
+    "searchLoading": "????????????????...",
+    "searchNoResults": "???????????????????????????????",
+    "searchViewAll": "????????????????"
   },
   "footer": {
     "description": "Facee คือพอร์ต storefront สายสกินแคร์ที่ออกแบบให้มี UI ใช้ซ้ำได้ รองรับ route i18n และต่อยอดเป็น full-stack ได้จริง",
@@ -180,7 +183,8 @@
     "addressSnapshotNote": "ที่อยู่ที่เลือกจะถูกคัดลอกลงในออเดอร์ การแก้ไขโปรไฟล์ภายหลังจะไม่เปลี่ยนออเดอร์นี้",
     "errorAddressRequired": "กรุณาเลือกที่อยู่ก่อนสั่งซื้อ",
     "errorAddressMissing": "ไม่พบที่อยู่ที่เลือกแล้ว กรุณารีเฟรชและลองใหม่อีกครั้ง",
-    "errorAddressLoadFailed": "ไม่สามารถโหลดรายการที่อยู่ได้ในขณะนี้"
+    "errorAddressLoadFailed": "ไม่สามารถโหลดรายการที่อยู่ได้ในขณะนี้",
+    "retryAddresses": "ลองโหลดที่อยู่อีกครั้ง"
   },
   "checkoutSuccess": {
     "eyebrow": "ยืนยันคำสั่งซื้อ",
@@ -210,7 +214,8 @@
     "missingDescription": "เลขออเดอร์อาจไม่ถูกต้อง หรือออเดอร์นี้อาจเป็นของบัญชีอื่น",
     "errorEyebrow": "เกิดปัญหากับออเดอร์",
     "errorTitle": "ยังไม่สามารถโหลดคำสั่งซื้อนี้ได้",
-    "errorDescription": "กรุณาลองใหม่จากหน้า storefront หรือเปิดลิงก์ออเดอร์อื่น"
+    "errorDescription": "กรุณาลองใหม่จากหน้า storefront หรือเปิดลิงก์ออเดอร์อื่น",
+    "retryLoad": "ลองอีกครั้ง"
   },
   "account": {
     "eyebrow": "บัญชี",

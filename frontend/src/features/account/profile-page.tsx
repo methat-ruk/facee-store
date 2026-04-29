@@ -477,7 +477,7 @@ export function ProfilePage() {
             <CardHeader className="gap-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-11 items-center justify-center rounded-full border border-border bg-muted text-foreground">
+                  <div className="flex size-11 items-center justify-center rounded-full border border-border bg-[#2a1d18] text-foreground">
                     <MapPinIcon />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -523,7 +523,12 @@ export function ProfilePage() {
                           {address.label}
                         </p>
                         {address.isDefault ? (
-                          <Badge variant="secondary">{t('defaultBadge')}</Badge>
+                          <Badge
+                            variant="secondary"
+                            className="bg-[#3a2922] text-foreground"
+                          >
+                            {t('defaultBadge')}
+                          </Badge>
                         ) : null}
                       </div>
                       <div className="text-sm leading-7 text-muted-foreground">

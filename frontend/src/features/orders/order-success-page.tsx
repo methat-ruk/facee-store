@@ -48,6 +48,24 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
     null,
   );
 
+  const loadOrder = async () => {
+    setErrorState(null);
+    setIsLoading(true);
+
+    try {
+      const response = await getOrderDetail(orderNo);
+      setOrder(response);
+    } catch (error) {
+      if (isApiError(error) && error.code === 'ORDER_NOT_FOUND') {
+        setErrorState('not-found');
+      } else {
+        setErrorState('generic');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthInitialized || isRestoringProfile) {
       return;
@@ -131,12 +149,17 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
               {t('missingDescription')}
             </p>
           </div>
-          <Button asChild size="lg">
-            <Link href="/products">
-              <ArrowLeftIcon data-icon="inline-start" />
-              {t('backToProducts')}
-            </Link>
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" onClick={() => void loadOrder()}>
+              {t('retryLoad')}
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/products">
+                <ArrowLeftIcon data-icon="inline-start" />
+                {t('backToProducts')}
+              </Link>
+            </Button>
+          </div>
         </section>
       </main>
     );

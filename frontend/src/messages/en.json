@@ -20,7 +20,10 @@
     "myPurchases": "My purchases",
     "searchPlaceholder": "Search products",
     "searchSubmit": "Search products",
-    "clearSearch": "Clear search"
+    "clearSearch": "Clear search",
+    "searchLoading": "Searching products...",
+    "searchNoResults": "No matching products found yet.",
+    "searchViewAll": "View all results"
   },
   "footer": {
     "description": "Facee is a storefront-first skincare portfolio with a reusable UI system, route i18n, and a full-stack-ready foundation.",
@@ -158,6 +161,7 @@
     "errorAddressRequired": "Please select an address before placing the order.",
     "errorAddressMissing": "The selected address is no longer available. Refresh your addresses and try again.",
     "errorAddressLoadFailed": "Unable to load your saved addresses right now.",
+    "retryAddresses": "Retry addresses",
     "shippingFlatRate": "{amount} shipping applies for orders below {threshold}.",
     "shippingFreeThreshold": "Free shipping applies for orders from {threshold}.",
     "errorStockChanged": "Some cart quantities changed before checkout completed. Review the cart and try again.",
@@ -193,7 +197,8 @@
     "missingDescription": "The order number may be invalid or may belong to another account.",
     "errorEyebrow": "Order error",
     "errorTitle": "Unable to load this order.",
-    "errorDescription": "Please try again from the storefront or open a different order link."
+    "errorDescription": "Please try again from the storefront or open a different order link.",
+    "retryLoad": "Try again"
   },
   "account": {
     "eyebrow": "Account",
