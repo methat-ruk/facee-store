@@ -37,23 +37,21 @@ COOKIE_SECRET=change-me
 
 1. Create a PostgreSQL database named `facee`
 2. Set `DATABASE_URL` in `backend/.env`
-3. Run the Prisma migration
+3. Apply migrations
 4. Seed the database
 
 Commands:
 
 ```bash
-npm --prefix backend run db:migrate -- --name init
+npm --prefix backend exec prisma migrate deploy --schema prisma/schema.prisma
 npm --prefix backend run db:seed
 ```
 
-If migrations already exist and you only need the current schema applied:
+If you are creating a new local migration while developing schema changes:
 
 ```bash
-npx prisma migrate deploy
+npm --prefix backend run db:migrate -- --name your_migration_name
 ```
-
-Run that command from `backend/`.
 
 ## Install Dependencies
 
@@ -78,13 +76,18 @@ This starts:
 
 ## Useful URLs
 
-- Storefront: `http://localhost:3000/en/products`
-- Thai storefront: `http://localhost:3000/th/products`
-- Login UI: `http://localhost:3000/en/login`
-- Register UI: `http://localhost:3000/en/register`
-- API health: `http://localhost:4000/api/health`
-- Categories API: `http://localhost:4000/api/categories`
-- Products API: `http://localhost:4000/api/products`
+- storefront entry: `http://localhost:3000/en`
+- storefront catalog: `http://localhost:3000/en/products`
+- thai storefront catalog: `http://localhost:3000/th/products`
+- login: `http://localhost:3000/en/login`
+- register: `http://localhost:3000/en/register`
+- profile: `http://localhost:3000/en/profile`
+- cart: `http://localhost:3000/en/cart`
+- checkout: `http://localhost:3000/en/checkout`
+- orders: `http://localhost:3000/en/orders`
+- api health: `http://localhost:4000/api/health`
+- categories API: `http://localhost:4000/api/categories`
+- products API: `http://localhost:4000/api/products`
 
 ## Verification
 

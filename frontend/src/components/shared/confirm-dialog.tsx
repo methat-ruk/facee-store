@@ -43,7 +43,7 @@ export function ConfirmDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(35,22,17,0.48)] px-4 py-4 backdrop-blur-[2px] sm:py-6"
+      className="fixed inset-0 z-90 flex items-center justify-center bg-[rgba(35,22,17,0.48)] px-4 py-4 backdrop-blur-[2px] sm:py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"

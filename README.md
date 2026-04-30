@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>A localized skincare storefront portfolio project built with Next.js, NestJS, Prisma, and PostgreSQL.</strong>
+  <strong>A localized skincare storefront project built with Next.js, NestJS, Prisma, and PostgreSQL.</strong>
 </p>
 
 <p align="center">
@@ -31,16 +31,16 @@
 
 ## Overview
 
-**Facee** is a full-stack skincare commerce portfolio project designed to feel
-like a real storefront product rather than a static UI exercise.
+**Facee** is a full-stack skincare commerce project designed to feel like a
+real storefront product rather than a static UI exercise.
 
 The repo currently includes:
 
 - a localized Next.js storefront with `en` and `th` routes
-- a NestJS backend for storefront APIs
-- PostgreSQL + Prisma for product and category data
-- a product catalog and rich product detail page
-- login/register UI screens
+- a NestJS backend for storefront, account, and order APIs
+- PostgreSQL + Prisma for product, account, and order data
+- a customer cart, checkout, and sandbox payment flow
+- customer auth, profile, saved addresses, saved demo cards, and order history
 - a shared shadcn/ui-based design system
 
 The project is still in progress. This README keeps both the **implemented
@@ -53,18 +53,36 @@ see what exists today and what is still ahead.
 
 - localized routes with `next-intl`
 - sticky storefront shell with theme toggle
+- predictive product search with thumbnails, category, and pricing
 - product catalog with:
   - category filtering
   - sorting
   - pagination
+  - flash sale badges
+  - compare-at pricing
 - product detail page with:
   - gallery
   - benefits
   - ingredients
   - how-to-use content
   - related products
-- UI-only add-to-cart interaction
-- login and register UI pages
+  - add-to-cart animation
+- cart flow with quantity updates and stock-aware refresh
+- checkout flow with:
+  - saved address selection
+  - payment method selection
+  - order review
+- sandbox payment flow with:
+  - QR payment
+  - credit/debit card demo form
+  - payment method switching before confirmation
+- order success page
+- customer orders list and order detail pages
+- customer profile with:
+  - account details
+  - saved addresses
+  - saved demo cards
+- login, register, logout, and guarded customer routes
 
 ### Backend API
 
@@ -72,11 +90,20 @@ see what exists today and what is still ahead.
 - `GET /api/categories`
 - `GET /api/products`
 - `GET /api/products/:slug`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/profile`
+- customer account endpoints for profile, addresses, and saved payment methods
+- customer order endpoints for listing, detail, cancellation, and sandbox
+  payment confirmation
+- admin order review endpoints for cancellation and refund handling
 
 ### Data and Content
 
 - Prisma schema and migrations
 - seeded skincare product catalog
+- seeded flash sale products and compare-at pricing
 - localized UI copy in `en` and `th`
 - localized category and product presentation on the frontend
 
@@ -87,25 +114,27 @@ are not implemented yet.
 
 ### Commerce Expansion
 
-- real cart page
-- checkout flow
+- real payment gateway integration
 - wishlist/favorites
-- order summary and order history
+- shipping calculation beyond the current flat-threshold rule
+- coupon or promotion system
+- richer customer notifications around order/payment changes
 
 ### Authentication
 
-- real login/register backend integration
-- account session/token flow
-- protected customer routes
+- password reset and email verification
+- stronger session/account security hardening
+- role and permission expansion beyond the current customer/admin split
 
 ### Admin
 
-- admin auth
-- admin dashboard
+- admin dashboard expansion
 - product CRUD
 - category management
+- flash sale / merchandising controls
 - publish/unpublish workflow
-- order and inventory operations
+- inventory operations
+- QR payment review workflow
 
 ### Deployment and Operations
 
@@ -139,24 +168,25 @@ are not implemented yet.
 
 ```text
 facee/
-├─ frontend/
-│  ├─ public/
-│  └─ src/
-│     ├─ app/
-│     ├─ components/
-│     ├─ features/
-│     ├─ i18n/
-│     ├─ messages/
-│     ├─ services/
-│     └─ store/
-├─ backend/
-│  ├─ prisma/
-│  └─ src/
-│     ├─ api/
-│     ├─ config/
-│     ├─ generated/
-│     └─ prisma/
-└─ docs/
+|-- frontend/
+|  |-- public/
+|  `-- src/
+|     |-- app/
+|     |-- components/
+|     |-- features/
+|     |-- i18n/
+|     |-- messages/
+|     |-- services/
+|     `-- store/
+|-- backend/
+|  |-- prisma/
+|  `-- src/
+|     |-- api/
+|     |-- common/
+|     |-- config/
+|     |-- generated/
+|     `-- prisma/
+`-- docs/
 ```
 
 For the current runtime boundaries and data flow, see
@@ -180,7 +210,7 @@ npm install
 4. Run migrations and seed data:
 
 ```bash
-npm --prefix backend run db:migrate -- --name init
+npm --prefix backend exec prisma migrate deploy --schema prisma/schema.prisma
 npm --prefix backend run db:seed
 ```
 
@@ -192,8 +222,12 @@ npm run dev
 
 Useful local URLs:
 
-- storefront: `http://localhost:3000/en/products`
-- thai storefront: `http://localhost:3000/th/products`
+- storefront entry: `http://localhost:3000/en`
+- storefront catalog: `http://localhost:3000/en/products`
+- thai storefront catalog: `http://localhost:3000/th/products`
+- profile: `http://localhost:3000/en/profile`
+- checkout: `http://localhost:3000/en/checkout`
+- orders: `http://localhost:3000/en/orders`
 - api health: `http://localhost:4000/api/health`
 
 Full setup details are in [docs/SETUP.md](./docs/SETUP.md).
@@ -230,7 +264,7 @@ npm --prefix backend run db:seed
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 - [CHANGELOG.md](./CHANGELOG.md)
 
-## Portfolio Intent
+## Product Intent
 
 Facee is meant to show:
 
@@ -238,4 +272,4 @@ Facee is meant to show:
 - clean frontend/backend separation
 - route i18n and shared UI system design
 - practical NestJS + Prisma API work
-- an honest product roadmap instead of a fake “finished” system
+- an honest roadmap instead of pretending the system is already complete
