@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
+import { PaymentMethodsPanel } from '@/features/account/payment-methods-panel';
 import type { Address, UpsertAddressInput } from '@/features/account/schemas';
 import { normalizePhoneInput } from '@/features/checkout/checkout-ui';
 import { Link, useRouter } from '@/i18n/navigation';
@@ -397,6 +398,9 @@ export function ProfilePage() {
         <TabsList variant="line" className="w-full justify-start overflow-auto">
           <TabsTrigger value="account">{t('accountTab')}</TabsTrigger>
           <TabsTrigger value="addresses">{t('addressesTab')}</TabsTrigger>
+          <TabsTrigger value="payment-methods">
+            {t('paymentMethodsTab')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="account" className="flex flex-1 flex-col">
@@ -596,6 +600,10 @@ export function ProfilePage() {
               </p>
             </CardFooter>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="payment-methods" className="flex flex-1 flex-col">
+          <PaymentMethodsPanel />
         </TabsContent>
       </Tabs>
       {isAddressDialogOpen

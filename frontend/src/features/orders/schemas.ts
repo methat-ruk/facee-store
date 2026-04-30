@@ -15,6 +15,14 @@ export const refundStatusSchema = z.enum([
   'REFUNDED',
 ]);
 
+export const paymentMethodSchema = z.enum(['QR_PAYMENT', 'CARD']);
+
+export const paymentDemoStatusSchema = z.enum([
+  'NOT_STARTED',
+  'QR_SUBMITTED',
+  'CARD_COMPLETED',
+]);
+
 export const cancellationReasonCodeSchema = z.enum([
   'WRONG_ADDRESS',
   'DUPLICATE_ORDER',
@@ -37,6 +45,7 @@ export const createOrderItemSchema = z.object({
 
 export const createOrderInputSchema = z.object({
   addressId: z.string(),
+  paymentMethod: paymentMethodSchema,
   items: z.array(createOrderItemSchema).min(1),
 });
 
@@ -78,6 +87,10 @@ export const orderDetailSchema = z.object({
   orderNo: z.string(),
   status: orderStatusSchema,
   refundStatus: refundStatusSchema,
+  paymentMethod: paymentMethodSchema,
+  paymentDemoStatus: paymentDemoStatusSchema,
+  paymentSubmittedAt: z.string().nullable(),
+  paymentCompletedAt: z.string().nullable(),
   createdAt: z.string(),
   contact: orderDetailContactSchema,
   items: z.array(orderDetailItemSchema),
@@ -91,6 +104,10 @@ export const orderListItemSchema = z.object({
   orderNo: z.string(),
   status: orderStatusSchema,
   refundStatus: refundStatusSchema,
+  paymentMethod: paymentMethodSchema,
+  paymentDemoStatus: paymentDemoStatusSchema,
+  paymentSubmittedAt: z.string().nullable(),
+  paymentCompletedAt: z.string().nullable(),
   createdAt: z.string(),
   total: z.number().nonnegative(),
   itemCount: z.number().int().nonnegative(),
@@ -148,3 +165,5 @@ export type ReviewCancellationRequestInput = z.infer<
 export type UpdateRefundStatusInput = z.infer<
   typeof updateRefundStatusInputSchema
 >;
+export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
+export type PaymentDemoStatus = z.infer<typeof paymentDemoStatusSchema>;

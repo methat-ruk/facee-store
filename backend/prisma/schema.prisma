@@ -22,6 +22,7 @@ model User {
   postalCode             String?
   role                   UserRole                   @default(CUSTOMER)
   addresses              Address[]
+  paymentMethods         SavedPaymentMethod[]
   orders                 Order[]
   requestedCancellations OrderCancellationRequest[] @relation("CancellationRequester")
   reviewedCancellations  OrderCancellationRequest[] @relation("CancellationReviewer")
@@ -47,6 +48,24 @@ model Address {
   @@index([userId, createdAt])
 }
 
+model SavedPaymentMethod {
+  id               String        @id @default(cuid())
+  userId           String
+  type             PaymentMethod
+  label            String
+  isDefault        Boolean       @default(false)
+  cardholderName   String?
+  cardLast4        String?
+  cardExpiryMonth  String?
+  cardExpiryYear   String?
+  bankName         String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  user             User          @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
 model Category {
   id        String    @id @default(cuid())
   name      String    @unique
@@ -68,7 +87,9 @@ model Product {
   galleryImages String[]  @default([])
   imageUrl    String?
   isPublished Boolean     @default(false)
+  isFlashSale Boolean     @default(false)
   price       Decimal     @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
   stock       Int         @default(0)
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id])
@@ -84,6 +105,10 @@ model Order {
   user                User        @relation(fields: [userId], references: [id])
   status              OrderStatus @default(PENDING)
   refundStatus        RefundStatus @default(NONE)
+  paymentMethod       PaymentMethod @default(QR_PAYMENT)
+  paymentDemoStatus   PaymentDemoStatus @default(NOT_STARTED)
+  paymentSubmittedAt  DateTime?
+  paymentCompletedAt  DateTime?
   customerFullName    String?
   customerEmail       String?
   customerPhone       String?
@@ -150,6 +175,17 @@ enum RefundStatus {
   NONE
   PENDING_MANUAL
   REFUNDED
+}
+
+enum PaymentMethod {
+  QR_PAYMENT
+  CARD
+}
+
+enum PaymentDemoStatus {
+  NOT_STARTED
+  QR_SUBMITTED
+  CARD_COMPLETED
 }
 
 enum CancellationReasonCode {

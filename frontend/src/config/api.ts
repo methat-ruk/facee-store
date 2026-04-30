@@ -18,6 +18,11 @@ export const apiConfig = {
       addressDetail: (addressId: string) => `/account/addresses/${addressId}`,
       addressDefault: (addressId: string) =>
         `/account/addresses/${addressId}/default`,
+      paymentMethods: '/account/payment-methods',
+      paymentMethodDetail: (paymentMethodId: string) =>
+        `/account/payment-methods/${paymentMethodId}`,
+      paymentMethodDefault: (paymentMethodId: string) =>
+        `/account/payment-methods/${paymentMethodId}/default`,
     },
     storefront: {
       products: '/products',
@@ -29,6 +34,10 @@ export const apiConfig = {
     orders: '/orders',
     orderDetail: (orderNo: string) => `/orders/${orderNo}`,
     orderCancel: (orderNo: string) => `/orders/${orderNo}/cancel`,
+    orderPaymentDemoConfirm: (orderNo: string) =>
+      `/orders/${orderNo}/payment-demo/confirm`,
+    orderPaymentMethod: (orderNo: string) =>
+      `/orders/${orderNo}/payment-method`,
     orderCancellationRequests: (orderNo: string) =>
       `/orders/${orderNo}/cancellation-requests`,
     admin: {

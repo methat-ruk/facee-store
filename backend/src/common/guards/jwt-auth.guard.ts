@@ -1,19 +1,19 @@
 import {
   CanActivate,
   ExecutionContext,
-  Injectable,
   HttpStatus,
+  Injectable,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AppException } from '../../../common/errors/app-exception';
-import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import type { Request } from 'express';
-import { readCookie } from './auth-cookie';
+import { AppException } from '../errors/app-exception';
+import { API_ERROR_CODES } from '../errors/error-codes';
+import { readCookie } from '../../api/modules/auth/auth-cookie';
 import {
   AUTH_COOKIE_NAME,
-  type AuthTokenPayload,
   type AuthenticatedRequest,
-} from './auth.types';
+  type AuthTokenPayload,
+} from '../../api/modules/auth/auth.types';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {

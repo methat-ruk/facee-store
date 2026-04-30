@@ -2,11 +2,12 @@
 
 import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ProductAvailabilityBadge } from '@/components/shared/product-availability-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatOrderPrice } from '@/features/orders/ui';
 import { useCartStore } from '@/store/use-cart-store';
 import { animateAddToCartFlight } from './cart-fly-animation';
 import type { ProductDetail } from './schemas';
@@ -16,10 +17,13 @@ type ProductPurchasePanelProps = {
 };
 
 export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
+  const locale = useLocale();
   const t = useTranslations('products');
   const addItem = useCartStore((state) => state.addItem);
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
+  const hasDiscount =
+    product.compareAtPrice !== null && product.compareAtPrice > product.price;
 
   useEffect(() => {
     if (!isAdded) {
@@ -51,12 +55,26 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       <CardContent className="flex flex-col gap-5 pt-5">
         <div className="flex items-end justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              {t('detailPriceLabel')}
-            </p>
-            <p className="text-3xl font-semibold tracking-tight text-foreground">
-              THB {product.price.toFixed(2)}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {t('detailPriceLabel')}
+              </p>
+              {product.isFlashSale ? (
+                <Badge className="border-[#9f2f24]/30 bg-[#9f2f24] text-white hover:bg-[#9f2f24]">
+                  {t('flashSale')}
+                </Badge>
+              ) : null}
+            </div>
+            <div className="space-y-1">
+              {hasDiscount ? (
+                <p className="text-base text-muted-foreground line-through decoration-muted-foreground/80">
+                  {formatOrderPrice(product.compareAtPrice ?? 0, locale)}
+                </p>
+              ) : null}
+              <p className="text-3xl font-semibold tracking-tight text-foreground">
+                {formatOrderPrice(product.price, locale)}
+              </p>
+            </div>
           </div>
           <Badge variant="outline" className="h-7 px-3 text-sm">
             {t('availableCount', { count: product.stock })}

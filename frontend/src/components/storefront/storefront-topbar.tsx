@@ -65,6 +65,7 @@ function TopbarSearchForm({
   loadingLabel,
   noResultsLabel,
   viewAllLabel,
+  flashSaleLabel,
   mobile = false,
   onNavigate,
 }: {
@@ -76,6 +77,7 @@ function TopbarSearchForm({
   loadingLabel: string;
   noResultsLabel: string;
   viewAllLabel: string;
+  flashSaleLabel: string;
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
@@ -242,7 +244,7 @@ function TopbarSearchForm({
               : 'topbar-search-suggestions'
           }
           className={cn(
-            'absolute top-[calc(100%+0.75rem)] z-[95] w-full overflow-hidden rounded-[1.5rem] border border-border/80 bg-background/96 shadow-[0_24px_70px_rgba(88,51,38,0.18)] backdrop-blur-xl',
+            'absolute top-[calc(100%+0.75rem)] z-95 w-full overflow-hidden rounded-[1.5rem] border border-border/80 bg-background/96 shadow-[0_24px_70px_rgba(88,51,38,0.18)] backdrop-blur-xl',
             mobile ? 'left-0' : 'right-0',
           )}
           role="listbox"
@@ -257,7 +259,7 @@ function TopbarSearchForm({
                 <Link
                   key={product.id}
                   href={`/products/${product.slug}`}
-                  className="flex items-center gap-3 border-b border-border/60 px-4 py-3 transition-colors hover:bg-foreground/[0.04]"
+                  className="flex items-center gap-3 border-b border-border/60 px-4 py-3 transition-colors hover:bg-foreground/4"
                   onClick={() => {
                     setIsDropdownOpen(false);
                     onNavigate?.();
@@ -280,15 +282,28 @@ function TopbarSearchForm({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                      {product.category.name}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                        {product.category.name}
+                      </p>
+                      {product.isFlashSale ? (
+                        <span className="rounded-full bg-[#9f2f24]/12 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#9f2f24]">
+                          {flashSaleLabel}
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="mt-1 line-clamp-1 text-sm font-medium text-foreground">
                       {product.name}
                     </p>
                   </div>
 
                   <div className="shrink-0 text-right">
+                    {product.compareAtPrice &&
+                    product.compareAtPrice > product.price ? (
+                      <p className="text-xs text-muted-foreground line-through decoration-muted-foreground/80">
+                        {formatOrderPrice(product.compareAtPrice, locale)}
+                      </p>
+                    ) : null}
                     <p className="text-sm font-semibold text-foreground">
                       {formatOrderPrice(product.price, locale)}
                     </p>
@@ -298,7 +313,7 @@ function TopbarSearchForm({
 
               <Link
                 href={buildProductsSearchHref(normalizedQuery)}
-                className="flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.04]"
+                className="flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground/4"
                 onClick={() => {
                   setIsDropdownOpen(false);
                   onNavigate?.();
@@ -379,6 +394,7 @@ function StorefrontMenuPanel({
 
 export function StorefrontTopbar() {
   const t = useTranslations('topbar');
+  const productsT = useTranslations('products');
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -474,6 +490,7 @@ export function StorefrontTopbar() {
               loadingLabel={t('searchLoading')}
               noResultsLabel={t('searchNoResults')}
               viewAllLabel={t('searchViewAll')}
+              flashSaleLabel={productsT('flashSale')}
             />
 
             <div className="hidden self-stretch px-1 md:flex md:items-center">
@@ -591,6 +608,7 @@ export function StorefrontTopbar() {
               loadingLabel={t('searchLoading')}
               noResultsLabel={t('searchNoResults')}
               viewAllLabel={t('searchViewAll')}
+              flashSaleLabel={productsT('flashSale')}
               onNavigate={() => setMobileSearchOpen(false)}
             />
           </div>

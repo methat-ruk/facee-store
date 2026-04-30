@@ -4,6 +4,7 @@ import {
   AlertTriangleIcon,
   ArrowLeftIcon,
   ClipboardListIcon,
+  CreditCardIcon,
   MapPinIcon,
   ShoppingCartIcon,
 } from 'lucide-react';
@@ -28,6 +29,10 @@ import {
   checkoutPrimaryButtonClassName,
   FREE_SHIPPING_THRESHOLD,
 } from '@/features/checkout/checkout-ui';
+import {
+  paymentMethodSchema,
+  type PaymentMethod,
+} from '@/features/orders/schemas';
 import { formatOrderPrice } from '@/features/orders/ui';
 import { Link, useRouter } from '@/i18n/navigation';
 import { isApiError } from '@/services/api-error';
@@ -36,6 +41,7 @@ import { createOrder } from '@/services/orders';
 import { useAuthStore } from '@/store/use-auth-store';
 
 export function CheckoutPage() {
+  const paymentMethodOptions = paymentMethodSchema.options;
   const locale = useLocale();
   const t = useTranslations('checkout');
   const router = useRouter();
@@ -63,6 +69,8 @@ export function CheckoutPage() {
   );
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<PaymentMethod | null>(null);
   const [formErrorKey, setFormErrorKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -139,6 +147,11 @@ export function CheckoutPage() {
       return;
     }
 
+    if (!selectedPaymentMethod) {
+      setFormErrorKey('errorPaymentMethodRequired');
+      return;
+    }
+
     if (hasUnavailableItems) {
       setFormErrorKey('errorUnavailableItems');
       return;
@@ -150,16 +163,17 @@ export function CheckoutPage() {
     try {
       const response = await createOrder({
         addressId: selectedAddressId,
+        paymentMethod: selectedPaymentMethod,
         items: viewItems
           .filter((item) => !item.isUnavailable)
           .map((item) => ({
-            productId: item.id,
+            productId: item.productId,
             quantity: item.quantity,
           })),
       });
 
       clearCart();
-      router.push(`/checkout/success/${response.orderNo}`);
+      router.push(`/checkout/payment/${response.orderNo}`);
     } catch (error) {
       if (isApiError(error)) {
         if (error.code === 'ORDER_STOCK_CHANGED') {
@@ -286,100 +300,149 @@ export function CheckoutPage() {
       ) : null}
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-        <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-full border border-border bg-muted text-foreground">
-                <MapPinIcon />
+        <div className="flex flex-col gap-6">
+          <Card className="order-2 border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex size-11 items-center justify-center rounded-full border border-border bg-muted text-foreground">
+                  <MapPinIcon />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <CardTitle>{t('addressTitle')}</CardTitle>
+                  <CardDescription>{t('addressDescription')}</CardDescription>
+                </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <CardTitle>{t('addressTitle')}</CardTitle>
-                <CardDescription>{t('addressDescription')}</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {addressError ? (
-              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                <p>{t(addressError)}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void loadAddresses()}
-                  >
-                    {t('retryAddresses')}
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {addressError ? (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  <p>{t(addressError)}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void loadAddresses()}
+                    >
+                      {t('retryAddresses')}
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/profile">{t('manageAddresses')}</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              {addresses.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-sm leading-7 text-muted-foreground">
+                  <p>{t('addressEmpty')}</p>
+                  <Button asChild variant="outline" size="sm" className="mt-3">
                     <Link href="/profile">{t('manageAddresses')}</Link>
                   </Button>
                 </div>
-              </div>
-            ) : null}
+              ) : (
+                addresses.map((address) => {
+                  const isSelected = address.id === selectedAddressId;
 
-            {addresses.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-sm leading-7 text-muted-foreground">
-                <p>{t('addressEmpty')}</p>
-                <Button asChild variant="outline" size="sm" className="mt-3">
-                  <Link href="/profile">{t('manageAddresses')}</Link>
-                </Button>
+                  return (
+                    <button
+                      key={address.id}
+                      type="button"
+                      className={`cursor-pointer rounded-2xl border px-4 py-4 text-left transition-colors ${
+                        isSelected
+                          ? 'border-foreground bg-background/90'
+                          : 'border-border bg-background/70 hover:border-foreground/40 hover:bg-background/88'
+                      }`}
+                      onClick={() => {
+                        setSelectedAddressId(address.id);
+                        setFormErrorKey(null);
+                      }}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {address.label}
+                        </p>
+                        {address.isDefault ? (
+                          <Badge variant="secondary">{t('defaultBadge')}</Badge>
+                        ) : null}
+                        {isSelected ? (
+                          <Badge variant="outline">{t('selectedBadge')}</Badge>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 text-sm leading-7 text-muted-foreground">
+                        <p>{address.recipientFullName}</p>
+                        <p>{address.recipientEmail}</p>
+                        <p>{address.recipientPhone}</p>
+                        <p>
+                          {address.addressLine}, {address.city}{' '}
+                          {address.postalCode}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+
+              {selectedAddress ? (
+                <p className="text-sm leading-7 text-muted-foreground">
+                  {t('addressSnapshotNote')}
+                </p>
+              ) : null}
+            </CardContent>
+            <CardFooter>
+              <Button asChild variant="outline">
+                <Link href="/profile">{t('manageAddresses')}</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="order-1 border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex size-11 items-center justify-center rounded-full border border-border bg-muted text-foreground">
+                  <CreditCardIcon />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <CardTitle>{t('paymentTitle')}</CardTitle>
+                  <CardDescription>{t('paymentDescription')}</CardDescription>
+                </div>
               </div>
-            ) : (
-              addresses.map((address) => {
-                const isSelected = address.id === selectedAddressId;
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              {paymentMethodOptions.map((paymentMethod) => {
+                const isSelected = paymentMethod === selectedPaymentMethod;
 
                 return (
                   <button
-                    key={address.id}
+                    key={paymentMethod}
                     type="button"
                     className={`cursor-pointer rounded-2xl border px-4 py-4 text-left transition-colors ${
                       isSelected
                         ? 'border-foreground bg-background/90'
-                        : 'border-border bg-background/70 hover:border-foreground/40'
+                        : 'border-border bg-background/70 hover:border-foreground/40 hover:bg-background/88'
                     }`}
                     onClick={() => {
-                      setSelectedAddressId(address.id);
+                      setSelectedPaymentMethod(paymentMethod);
                       setFormErrorKey(null);
                     }}
                   >
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium text-foreground">
-                        {address.label}
+                        {t(`paymentMethod.${paymentMethod}`)}
                       </p>
-                      {address.isDefault ? (
-                        <Badge variant="secondary">{t('defaultBadge')}</Badge>
-                      ) : null}
                       {isSelected ? (
                         <Badge variant="outline">{t('selectedBadge')}</Badge>
                       ) : null}
                     </div>
-                    <div className="mt-2 text-sm leading-7 text-muted-foreground">
-                      <p>{address.recipientFullName}</p>
-                      <p>{address.recipientEmail}</p>
-                      <p>{address.recipientPhone}</p>
-                      <p>
-                        {address.addressLine}, {address.city}{' '}
-                        {address.postalCode}
-                      </p>
-                    </div>
+                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                      {t(`paymentMethodDescription.${paymentMethod}`)}
+                    </p>
                   </button>
                 );
-              })
-            )}
-
-            {selectedAddress ? (
-              <p className="text-sm leading-7 text-muted-foreground">
-                {t('addressSnapshotNote')}
-              </p>
-            ) : null}
-          </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline">
-              <Link href="/profile">{t('manageAddresses')}</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+              })}
+            </CardContent>
+          </Card>
+        </div>
 
         <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)] lg:sticky lg:top-28">
           <CardHeader className="gap-3">
@@ -495,7 +558,12 @@ export function CheckoutPage() {
                 type="button"
                 size="lg"
                 className={`w-full ${checkoutPrimaryButtonClassName}`}
-                disabled={isSubmitting || isRefreshing || !selectedAddressId}
+                disabled={
+                  isSubmitting ||
+                  isRefreshing ||
+                  !selectedAddressId ||
+                  !selectedPaymentMethod
+                }
                 onClick={handleSubmit}
               >
                 <ClipboardListIcon data-icon="inline-start" />

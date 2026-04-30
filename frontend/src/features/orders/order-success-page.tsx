@@ -25,7 +25,12 @@ import {
   FREE_SHIPPING_THRESHOLD,
 } from '@/features/checkout/checkout-ui';
 import type { OrderDetail } from '@/features/orders/schemas';
-import { formatOrderDate, formatOrderPrice } from '@/features/orders/ui';
+import {
+  formatOrderDate,
+  formatOrderPrice,
+  getPaymentDemoStatusTranslationKey,
+  getPaymentMethodTranslationKey,
+} from '@/features/orders/ui';
 import { Link, useRouter } from '@/i18n/navigation';
 import { isApiError } from '@/services/api-error';
 import { getOrderDetail } from '@/services/orders';
@@ -268,6 +273,39 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
                 <p>{order.contact.postalCode}</p>
                 <p className="sm:col-span-2">
                   {order.contact.addressLine}, {order.contact.city}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background/70 p-4">
+              <p className="text-sm font-medium text-foreground">
+                {t('paymentTitle')}
+              </p>
+              <div className="mt-3 grid gap-2 text-sm leading-7 text-muted-foreground sm:grid-cols-2">
+                <p>
+                  {t('paymentMethodLabel')}:{' '}
+                  {t(getPaymentMethodTranslationKey(order.paymentMethod))}
+                </p>
+                <p>
+                  {t('paymentStatusLabel')}:{' '}
+                  {t(
+                    getPaymentDemoStatusTranslationKey(order.paymentDemoStatus),
+                  )}
+                </p>
+                {order.paymentSubmittedAt ? (
+                  <p>
+                    {t('paymentSubmittedAtLabel')}:{' '}
+                    {formatOrderDate(order.paymentSubmittedAt, locale)}
+                  </p>
+                ) : null}
+                {order.paymentCompletedAt ? (
+                  <p>
+                    {t('paymentCompletedAtLabel')}:{' '}
+                    {formatOrderDate(order.paymentCompletedAt, locale)}
+                  </p>
+                ) : null}
+                <p className="sm:col-span-2">
+                  {t(`paymentMethodNote.${order.paymentMethod}`)}
                 </p>
               </div>
             </div>

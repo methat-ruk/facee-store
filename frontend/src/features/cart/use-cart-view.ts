@@ -28,6 +28,7 @@ type RefreshResult =
 
 export type CartViewItem = {
   id: string;
+  productId: string;
   slug: string;
   name: string;
   imageUrl: string | null;
@@ -174,6 +175,7 @@ export function useCartView() {
 
         return {
           id: item.id,
+          productId: localizedProduct.id,
           slug: localizedProduct.slug,
           name: localizedProduct.name,
           imageUrl: localizedProduct.imageUrl,
@@ -192,6 +194,7 @@ export function useCartView() {
 
       return {
         id: item.id,
+        productId: item.id,
         slug: item.slug,
         name: item.name,
         imageUrl: item.imageUrl,

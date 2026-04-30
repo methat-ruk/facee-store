@@ -59,3 +59,24 @@ export function canDirectCancel(status: OrderDetail['status']) {
 export function canRequestCancellation(status: OrderDetail['status']) {
   return status === 'PAID' || status === 'PACKING';
 }
+
+export function getPaymentMethodTranslationKey(
+  paymentMethod: OrderDetail['paymentMethod'],
+) {
+  return paymentMethod === 'CARD'
+    ? 'paymentMethod.CARD'
+    : 'paymentMethod.QR_PAYMENT';
+}
+
+export function getPaymentDemoStatusTranslationKey(
+  paymentDemoStatus: OrderDetail['paymentDemoStatus'],
+) {
+  switch (paymentDemoStatus) {
+    case 'QR_SUBMITTED':
+      return 'paymentDemoStatus.QR_SUBMITTED';
+    case 'CARD_COMPLETED':
+      return 'paymentDemoStatus.CARD_COMPLETED';
+    default:
+      return 'paymentDemoStatus.NOT_STARTED';
+  }
+}

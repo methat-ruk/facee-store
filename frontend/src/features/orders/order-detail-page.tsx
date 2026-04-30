@@ -32,6 +32,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
+import { checkoutPrimaryButtonClassName } from '@/features/checkout/checkout-ui';
 import {
   cancellationReasonCodeSchema,
   type CreateCancellationRequestInput,
@@ -42,6 +43,8 @@ import {
   canRequestCancellation,
   formatOrderDate,
   formatOrderPrice,
+  getPaymentDemoStatusTranslationKey,
+  getPaymentMethodTranslationKey,
   getOrderStatusBadgeClassName,
   getOrderStatusBadgeVariant,
 } from '@/features/orders/ui';
@@ -88,6 +91,8 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
   const latestRequest = order?.latestCancellationRequest ?? null;
   const hasPendingRequest = latestRequest?.status === 'REQUESTED';
   const shouldRequireDetails = cancellationForm.reasonCode === 'OTHER';
+  const hasPendingPayment =
+    order?.status === 'PENDING' && order.paymentDemoStatus === 'NOT_STARTED';
 
   const loadOrder = async () => {
     setErrorState(null);
@@ -411,6 +416,64 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
                 </span>
               </div>
             </CardContent>
+          </Card>
+
+          <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+            <CardHeader>
+              <CardTitle>{t('paymentTitle')}</CardTitle>
+              <CardDescription>{t('paymentDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm leading-7 text-muted-foreground">
+              <p>
+                {t('paymentMethodLabel')}:{' '}
+                <span className="font-medium text-foreground">
+                  {t(getPaymentMethodTranslationKey(order.paymentMethod))}
+                </span>
+              </p>
+              <p>
+                {t('paymentStatusLabel')}:{' '}
+                <span className="font-medium text-foreground">
+                  {t(
+                    getPaymentDemoStatusTranslationKey(order.paymentDemoStatus),
+                  )}
+                </span>
+              </p>
+              {order.paymentSubmittedAt ? (
+                <p>
+                  {t('paymentSubmittedAtLabel')}:{' '}
+                  <span className="font-medium text-foreground">
+                    {formatOrderDate(order.paymentSubmittedAt, locale)}
+                  </span>
+                </p>
+              ) : null}
+              {order.paymentCompletedAt ? (
+                <p>
+                  {t('paymentCompletedAtLabel')}:{' '}
+                  <span className="font-medium text-foreground">
+                    {formatOrderDate(order.paymentCompletedAt, locale)}
+                  </span>
+                </p>
+              ) : null}
+              <p>{t(`paymentMethodNote.${order.paymentMethod}`)}</p>
+              {hasPendingPayment ? (
+                <div className="rounded-2xl border border-amber-300 bg-amber-100/70 px-4 py-3 text-sm leading-7 text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-100">
+                  <p className="font-medium">{t('pendingPaymentTitle')}</p>
+                  <p>{t('pendingPaymentDescription')}</p>
+                </div>
+              ) : null}
+            </CardContent>
+            {hasPendingPayment ? (
+              <CardFooter className="bg-transparent">
+                <Button
+                  asChild
+                  className={`w-full ${checkoutPrimaryButtonClassName}`}
+                >
+                  <Link href={`/checkout/payment/${order.orderNo}`}>
+                    {t('continuePayment')}
+                  </Link>
+                </Button>
+              </CardFooter>
+            ) : null}
           </Card>
 
           <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">

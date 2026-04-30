@@ -3,6 +3,8 @@ import { z } from 'zod';
 import {
   cancellationRequestStatusSchema,
   orderDetailContactSchema,
+  paymentDemoStatusSchema,
+  paymentMethodSchema,
   refundStatusSchema,
 } from './order-detail-response.dto';
 
@@ -17,6 +19,10 @@ export const orderListItemSchema = z.object({
     'CANCELED',
   ]),
   refundStatus: refundStatusSchema,
+  paymentMethod: paymentMethodSchema,
+  paymentDemoStatus: paymentDemoStatusSchema,
+  paymentSubmittedAt: z.string().datetime().nullable(),
+  paymentCompletedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   total: z.number().nonnegative(),
   itemCount: z.number().int().nonnegative(),

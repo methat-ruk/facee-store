@@ -37,9 +37,10 @@ export function ProductDetailGallery({
             src={selectedImage}
             alt={name}
             fill
+            loading="eager"
             sizes="(min-width: 1024px) 48vw, 100vw"
+            fetchPriority="high"
             className="object-cover object-center"
-            priority
           />
         ) : (
           <div className="flex h-full items-center justify-center px-8 text-center">

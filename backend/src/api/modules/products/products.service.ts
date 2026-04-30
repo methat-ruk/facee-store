@@ -15,7 +15,9 @@ const productCardSelect = {
   slug: true,
   description: true,
   imageUrl: true,
+  isFlashSale: true,
   price: true,
+  compareAtPrice: true,
   stock: true,
   category: {
     select: {
@@ -95,6 +97,9 @@ export class ProductsService {
       items: items.map((item: (typeof items)[number]) => ({
         ...item,
         price: Number(item.price),
+        compareAtPrice: item.compareAtPrice
+          ? Number(item.compareAtPrice)
+          : null,
       })),
       meta: {
         page,
@@ -137,11 +142,17 @@ export class ProductsService {
       product: {
         ...product,
         price: Number(product.price),
+        compareAtPrice: product.compareAtPrice
+          ? Number(product.compareAtPrice)
+          : null,
       },
       relatedProducts: relatedProducts.map(
         (item: (typeof relatedProducts)[number]) => ({
           ...item,
           price: Number(item.price),
+          compareAtPrice: item.compareAtPrice
+            ? Number(item.compareAtPrice)
+            : null,
         }),
       ),
     };

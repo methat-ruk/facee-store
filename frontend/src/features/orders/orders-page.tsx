@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
+import { checkoutPrimaryButtonClassName } from '@/features/checkout/checkout-ui';
 import type { OrderListItem } from '@/features/orders/schemas';
 import {
   formatOrderDate,
@@ -35,6 +36,9 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+
+  const hasPendingPayment = (order: OrderListItem) =>
+    order.status === 'PENDING' && order.paymentDemoStatus === 'NOT_STARTED';
 
   const loadOrders = async () => {
     setHasError(false);
@@ -230,7 +234,15 @@ export function OrdersPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-start lg:justify-end">
+                <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                  {hasPendingPayment(order) ? (
+                    <Button asChild className={checkoutPrimaryButtonClassName}>
+                      <Link href={`/checkout/payment/${order.orderNo}`}>
+                        {t('continuePayment')}
+                        <ArrowRightIcon data-icon="inline-end" />
+                      </Link>
+                    </Button>
+                  ) : null}
                   <Button asChild variant="outline">
                     <Link href={`/orders/${order.orderNo}`}>
                       {t('viewDetails')}

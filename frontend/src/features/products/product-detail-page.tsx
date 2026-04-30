@@ -60,6 +60,11 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
               <Badge variant="outline" className="h-7 px-3 text-sm">
                 {localizedProduct.category.name}
               </Badge>
+              {localizedProduct.isFlashSale ? (
+                <Badge className="border-[#9f2f24]/30 bg-[#9f2f24] text-white hover:bg-[#9f2f24]">
+                  {t('flashSale')}
+                </Badge>
+              ) : null}
               <ProductAvailabilityBadge stock={localizedProduct.stock} />
             </div>
 

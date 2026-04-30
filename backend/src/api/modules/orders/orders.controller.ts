@@ -7,14 +7,15 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/auth.types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateCancellationRequestDto } from './dto/create-cancellation-request.dto';
 import { CreateOrderRequestDto } from './dto/create-order-request.dto';
 import { CreateOrderResponseDto } from './dto/create-order-response.dto';
 import { GetOrderByOrderNoParamDto } from './dto/get-order-by-order-no-param.dto';
 import { OrderDetailResponseDto } from './dto/order-detail-response.dto';
 import { OrderListResponseDto } from './dto/order-list-response.dto';
+import { UpdateOrderPaymentMethodDto } from './dto/update-order-payment-method.dto';
 import { OrdersService } from './orders.service';
 
 @Controller('orders')
@@ -63,6 +64,30 @@ export class OrdersController {
     @Body() body: CreateCancellationRequestDto,
   ): Promise<OrderDetailResponseDto> {
     return this.ordersService.createCancellationRequest(
+      request.user.sub,
+      params.orderNo,
+      body,
+    );
+  }
+
+  @Post(':orderNo/payment-demo/confirm')
+  confirmPaymentDemo(
+    @Req() request: AuthenticatedRequest,
+    @Param() params: GetOrderByOrderNoParamDto,
+  ): Promise<OrderDetailResponseDto> {
+    return this.ordersService.confirmPaymentDemo(
+      request.user.sub,
+      params.orderNo,
+    );
+  }
+
+  @Post(':orderNo/payment-method')
+  updatePaymentMethod(
+    @Req() request: AuthenticatedRequest,
+    @Param() params: GetOrderByOrderNoParamDto,
+    @Body() body: UpdateOrderPaymentMethodDto,
+  ): Promise<OrderDetailResponseDto> {
+    return this.ordersService.updatePaymentMethod(
       request.user.sub,
       params.orderNo,
       body,
