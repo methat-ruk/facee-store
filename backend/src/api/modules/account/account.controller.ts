@@ -11,15 +11,21 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { setAuthCookie } from '../auth/auth-cookie';
 import type { AuthenticatedRequest } from '../auth/auth.types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AccountService } from './account.service';
 import { AccountProfileDto } from './dto/account-profile.dto';
 import { AddressDto, AddressListResponseDto } from './dto/address.dto';
 import { AddressParamDto } from './dto/address-param.dto';
+import {
+  SavedPaymentMethodDto,
+  SavedPaymentMethodListResponseDto,
+} from './dto/payment-method.dto';
+import { PaymentMethodParamDto } from './dto/payment-method-param.dto';
 import { UpdateAccountProfileRequestDto } from './dto/update-account-profile-request.dto';
 import { UpsertAddressRequestDto } from './dto/upsert-address-request.dto';
+import { UpsertPaymentMethodRequestDto } from './dto/upsert-payment-method-request.dto';
 
 function applyNoStore(response: Response) {
   response.setHeader(
@@ -104,6 +110,56 @@ export class AccountController {
     return this.accountService.deleteAddress(
       request.user.sub,
       params.addressId,
+    );
+  }
+
+  @Get('payment-methods')
+  listPaymentMethods(
+    @Req() request: AuthenticatedRequest,
+  ): Promise<SavedPaymentMethodListResponseDto> {
+    return this.accountService.listPaymentMethods(request.user.sub);
+  }
+
+  @Post('payment-methods')
+  createPaymentMethod(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: UpsertPaymentMethodRequestDto,
+  ): Promise<SavedPaymentMethodDto> {
+    return this.accountService.createPaymentMethod(request.user.sub, body);
+  }
+
+  @Patch('payment-methods/:paymentMethodId')
+  updatePaymentMethod(
+    @Req() request: AuthenticatedRequest,
+    @Param() params: PaymentMethodParamDto,
+    @Body() body: UpsertPaymentMethodRequestDto,
+  ): Promise<SavedPaymentMethodDto> {
+    return this.accountService.updatePaymentMethod(
+      request.user.sub,
+      params.paymentMethodId,
+      body,
+    );
+  }
+
+  @Post('payment-methods/:paymentMethodId/default')
+  setDefaultPaymentMethod(
+    @Req() request: AuthenticatedRequest,
+    @Param() params: PaymentMethodParamDto,
+  ): Promise<SavedPaymentMethodDto> {
+    return this.accountService.setDefaultPaymentMethod(
+      request.user.sub,
+      params.paymentMethodId,
+    );
+  }
+
+  @Delete('payment-methods/:paymentMethodId')
+  deletePaymentMethod(
+    @Req() request: AuthenticatedRequest,
+    @Param() params: PaymentMethodParamDto,
+  ) {
+    return this.accountService.deletePaymentMethod(
+      request.user.sub,
+      params.paymentMethodId,
     );
   }
 }

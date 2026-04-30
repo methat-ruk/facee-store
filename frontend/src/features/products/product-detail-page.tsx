@@ -36,7 +36,7 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
   const localizedProduct = getLocalizedProduct(product, locale);
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-10 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <div className="flex items-center">
         <Link
           href="/products"
@@ -60,6 +60,11 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
               <Badge variant="outline" className="h-7 px-3 text-sm">
                 {localizedProduct.category.name}
               </Badge>
+              {localizedProduct.isFlashSale ? (
+                <Badge className="border-[#9f2f24]/30 bg-[#9f2f24] text-white hover:bg-[#9f2f24]">
+                  {t('flashSale')}
+                </Badge>
+              ) : null}
               <ProductAvailabilityBadge stock={localizedProduct.stock} />
             </div>
 

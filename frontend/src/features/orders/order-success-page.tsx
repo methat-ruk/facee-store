@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,27 +25,23 @@ import {
   FREE_SHIPPING_THRESHOLD,
 } from '@/features/checkout/checkout-ui';
 import type { OrderDetail } from '@/features/orders/schemas';
+import {
+  formatOrderDate,
+  formatOrderPrice,
+  getPaymentDemoStatusTranslationKey,
+  getPaymentMethodTranslationKey,
+} from '@/features/orders/ui';
 import { Link, useRouter } from '@/i18n/navigation';
 import { isApiError } from '@/services/api-error';
 import { getOrderDetail } from '@/services/orders';
 import { useAuthStore } from '@/store/use-auth-store';
-
-function formatPrice(value: number) {
-  return `THB ${value.toFixed(2)}`;
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
 
 type CheckoutSuccessPageProps = {
   orderNo: string;
 };
 
 export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
+  const locale = useLocale();
   const t = useTranslations('checkoutSuccess');
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -56,6 +52,24 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
   const [errorState, setErrorState] = useState<'not-found' | 'generic' | null>(
     null,
   );
+
+  const loadOrder = async () => {
+    setErrorState(null);
+    setIsLoading(true);
+
+    try {
+      const response = await getOrderDetail(orderNo);
+      setOrder(response);
+    } catch (error) {
+      if (isApiError(error) && error.code === 'ORDER_NOT_FOUND') {
+        setErrorState('not-found');
+      } else {
+        setErrorState('generic');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthInitialized || isRestoringProfile) {
@@ -140,12 +154,17 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
               {t('missingDescription')}
             </p>
           </div>
-          <Button asChild size="lg">
-            <Link href="/products">
-              <ArrowLeftIcon data-icon="inline-start" />
-              {t('backToProducts')}
-            </Link>
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" onClick={() => void loadOrder()}>
+              {t('retryLoad')}
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/products">
+                <ArrowLeftIcon data-icon="inline-start" />
+                {t('backToProducts')}
+              </Link>
+            </Button>
+          </div>
         </section>
       </main>
     );
@@ -181,7 +200,7 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <section className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-3">
           <Link
@@ -238,7 +257,7 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
                   {t('createdAtLabel')}
                 </p>
                 <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                  {formatDate(order.createdAt)}
+                  {formatOrderDate(order.createdAt, locale)}
                 </p>
               </div>
             </div>
@@ -254,6 +273,39 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
                 <p>{order.contact.postalCode}</p>
                 <p className="sm:col-span-2">
                   {order.contact.addressLine}, {order.contact.city}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background/70 p-4">
+              <p className="text-sm font-medium text-foreground">
+                {t('paymentTitle')}
+              </p>
+              <div className="mt-3 grid gap-2 text-sm leading-7 text-muted-foreground sm:grid-cols-2">
+                <p>
+                  {t('paymentMethodLabel')}:{' '}
+                  {t(getPaymentMethodTranslationKey(order.paymentMethod))}
+                </p>
+                <p>
+                  {t('paymentStatusLabel')}:{' '}
+                  {t(
+                    getPaymentDemoStatusTranslationKey(order.paymentDemoStatus),
+                  )}
+                </p>
+                {order.paymentSubmittedAt ? (
+                  <p>
+                    {t('paymentSubmittedAtLabel')}:{' '}
+                    {formatOrderDate(order.paymentSubmittedAt, locale)}
+                  </p>
+                ) : null}
+                {order.paymentCompletedAt ? (
+                  <p>
+                    {t('paymentCompletedAtLabel')}:{' '}
+                    {formatOrderDate(order.paymentCompletedAt, locale)}
+                  </p>
+                ) : null}
+                <p className="sm:col-span-2">
+                  {t(`paymentMethodNote.${order.paymentMethod}`)}
                 </p>
               </div>
             </div>
@@ -294,7 +346,7 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
                           </p>
                         </div>
                         <p className="shrink-0 text-sm font-medium text-foreground">
-                          {formatPrice(item.lineTotal)}
+                          {formatOrderPrice(item.lineTotal, locale)}
                         </p>
                       </div>
                     </div>
@@ -316,30 +368,36 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="text-muted-foreground">{t('subtotal')}</span>
               <span className="font-medium text-foreground">
-                {formatPrice(order.subtotal)}
+                {formatOrderPrice(order.subtotal, locale)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="text-muted-foreground">{t('shipping')}</span>
               <span className="font-medium text-foreground">
-                {formatPrice(order.shippingTotal)}
+                {formatOrderPrice(order.shippingTotal, locale)}
               </span>
             </div>
             <p className="text-xs leading-6 text-muted-foreground">
               {order.shippingTotal === 0
                 ? t('shippingFreeThreshold', {
-                    threshold: formatPrice(FREE_SHIPPING_THRESHOLD),
+                    threshold: formatOrderPrice(
+                      FREE_SHIPPING_THRESHOLD,
+                      locale,
+                    ),
                   })
                 : t('shippingFlatRate', {
-                    amount: formatPrice(order.shippingTotal),
-                    threshold: formatPrice(FREE_SHIPPING_THRESHOLD),
+                    amount: formatOrderPrice(order.shippingTotal, locale),
+                    threshold: formatOrderPrice(
+                      FREE_SHIPPING_THRESHOLD,
+                      locale,
+                    ),
                   })}
             </p>
             <Separator />
             <div className="flex items-center justify-between gap-4">
               <span className="font-medium text-foreground">{t('total')}</span>
               <span className="text-2xl font-semibold text-foreground">
-                {formatPrice(order.total)}
+                {formatOrderPrice(order.total, locale)}
               </span>
             </div>
           </CardContent>

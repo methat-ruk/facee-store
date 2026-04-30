@@ -4,9 +4,9 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import { AppException } from '../../../common/errors/app-exception';
-import { API_ERROR_CODES } from '../../../common/errors/error-codes';
-import type { AuthenticatedRequest } from './auth.types';
+import type { AuthenticatedRequest } from '../../api/modules/auth/auth.types';
+import { AppException } from '../errors/app-exception';
+import { API_ERROR_CODES } from '../errors/error-codes';
 
 @Injectable()
 export class AdminRoleGuard implements CanActivate {

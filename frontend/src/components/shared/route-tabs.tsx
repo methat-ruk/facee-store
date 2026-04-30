@@ -47,7 +47,7 @@ export function RouteTabs({
                 : 'h-full rounded-none border-none bg-transparent px-0 pt-1 pb-3 text-[0.95rem] font-medium text-foreground/70 shadow-none data-active:bg-transparent data-active:text-foreground hover:text-foreground focus-visible:border-transparent focus-visible:ring-0 after:-bottom-4 after:h-0.5 after:bg-[#b97c61]'
             }
           >
-            <Link href={item.href} onClick={onAction}>
+            <Link href={item.href} prefetch={false} onClick={onAction}>
               {t(item.labelKey)}
             </Link>
           </TabsTrigger>

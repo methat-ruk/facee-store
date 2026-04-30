@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ProductAvailabilityBadge } from '@/components/shared/product-availability-badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatOrderPrice } from '@/features/orders/ui';
 import { getLocalizedProduct } from './localized-content';
 import type { Product } from './schemas';
 
@@ -17,6 +18,9 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
   const locale = useLocale();
   const t = useTranslations('products');
   const localizedProduct = getLocalizedProduct(product, locale);
+  const hasDiscount =
+    localizedProduct.compareAtPrice !== null &&
+    localizedProduct.compareAtPrice > localizedProduct.price;
 
   return (
     <Card className="group h-full gap-0 overflow-hidden border-border/80 bg-card/92 py-0 shadow-[0_24px_70px_rgba(132,83,60,0.1)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(132,83,60,0.16)]">
@@ -24,6 +28,11 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
         href={`/products/${localizedProduct.slug}`}
         className="relative block h-76 cursor-pointer overflow-hidden bg-[linear-gradient(180deg,#fff3ea_0%,#f7ddd0_100%)]"
       >
+        {localizedProduct.isFlashSale ? (
+          <div className="absolute top-3 left-3 z-10 rounded-full bg-[#9f2f24] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_30px_rgba(159,47,36,0.28)]">
+            {t('flashSale')}
+          </div>
+        ) : null}
         {localizedProduct.imageUrl ? (
           <Image
             src={localizedProduct.imageUrl}
@@ -51,9 +60,11 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
       <CardContent className="flex flex-1 flex-col space-y-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-              {localizedProduct.category.name}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                {localizedProduct.category.name}
+              </p>
+            </div>
             <Link
               href={`/products/${localizedProduct.slug}`}
               className="inline-block"
@@ -71,9 +82,16 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
         </p>
 
         <div className="mt-auto flex items-center justify-between pt-2">
-          <span className="text-xl font-semibold text-foreground">
-            THB {localizedProduct.price.toFixed(2)}
-          </span>
+          <div className="flex flex-col items-start">
+            {hasDiscount ? (
+              <span className="text-sm text-muted-foreground line-through decoration-muted-foreground/80">
+                {formatOrderPrice(localizedProduct.compareAtPrice ?? 0, locale)}
+              </span>
+            ) : null}
+            <span className="text-xl font-semibold text-foreground">
+              {formatOrderPrice(localizedProduct.price, locale)}
+            </span>
+          </div>
           <span className="text-sm text-muted-foreground">
             {t('availableCount', { count: localizedProduct.stock })}
           </span>

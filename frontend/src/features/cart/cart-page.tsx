@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -22,17 +22,15 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { formatOrderPrice } from '@/features/orders/ui';
 import { Link } from '@/i18n/navigation';
 import { useCartView } from '@/features/cart/use-cart-view';
-
-function formatPrice(value: number) {
-  return `THB ${value.toFixed(2)}`;
-}
 
 const cartCtaClassName =
   'bg-[#9f604b] !text-[#fffaf6] hover:bg-[#884d3b] hover:!text-[#fffaf6] [&_svg]:!text-[#fffaf6] dark:bg-[#5a2f26] dark:!text-[#fffaf6] dark:hover:bg-[#4a261f]';
 
 export function CartPage() {
+  const locale = useLocale();
   const t = useTranslations('cart');
   const {
     items,
@@ -83,7 +81,7 @@ export function CartPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <section className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-3">
           <Link
@@ -163,7 +161,7 @@ export function CartPage() {
                         </h2>
                       </Link>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {formatPrice(item.price)}
+                        {formatOrderPrice(item.price, locale)}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -216,7 +214,7 @@ export function CartPage() {
 
                     <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-2">
                       <p className="text-lg font-semibold text-foreground">
-                        {formatPrice(item.lineTotal)}
+                        {formatOrderPrice(item.lineTotal, locale)}
                       </p>
                       <Button
                         type="button"
@@ -249,7 +247,7 @@ export function CartPage() {
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="text-muted-foreground">{t('subtotal')}</span>
               <span className="font-medium text-foreground">
-                {formatPrice(subtotal)}
+                {formatOrderPrice(subtotal, locale)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 text-sm">
@@ -257,14 +255,14 @@ export function CartPage() {
               <span className="font-medium text-foreground">
                 {shipping === 0
                   ? t('shippingPlaceholder')
-                  : formatPrice(shipping)}
+                  : formatOrderPrice(shipping, locale)}
               </span>
             </div>
             <Separator />
             <div className="flex items-center justify-between gap-4">
               <span className="font-medium text-foreground">{t('total')}</span>
               <span className="text-2xl font-semibold text-foreground">
-                {formatPrice(total)}
+                {formatOrderPrice(total, locale)}
               </span>
             </div>
           </CardContent>

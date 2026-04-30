@@ -1,7 +1,19 @@
 import type { OrderDetail, OrderListItem } from '@/features/orders/schemas';
 
-export function formatOrderPrice(value: number) {
-  return `THB ${value.toFixed(2)}`;
+export function formatOrderPrice(value: number, locale = 'en') {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'THB',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+export function formatOrderDate(value: string, locale = 'en') {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
 
 export function getOrderStatusBadgeVariant(
@@ -46,4 +58,25 @@ export function canDirectCancel(status: OrderDetail['status']) {
 
 export function canRequestCancellation(status: OrderDetail['status']) {
   return status === 'PAID' || status === 'PACKING';
+}
+
+export function getPaymentMethodTranslationKey(
+  paymentMethod: OrderDetail['paymentMethod'],
+) {
+  return paymentMethod === 'CARD'
+    ? 'paymentMethod.CARD'
+    : 'paymentMethod.QR_PAYMENT';
+}
+
+export function getPaymentDemoStatusTranslationKey(
+  paymentDemoStatus: OrderDetail['paymentDemoStatus'],
+) {
+  switch (paymentDemoStatus) {
+    case 'QR_SUBMITTED':
+      return 'paymentDemoStatus.QR_SUBMITTED';
+    case 'CARD_COMPLETED':
+      return 'paymentDemoStatus.CARD_COMPLETED';
+    default:
+      return 'paymentDemoStatus.NOT_STARTED';
+  }
 }

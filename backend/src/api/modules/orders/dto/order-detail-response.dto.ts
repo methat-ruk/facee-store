@@ -27,6 +27,14 @@ export const refundStatusSchema = z.enum([
   'REFUNDED',
 ]);
 
+export const paymentMethodSchema = z.enum(['QR_PAYMENT', 'CARD']);
+
+export const paymentDemoStatusSchema = z.enum([
+  'NOT_STARTED',
+  'QR_SUBMITTED',
+  'CARD_COMPLETED',
+]);
+
 export const cancellationReasonCodeSchema = z.enum([
   'WRONG_ADDRESS',
   'DUPLICATE_ORDER',
@@ -63,6 +71,10 @@ export const orderDetailResponseSchema = z.object({
     'CANCELED',
   ]),
   refundStatus: refundStatusSchema,
+  paymentMethod: paymentMethodSchema,
+  paymentDemoStatus: paymentDemoStatusSchema,
+  paymentSubmittedAt: z.string().datetime().nullable(),
+  paymentCompletedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   contact: orderDetailContactSchema,
   items: z.array(orderDetailItemSchema),

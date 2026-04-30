@@ -76,7 +76,9 @@ describe('ProductsService', () => {
         slug: 'cloud-calm-gel-cleanser',
         description: 'Gentle cleanser.',
         imageUrl: null,
+        isFlashSale: false,
         price: { toString: () => '490' },
+        compareAtPrice: null,
         stock: 28,
         category: {
           id: 'cm8category000001234567890',
@@ -100,7 +102,9 @@ describe('ProductsService', () => {
           slug: 'cloud-calm-gel-cleanser',
           description: 'Gentle cleanser.',
           imageUrl: null,
+          isFlashSale: false,
           price: 490,
+          compareAtPrice: null,
           stock: 28,
           category: {
             id: 'cm8category000001234567890',
@@ -252,7 +256,9 @@ describe('ProductsService', () => {
         '/images/products/soft-reset-cream-cleanser.png',
       ],
       imageUrl: '/images/products/cloud-calm-gel-cleanser.png',
+      isFlashSale: false,
       price: { toString: () => '490' },
+      compareAtPrice: null,
       stock: 28,
       category: {
         id: 'cm8category000001234567890',
@@ -267,7 +273,9 @@ describe('ProductsService', () => {
         slug: 'soft-reset-cream-cleanser',
         description: 'Cream cleanser.',
         imageUrl: '/images/products/soft-reset-cream-cleanser.png',
+        isFlashSale: false,
         price: { toString: () => '520' },
+        compareAtPrice: null,
         stock: 14,
         category: {
           id: 'cm8category000001234567890',
@@ -294,7 +302,9 @@ describe('ProductsService', () => {
           '/images/products/soft-reset-cream-cleanser.png',
         ],
         imageUrl: '/images/products/cloud-calm-gel-cleanser.png',
+        isFlashSale: false,
         price: 490,
+        compareAtPrice: null,
         stock: 28,
         category: {
           id: 'cm8category000001234567890',
@@ -309,7 +319,9 @@ describe('ProductsService', () => {
           slug: 'soft-reset-cream-cleanser',
           description: 'Cream cleanser.',
           imageUrl: '/images/products/soft-reset-cream-cleanser.png',
+          isFlashSale: false,
           price: 520,
+          compareAtPrice: null,
           stock: 14,
           category: {
             id: 'cm8category000001234567890',

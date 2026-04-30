@@ -33,6 +33,28 @@ export async function getOrderDetail(orderNo: string) {
   return orderDetailSchema.parse(response.data);
 }
 
+export async function confirmPaymentDemo(orderNo: string) {
+  const response = await api.post(
+    apiConfig.endpoints.orderPaymentDemoConfirm(orderNo),
+  );
+
+  return orderDetailSchema.parse(response.data);
+}
+
+export async function updateOrderPaymentMethod(
+  orderNo: string,
+  paymentMethod: CreateOrderInput['paymentMethod'],
+) {
+  const response = await api.post(
+    apiConfig.endpoints.orderPaymentMethod(orderNo),
+    {
+      paymentMethod,
+    },
+  );
+
+  return orderDetailSchema.parse(response.data);
+}
+
 export async function cancelOrder(orderNo: string) {
   const response = await api.post(apiConfig.endpoints.orderCancel(orderNo));
 

@@ -1,9 +1,13 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
+import {
+  buildAuthNoticeHref,
+  buildReturnTo,
+} from '@/features/auth/auth-routing';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useAuthStore } from '@/store/use-auth-store';
 
 type AuthActionsProps = {
@@ -22,6 +26,15 @@ export function AuthActions({
   const isLoggingOut = useAuthStore((state) => state.isLoggingOut);
   const logout = useAuthStore((state) => state.logout);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const returnTo = buildReturnTo(pathname, searchParams);
+  const loginHref = returnTo
+    ? `/login?returnTo=${encodeURIComponent(returnTo)}`
+    : '/login';
+  const registerHref = returnTo
+    ? `/register?returnTo=${encodeURIComponent(returnTo)}`
+    : '/register';
 
   if (user) {
     const showInlineLogout = stacked || menu;
@@ -56,7 +69,7 @@ export function AuthActions({
                   : undefined
               }
             >
-              <Link href="/profile" onClick={onAction}>
+              <Link href="/profile" prefetch={false} onClick={onAction}>
                 {t('profile')}
               </Link>
             </Button>
@@ -69,7 +82,7 @@ export function AuthActions({
                   : undefined
               }
             >
-              <Link href="/orders" onClick={onAction}>
+              <Link href="/orders" prefetch={false} onClick={onAction}>
                 {t('myPurchases')}
               </Link>
             </Button>
@@ -121,7 +134,8 @@ export function AuthActions({
         }
       >
         <Link
-          href="/login"
+          href={loginHref}
+          prefetch={false}
           onClick={() => {
             onAction?.();
           }}
@@ -135,7 +149,8 @@ export function AuthActions({
         className={stacked || menu ? 'w-full justify-center' : undefined}
       >
         <Link
-          href="/register"
+          href={registerHref}
+          prefetch={false}
           onClick={() => {
             onAction?.();
           }}

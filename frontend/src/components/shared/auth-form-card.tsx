@@ -58,6 +58,8 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
   const returnTo = sanitizeReturnTo(searchParams.get('returnTo'));
   const login = useAuthStore((state) => state.login);
   const register = useAuthStore((state) => state.register);
+  const user = useAuthStore((state) => state.user);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
   const isLoggingIn = useAuthStore((state) => state.isLoggingIn);
   const isRegistering = useAuthStore((state) => state.isRegistering);
   const clearError = useAuthStore((state) => state.clearError);
@@ -90,6 +92,14 @@ export function AuthFormCard({ mode }: AuthFormCardProps) {
 
     return `${alternateAuthPath}?returnTo=${encodeURIComponent(returnTo)}`;
   })();
+
+  useEffect(() => {
+    if (!isInitialized || !user) {
+      return;
+    }
+
+    router.replace(returnTo ?? '/products');
+  }, [isInitialized, returnTo, router, user]);
 
   useEffect(() => {
     let isCancelled = false;

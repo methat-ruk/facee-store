@@ -163,6 +163,7 @@ describe('OrdersService', () => {
     await expect(
       service.createOrder(currentUser.id, {
         addressId: currentAddress.id,
+        paymentMethod: 'CARD',
         items: [
           {
             productId: 'cm8product00000123456789012',
@@ -174,17 +175,7 @@ describe('OrdersService', () => {
       orderNo: 'FC-20260428-123456',
     });
 
-    expect(userUpdate).toHaveBeenCalledWith({
-      where: { id: currentUser.id },
-      data: {
-        fullName: 'Facee Customer',
-        email: 'customer@example.com',
-        phone: '0800000000',
-        addressLine: '123 Facee Road',
-        city: 'Bangkok',
-        postalCode: '10110',
-      },
-    });
+    expect(userUpdate).not.toHaveBeenCalled();
     expect(productUpdateMany).toHaveBeenCalledWith({
       where: {
         id: 'cm8product00000123456789012',
@@ -210,6 +201,7 @@ describe('OrdersService', () => {
     await expect(
       service.createOrder(currentUser.id, {
         addressId: currentAddress.id,
+        paymentMethod: 'QR_PAYMENT',
         items: [
           {
             productId: 'cm8product00000123456789012',
@@ -233,6 +225,7 @@ describe('OrdersService', () => {
     await expect(
       service.createOrder(currentUser.id, {
         addressId: currentAddress.id,
+        paymentMethod: 'QR_PAYMENT',
         items: [],
       }),
     ).rejects.toMatchObject({
@@ -250,6 +243,10 @@ describe('OrdersService', () => {
       orderNo: 'FC-20260428-123456',
       status: 'PENDING',
       refundStatus: 'NONE',
+      paymentMethod: 'QR_PAYMENT',
+      paymentDemoStatus: 'NOT_STARTED',
+      paymentSubmittedAt: null,
+      paymentCompletedAt: null,
       createdAt: new Date('2026-04-28T10:00:00.000Z'),
       customerFullName: 'Facee Customer',
       customerEmail: 'customer@example.com',
@@ -288,6 +285,10 @@ describe('OrdersService', () => {
       orderNo: 'FC-20260428-123456',
       status: 'PENDING',
       refundStatus: 'NONE',
+      paymentMethod: 'QR_PAYMENT',
+      paymentDemoStatus: 'NOT_STARTED',
+      paymentSubmittedAt: null,
+      paymentCompletedAt: null,
       createdAt: '2026-04-28T10:00:00.000Z',
       contact: {
         fullName: 'Facee Customer',
@@ -316,6 +317,58 @@ describe('OrdersService', () => {
     });
   });
 
+  it('sums quantities for the order list item count', async () => {
+    const { service, orderFindMany } = buildService();
+
+    orderFindMany.mockResolvedValue([
+      {
+        orderNo: 'FC-20260428-123456',
+        status: 'PAID',
+        refundStatus: 'NONE',
+        createdAt: new Date('2026-04-28T10:00:00.000Z'),
+        total: 960,
+        customerFullName: 'Facee Customer',
+        customerEmail: 'customer@example.com',
+        customerPhone: '0800000000',
+        shippingAddressLine: '123 Facee Road',
+        shippingCity: 'Bangkok',
+        shippingPostalCode: '10110',
+        user: {
+          fullName: 'Facee Customer',
+          email: 'customer@example.com',
+          phone: '0800000000',
+          addressLine: '123 Facee Road',
+          city: 'Bangkok',
+          postalCode: '10110',
+        },
+        items: [
+          {
+            id: 'cm8orderitem0000012345678',
+            productName: 'Quiet Bloom Cleanser',
+            productImageUrl: '/images/products/quiet-bloom-cleanser.png',
+            quantity: 2,
+          },
+          {
+            id: 'cm8orderitem0000012345679',
+            productName: 'Soft Cloud Toner',
+            productImageUrl: '/images/products/soft-cloud-toner.png',
+            quantity: 1,
+          },
+        ],
+        cancellationRequests: [],
+      },
+    ]);
+
+    await expect(service.listOrders(currentUser.id)).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          orderNo: 'FC-20260428-123456',
+          itemCount: 3,
+        }),
+      ],
+    });
+  });
+
   it('cancels pending orders and restores stock immediately', async () => {
     const { service, orderFindFirst, orderUpdate, productUpdate } =
       buildService();
@@ -336,6 +389,10 @@ describe('OrdersService', () => {
         orderNo: 'FC-20260428-123456',
         status: 'CANCELED',
         refundStatus: 'NONE',
+        paymentMethod: 'QR_PAYMENT',
+        paymentDemoStatus: 'QR_SUBMITTED',
+        paymentSubmittedAt: new Date('2026-04-28T10:05:00.000Z'),
+        paymentCompletedAt: null,
         createdAt: new Date('2026-04-28T10:00:00.000Z'),
         customerFullName: 'Facee Customer',
         customerEmail: 'customer@example.com',
@@ -403,6 +460,10 @@ describe('OrdersService', () => {
         orderNo: 'FC-20260428-123456',
         status: 'PAID',
         refundStatus: 'NONE',
+        paymentMethod: 'CARD',
+        paymentDemoStatus: 'CARD_COMPLETED',
+        paymentSubmittedAt: null,
+        paymentCompletedAt: new Date('2026-04-28T10:05:00.000Z'),
         createdAt: new Date('2026-04-28T10:00:00.000Z'),
         customerFullName: 'Facee Customer',
         customerEmail: 'customer@example.com',
@@ -460,5 +521,160 @@ describe('OrdersService', () => {
       },
     });
     expect(productUpdate).not.toHaveBeenCalled();
+  });
+
+  it('confirms sandbox QR transfers without changing the order status', async () => {
+    const { service, orderFindFirst, orderUpdate } = buildService();
+
+    orderFindFirst
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        status: 'PENDING',
+        paymentMethod: 'QR_PAYMENT',
+        paymentDemoStatus: 'NOT_STARTED',
+      })
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        orderNo: 'FC-20260428-123456',
+        status: 'PENDING',
+        refundStatus: 'NONE',
+        paymentMethod: 'QR_PAYMENT',
+        paymentDemoStatus: 'QR_SUBMITTED',
+        paymentSubmittedAt: new Date('2026-04-28T10:05:00.000Z'),
+        paymentCompletedAt: null,
+        createdAt: new Date('2026-04-28T10:00:00.000Z'),
+        customerFullName: 'Facee Customer',
+        customerEmail: 'customer@example.com',
+        customerPhone: '0800000000',
+        shippingAddressLine: '123 Facee Road',
+        shippingCity: 'Bangkok',
+        shippingPostalCode: '10110',
+        subtotal: 900,
+        shippingTotal: 60,
+        total: 960,
+        user: {
+          fullName: 'Facee Customer',
+          email: 'customer@example.com',
+          phone: '0800000000',
+          addressLine: '123 Facee Road',
+          city: 'Bangkok',
+          postalCode: '10110',
+        },
+        items: [],
+        cancellationRequests: [],
+      });
+
+    await expect(
+      service.confirmPaymentDemo(currentUser.id, 'FC-20260428-123456'),
+    ).resolves.toMatchObject({
+      status: 'PENDING',
+      paymentDemoStatus: 'QR_SUBMITTED',
+    });
+
+    const qrUpdateCalls = orderUpdate.mock.calls as Array<
+      [
+        {
+          where: { id: string };
+          data: {
+            status: string;
+            paymentDemoStatus: string;
+            paymentSubmittedAt?: unknown;
+          };
+        },
+      ]
+    >;
+    const qrUpdateArgs = qrUpdateCalls[0]?.[0];
+
+    expect(qrUpdateArgs?.where.id).toBe('cm8order000001234567890123');
+    expect(qrUpdateArgs?.data.status).toBe('PENDING');
+    expect(qrUpdateArgs?.data.paymentDemoStatus).toBe('QR_SUBMITTED');
+    expect(qrUpdateArgs?.data.paymentSubmittedAt).toBeInstanceOf(Date);
+  });
+
+  it('confirms sandbox card payments and marks the order as paid', async () => {
+    const { service, orderFindFirst, orderUpdate } = buildService();
+
+    orderFindFirst
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        status: 'PENDING',
+        paymentMethod: 'CARD',
+        paymentDemoStatus: 'NOT_STARTED',
+      })
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        orderNo: 'FC-20260428-123456',
+        status: 'PAID',
+        refundStatus: 'NONE',
+        paymentMethod: 'CARD',
+        paymentDemoStatus: 'CARD_COMPLETED',
+        paymentSubmittedAt: null,
+        paymentCompletedAt: new Date('2026-04-28T10:05:00.000Z'),
+        createdAt: new Date('2026-04-28T10:00:00.000Z'),
+        customerFullName: 'Facee Customer',
+        customerEmail: 'customer@example.com',
+        customerPhone: '0800000000',
+        shippingAddressLine: '123 Facee Road',
+        shippingCity: 'Bangkok',
+        shippingPostalCode: '10110',
+        subtotal: 900,
+        shippingTotal: 60,
+        total: 960,
+        user: {
+          fullName: 'Facee Customer',
+          email: 'customer@example.com',
+          phone: '0800000000',
+          addressLine: '123 Facee Road',
+          city: 'Bangkok',
+          postalCode: '10110',
+        },
+        items: [],
+        cancellationRequests: [],
+      });
+
+    await expect(
+      service.confirmPaymentDemo(currentUser.id, 'FC-20260428-123456'),
+    ).resolves.toMatchObject({
+      status: 'PAID',
+      paymentDemoStatus: 'CARD_COMPLETED',
+    });
+
+    const cardUpdateCalls = orderUpdate.mock.calls as Array<
+      [
+        {
+          where: { id: string };
+          data: {
+            status: string;
+            paymentDemoStatus: string;
+            paymentCompletedAt?: unknown;
+          };
+        },
+      ]
+    >;
+    const cardUpdateArgs = cardUpdateCalls[0]?.[0];
+
+    expect(cardUpdateArgs?.where.id).toBe('cm8order000001234567890123');
+    expect(cardUpdateArgs?.data.status).toBe('PAID');
+    expect(cardUpdateArgs?.data.paymentDemoStatus).toBe('CARD_COMPLETED');
+    expect(cardUpdateArgs?.data.paymentCompletedAt).toBeInstanceOf(Date);
+  });
+
+  it('rejects sandbox payment reconfirmation once a payment is already finalized', async () => {
+    const { service, orderFindFirst } = buildService();
+
+    orderFindFirst.mockResolvedValue({
+      id: 'cm8order000001234567890123',
+      status: 'PAID',
+      paymentMethod: 'CARD',
+      paymentDemoStatus: 'CARD_COMPLETED',
+    });
+
+    await expect(
+      service.confirmPaymentDemo(currentUser.id, 'FC-20260428-123456'),
+    ).rejects.toMatchObject({
+      response: {
+        code: API_ERROR_CODES.orderPaymentDemoAlreadyConfirmed,
+      },
+    });
   });
 });

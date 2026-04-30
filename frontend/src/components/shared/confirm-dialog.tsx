@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangleIcon } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useLockBodyScroll } from '@/hooks/use-lock-body-scroll';
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -33,13 +35,15 @@ export function ConfirmDialog({
   isPending = false,
   destructive = false,
 }: ConfirmDialogProps) {
+  useLockBodyScroll(open);
+
   if (!open) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(35,22,17,0.48)] px-4 py-6 backdrop-blur-[2px]"
+      className="fixed inset-0 z-90 flex items-center justify-center bg-[rgba(35,22,17,0.48)] px-4 py-4 backdrop-blur-[2px] sm:py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
@@ -90,6 +94,7 @@ export function ConfirmDialog({
           </Button>
         </CardFooter>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }

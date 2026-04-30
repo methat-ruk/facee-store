@@ -29,6 +29,16 @@ export function getCartSubtotal(items: CartItem[]) {
   return items.reduce((total, item) => total + item.price * item.quantity, 0);
 }
 
+function clampCartQuantity(quantity: number, stock?: number | null) {
+  const normalizedQuantity = Math.max(1, quantity);
+
+  if (typeof stock === 'number' && stock > 0) {
+    return Math.min(normalizedQuantity, stock);
+  }
+
+  return normalizedQuantity;
+}
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set) => ({
@@ -40,10 +50,24 @@ export const useCartStore = create<CartStore>()(
           );
 
           if (!existingItem) {
+            const nextQuantity = clampCartQuantity(item.quantity, item.stock);
+
             return {
-              items: [...state.items, item],
+              items: [
+                ...state.items,
+                {
+                  ...item,
+                  quantity: nextQuantity,
+                },
+              ],
             };
           }
+
+          const nextStock = item.stock ?? existingItem.stock;
+          const nextQuantity = clampCartQuantity(
+            existingItem.quantity + item.quantity,
+            nextStock,
+          );
 
           return {
             items: state.items.map((currentItem) =>
@@ -54,8 +78,8 @@ export const useCartStore = create<CartStore>()(
                     name: item.name,
                     price: item.price,
                     slug: item.slug,
-                    stock: item.stock ?? currentItem.stock,
-                    quantity: currentItem.quantity + item.quantity,
+                    stock: nextStock,
+                    quantity: nextQuantity,
                   }
                 : currentItem,
             ),
@@ -67,7 +91,7 @@ export const useCartStore = create<CartStore>()(
             item.id === id
               ? {
                   ...item,
-                  quantity: Math.max(1, quantity),
+                  quantity: clampCartQuantity(quantity, item.stock),
                 }
               : item,
           ),

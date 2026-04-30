@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../generated/prisma/client.cjs';
+import { Prisma, PrismaClient } from '../generated/prisma/client.cjs';
 import { appEnv } from '../config/env';
 
 @Injectable()
@@ -21,6 +21,10 @@ export class PrismaService implements OnModuleDestroy {
 
   get address() {
     return this.client.address;
+  }
+
+  get savedPaymentMethod() {
+    return this.client.savedPaymentMethod;
   }
 
   get product() {
@@ -48,11 +52,9 @@ export class PrismaService implements OnModuleDestroy {
   }
 
   $transaction<T>(
-    fn: (
-      transaction: Omit<PrismaClient, '$connect' | '$disconnect'>,
-    ) => Promise<T>,
-  ) {
-    return this.client.$transaction(fn);
+    fn: (transaction: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    return this.client.$transaction((transaction) => fn(transaction));
   }
 
   async onModuleDestroy() {

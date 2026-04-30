@@ -56,6 +56,24 @@ const categoryGalleryMap = {
   ],
 } as const;
 
+type ProductSeed = {
+  name: string;
+  slug: string;
+  subtitle: string;
+  description: string;
+  howToUse: string;
+  benefits: string[];
+  ingredients: string[];
+  imageUrl: string;
+  galleryImages: string[];
+  isPublished: boolean;
+  isFlashSale?: boolean;
+  price: string;
+  compareAtPrice?: string;
+  stock: number;
+  categorySlug: keyof typeof categoryGalleryMap;
+};
+
 function buildGallery(
   primaryImage: string,
   categorySlug: keyof typeof categoryGalleryMap,
@@ -66,7 +84,7 @@ function buildGallery(
   ];
 }
 
-const products = [
+const products: ProductSeed[] = [
   {
     name: 'Cloud Calm Gel Cleanser',
     slug: 'cloud-calm-gel-cleanser',
@@ -137,7 +155,9 @@ const products = [
       'serums',
     ),
     isPublished: true,
+    isFlashSale: true,
     price: '790.00',
+    compareAtPrice: '990.00',
     stock: 11,
     categorySlug: 'serums',
   },
@@ -162,7 +182,9 @@ const products = [
       'serums',
     ),
     isPublished: true,
+    isFlashSale: true,
     price: '890.00',
+    compareAtPrice: '1090.00',
     stock: 8,
     categorySlug: 'serums',
   },
@@ -235,7 +257,9 @@ const products = [
       'sun-care',
     ),
     isPublished: true,
+    isFlashSale: true,
     price: '640.00',
+    compareAtPrice: '790.00',
     stock: 23,
     categorySlug: 'sun-care',
   },
@@ -284,7 +308,9 @@ const products = [
       'serums',
     ),
     isPublished: true,
+    isFlashSale: true,
     price: '830.00',
+    compareAtPrice: '990.00',
     stock: 12,
     categorySlug: 'serums',
   },
@@ -309,7 +335,9 @@ const products = [
       'moisturizers',
     ),
     isPublished: true,
+    isFlashSale: true,
     price: '710.00',
+    compareAtPrice: '830.00',
     stock: 26,
     categorySlug: 'moisturizers',
   },
@@ -361,7 +389,7 @@ const products = [
     stock: 10,
     categorySlug: 'sun-care',
   },
-] as const;
+];
 
 async function main() {
   for (const category of categories) {
@@ -397,7 +425,9 @@ async function main() {
         imageUrl: product.imageUrl,
         galleryImages: [...product.galleryImages],
         isPublished: product.isPublished,
+        isFlashSale: product.isFlashSale ?? false,
         price: product.price,
+        compareAtPrice: product.compareAtPrice ?? null,
         stock: product.stock,
         categoryId: category.id,
       },
@@ -412,7 +442,9 @@ async function main() {
         imageUrl: product.imageUrl,
         galleryImages: [...product.galleryImages],
         isPublished: product.isPublished,
+        isFlashSale: product.isFlashSale ?? false,
         price: product.price,
+        compareAtPrice: product.compareAtPrice ?? null,
         stock: product.stock,
         categoryId: category.id,
       },

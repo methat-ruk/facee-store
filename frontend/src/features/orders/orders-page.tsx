@@ -3,13 +3,21 @@
 import { ArrowRightIcon, PackageSearchIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
+import { checkoutPrimaryButtonClassName } from '@/features/checkout/checkout-ui';
 import type { OrderListItem } from '@/features/orders/schemas';
 import {
+  formatOrderDate,
   formatOrderPrice,
   getOrderStatusBadgeClassName,
   getOrderStatusBadgeVariant,
@@ -18,14 +26,8 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { listOrders } from '@/services/orders';
 import { useAuthStore } from '@/store/use-auth-store';
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
 export function OrdersPage() {
+  const locale = useLocale();
   const t = useTranslations('orders');
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -34,6 +36,23 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+
+  const hasPendingPayment = (order: OrderListItem) =>
+    order.status === 'PENDING' && order.paymentDemoStatus === 'NOT_STARTED';
+
+  const loadOrders = async () => {
+    setHasError(false);
+    setIsLoading(true);
+
+    try {
+      const response = await listOrders();
+      setOrders(response.items);
+    } catch {
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthInitialized || user) {
@@ -89,16 +108,27 @@ export function OrdersPage() {
 
   if (hasError) {
     return (
-      <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <p className="text-sm font-medium text-destructive">
-          {t('errorLoadFailed')}
-        </p>
+      <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8">
+        <Card className="mx-auto w-full max-w-2xl border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+          <CardHeader className="text-center">
+            <CardTitle>{t('errorLoadFailed')}</CardTitle>
+            <CardDescription>{t('errorLoadDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button type="button" onClick={() => void loadOrders()}>
+              {t('retryLoad')}
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/products">{t('browseProducts')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <section className="flex flex-col gap-3">
         <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
           {t('eyebrow')}
@@ -185,7 +215,7 @@ export function OrdersPage() {
                     </div>
 
                     <div className="min-w-0 text-sm leading-7 text-muted-foreground">
-                      <p>{formatDate(order.createdAt)}</p>
+                      <p>{formatOrderDate(order.createdAt, locale)}</p>
                       <p>{order.contact.fullName}</p>
                       <p className="truncate">{order.contact.addressLine}</p>
                       <p>
@@ -195,7 +225,7 @@ export function OrdersPage() {
 
                     <div className="flex flex-col gap-1 text-sm sm:items-end">
                       <p className="text-lg font-semibold text-foreground">
-                        {formatOrderPrice(order.total)}
+                        {formatOrderPrice(order.total, locale)}
                       </p>
                       <p className="text-muted-foreground">
                         {t('itemCount', { count: order.itemCount })}
@@ -204,7 +234,15 @@ export function OrdersPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-start lg:justify-end">
+                <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                  {hasPendingPayment(order) ? (
+                    <Button asChild className={checkoutPrimaryButtonClassName}>
+                      <Link href={`/checkout/payment/${order.orderNo}`}>
+                        {t('continuePayment')}
+                        <ArrowRightIcon data-icon="inline-end" />
+                      </Link>
+                    </Button>
+                  ) : null}
                   <Button asChild variant="outline">
                     <Link href={`/orders/${order.orderNo}`}>
                       {t('viewDetails')}

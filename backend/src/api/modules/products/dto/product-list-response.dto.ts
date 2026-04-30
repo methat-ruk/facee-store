@@ -13,7 +13,9 @@ export const productListItemSchema = z.object({
   slug: z.string(),
   description: z.string(),
   imageUrl: z.string().nullable(),
+  isFlashSale: z.boolean(),
   price: z.number().nonnegative(),
+  compareAtPrice: z.number().nonnegative().nullable(),
   stock: z.number().int().nonnegative(),
   category: productCategorySchema,
 });

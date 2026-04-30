@@ -3,6 +3,8 @@ import { randomInt } from 'node:crypto';
 import type {
   Order,
   OrderCancellationRequest,
+  PaymentDemoStatus,
+  PaymentMethod,
   RefundStatus,
   User,
 } from '../../../generated/prisma/client.cjs';
@@ -11,9 +13,11 @@ import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { CreateCancellationRequest } from './dto/create-cancellation-request.dto';
 import type { CreateOrderRequest } from './dto/create-order-request.dto';
+import type { CreateOrderResponseDto } from './dto/create-order-response.dto';
 import type { AdminReviewCancellationRequest } from './dto/admin-review-cancellation-request.dto';
 import type { OrderDetailResponseDto } from './dto/order-detail-response.dto';
 import type { OrderListResponseDto } from './dto/order-list-response.dto';
+import type { UpdateOrderPaymentMethod } from './dto/update-order-payment-method.dto';
 import type { UpdateRefundStatusInput } from './dto/update-refund-status.dto';
 import { getShippingFee } from './order-pricing';
 
@@ -36,6 +40,10 @@ type OrderDetailSource = OrderContactSource & {
   orderNo: string;
   status: Order['status'];
   refundStatus: RefundStatus;
+  paymentMethod: PaymentMethod;
+  paymentDemoStatus: PaymentDemoStatus;
+  paymentSubmittedAt: Date | null;
+  paymentCompletedAt: Date | null;
   createdAt: Date;
   subtotal: unknown;
   shippingTotal: unknown;
@@ -67,6 +75,10 @@ const orderDetailSelect = {
   orderNo: true,
   status: true,
   refundStatus: true,
+  paymentMethod: true,
+  paymentDemoStatus: true,
+  paymentSubmittedAt: true,
+  paymentCompletedAt: true,
   createdAt: true,
   customerFullName: true,
   customerEmail: true,
@@ -110,6 +122,10 @@ const orderListSelect = {
   orderNo: true,
   status: true,
   refundStatus: true,
+  paymentMethod: true,
+  paymentDemoStatus: true,
+  paymentSubmittedAt: true,
+  paymentCompletedAt: true,
   createdAt: true,
   total: true,
   customerFullName: true,
@@ -133,6 +149,7 @@ const orderListSelect = {
       id: true,
       productName: true,
       productImageUrl: true,
+      quantity: true,
     },
   },
   cancellationRequests: {
@@ -147,7 +164,10 @@ const orderListSelect = {
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createOrder(userId: string, input: CreateOrderRequest) {
+  async createOrder(
+    userId: string,
+    input: CreateOrderRequest,
+  ): Promise<CreateOrderResponseDto> {
     await this.ensureOwnedUser(userId);
 
     const address = await this.ensureOwnedAddress(userId, input.addressId);
@@ -243,24 +263,14 @@ export class OrdersService {
             }
           }
 
-          await transaction.user.update({
-            where: { id: userId },
-            data: {
-              fullName: address.recipientFullName,
-              email: address.recipientEmail,
-              phone: address.recipientPhone,
-              addressLine: address.addressLine,
-              city: address.city,
-              postalCode: address.postalCode,
-            },
-          });
-
           const order = await transaction.order.create({
             data: {
               orderNo: this.generateOrderNo(),
               userId,
               status: 'PENDING',
               refundStatus: 'NONE',
+              paymentMethod: input.paymentMethod,
+              paymentDemoStatus: 'NOT_STARTED',
               customerFullName: address.recipientFullName,
               customerEmail: address.recipientEmail,
               customerPhone: address.recipientPhone,
@@ -392,6 +402,105 @@ export class OrdersService {
           status: 'CANCELED',
         },
       });
+    });
+
+    return this.getOrderByOrderNo(userId, orderNo);
+  }
+
+  async confirmPaymentDemo(
+    userId: string,
+    orderNo: string,
+  ): Promise<OrderDetailResponseDto> {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        orderNo,
+        userId,
+      },
+      select: {
+        id: true,
+        status: true,
+        paymentMethod: true,
+        paymentDemoStatus: true,
+      },
+    });
+
+    if (!order) {
+      throw this.buildOrderNotFound();
+    }
+
+    if (!this.canConfirmPaymentDemo(order.status, order.paymentDemoStatus)) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        order.paymentDemoStatus !== 'NOT_STARTED'
+          ? API_ERROR_CODES.orderPaymentDemoAlreadyConfirmed
+          : API_ERROR_CODES.orderPaymentDemoNotAllowed,
+        order.paymentDemoStatus !== 'NOT_STARTED'
+          ? 'This sandbox payment has already been confirmed.'
+          : 'This order cannot accept a sandbox payment confirmation right now.',
+      );
+    }
+
+    const now = new Date();
+
+    await this.prisma.order.update({
+      where: {
+        id: order.id,
+      },
+      data:
+        order.paymentMethod === 'CARD'
+          ? {
+              status: 'PAID',
+              paymentDemoStatus: 'CARD_COMPLETED',
+              paymentCompletedAt: now,
+            }
+          : {
+              status: 'PENDING',
+              paymentDemoStatus: 'QR_SUBMITTED',
+              paymentSubmittedAt: now,
+            },
+    });
+
+    return this.getOrderByOrderNo(userId, orderNo);
+  }
+
+  async updatePaymentMethod(
+    userId: string,
+    orderNo: string,
+    input: UpdateOrderPaymentMethod,
+  ): Promise<OrderDetailResponseDto> {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        orderNo,
+        userId,
+      },
+      select: {
+        id: true,
+        status: true,
+        paymentDemoStatus: true,
+      },
+    });
+
+    if (!order) {
+      throw this.buildOrderNotFound();
+    }
+
+    if (!this.canConfirmPaymentDemo(order.status, order.paymentDemoStatus)) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        order.paymentDemoStatus !== 'NOT_STARTED'
+          ? API_ERROR_CODES.orderPaymentDemoAlreadyConfirmed
+          : API_ERROR_CODES.orderPaymentDemoNotAllowed,
+        order.paymentDemoStatus !== 'NOT_STARTED'
+          ? 'This sandbox payment has already been confirmed.'
+          : 'This order cannot change its payment method right now.',
+      );
+    }
+
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        paymentMethod: input.paymentMethod,
+      },
     });
 
     return this.getOrderByOrderNo(userId, orderNo);
@@ -672,6 +781,10 @@ export class OrdersService {
   private toOrderListItem(order: {
     status: Order['status'];
     refundStatus: RefundStatus;
+    paymentMethod: PaymentMethod;
+    paymentDemoStatus: PaymentDemoStatus;
+    paymentSubmittedAt: Date | null;
+    paymentCompletedAt: Date | null;
     orderNo: string;
     createdAt: Date;
     total: unknown;
@@ -689,6 +802,7 @@ export class OrdersService {
       id: string;
       productName: string | null;
       productImageUrl: string | null;
+      quantity: number;
     }>;
     cancellationRequests: Array<Pick<OrderCancellationRequest, 'status'>>;
   }) {
@@ -698,9 +812,13 @@ export class OrdersService {
       orderNo: order.orderNo,
       status: order.status,
       refundStatus: order.refundStatus,
+      paymentMethod: order.paymentMethod,
+      paymentDemoStatus: order.paymentDemoStatus,
+      paymentSubmittedAt: order.paymentSubmittedAt?.toISOString() ?? null,
+      paymentCompletedAt: order.paymentCompletedAt?.toISOString() ?? null,
       createdAt: order.createdAt.toISOString(),
       total: Number(order.total),
-      itemCount: order.items.length,
+      itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
       previewItems: order.items.slice(0, 3).map((item) => ({
         id: item.id,
         productName: item.productName ?? '',
@@ -717,6 +835,10 @@ export class OrdersService {
       orderNo: order.orderNo,
       status: order.status,
       refundStatus: order.refundStatus,
+      paymentMethod: order.paymentMethod,
+      paymentDemoStatus: order.paymentDemoStatus,
+      paymentSubmittedAt: order.paymentSubmittedAt?.toISOString() ?? null,
+      paymentCompletedAt: order.paymentCompletedAt?.toISOString() ?? null,
       createdAt: order.createdAt.toISOString(),
       contact: this.toContact(order),
       items: order.items.map((item) => ({
@@ -769,6 +891,13 @@ export class OrdersService {
 
   private canRequestCancellation(status: Order['status']) {
     return status === 'PAID' || status === 'PACKING';
+  }
+
+  private canConfirmPaymentDemo(
+    status: Order['status'],
+    paymentDemoStatus: PaymentDemoStatus,
+  ) {
+    return status === 'PENDING' && paymentDemoStatus === 'NOT_STARTED';
   }
 
   private generateOrderNo() {

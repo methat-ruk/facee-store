@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { AdminRoleGuard } from '../../../common/guards/admin-role.guard';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { appEnv } from '../../../config/env';
 import { PrismaModule } from '../../../prisma/prisma.module';
-import { AdminRoleGuard } from './admin-role.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Module({
   imports: [
