@@ -55,4 +55,15 @@ export class AdminOrdersController {
   ): Promise<OrderDetailResponseDto> {
     return this.ordersService.updateRefundStatus(params.orderNo, body);
   }
+
+  @Post('orders/:orderNo/confirm-qr-payment')
+  confirmQrPayment(
+    @Req() request: AuthenticatedRequest,
+    @Param() params: GetOrderByOrderNoParamDto,
+  ): Promise<OrderDetailResponseDto> {
+    return this.ordersService.confirmAdminQrPayment(
+      request.user.sub,
+      params.orderNo,
+    );
+  }
 }

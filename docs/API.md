@@ -276,9 +276,30 @@ Unknown or unpublished slugs return `404`.
 
 Returns admin-facing order list data for review workflows.
 
+### `GET /api/admin/dashboard`
+
+Returns admin overview data for the selected reporting range.
+
+Supported query params:
+
+- `from`
+- `to`
+
+Response sections include:
+
+- `summary`
+- `pendingCancellationRequests`
+- `recentOrders`
+- `stockAlerts`
+
 ### `GET /api/admin/orders/:orderNo`
 
 Returns one admin-facing order detail payload.
+
+### `POST /api/admin/orders/:orderNo/confirm-qr-payment`
+
+Marks a submitted QR payment as confirmed by an admin, moves the order to
+`PAID`, and records `paymentCompletedAt`.
 
 ### `POST /api/admin/cancellation-requests/:requestId/review`
 
@@ -287,6 +308,30 @@ Approves or rejects a cancellation request.
 ### `POST /api/admin/orders/:orderNo/refund-status`
 
 Updates the recorded refund status for an order.
+
+### `GET /api/notifications`
+
+Returns notifications for the authenticated user or admin session.
+
+Supported query params:
+
+- `limit`
+
+### `GET /api/notifications/stream`
+
+Streams real-time notification events with Server-Sent Events.
+
+### `POST /api/notifications/read-all`
+
+Marks every notification for the current session as read.
+
+### `POST /api/notifications/:notificationId/read`
+
+Marks one notification as read.
+
+### `POST /api/notifications/orders/:orderNo/read`
+
+Marks every notification linked to one order number as read.
 
 ## Current API Scope
 
@@ -302,7 +347,9 @@ Implemented:
 - product detail by slug
 - customer order create/list/detail/cancel flow
 - sandbox payment confirmation flow
-- admin order review endpoints
+- admin dashboard and order review endpoints
+- admin QR payment confirmation
+- notification list, SSE stream, and read-state endpoints
 
 Planned but not implemented yet:
 

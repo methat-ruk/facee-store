@@ -4,6 +4,7 @@ jest.mock('../../../prisma/prisma.service', () => ({
 
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import type { PrismaService } from '../../../prisma/prisma.service';
+import type { NotificationsService } from '../notifications/notifications.service';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService', () => {
@@ -39,6 +40,10 @@ describe('OrdersService', () => {
     const productUpdateMany = jest.fn();
     const userFindUnique = jest.fn();
     const userUpdate = jest.fn();
+    const notifications = {
+      notifyRole: jest.fn(),
+      notifyUser: jest.fn(),
+    };
     const transaction = jest.fn(
       <T>(
         callback: (client: {
@@ -104,7 +109,10 @@ describe('OrdersService', () => {
       },
     };
 
-    const service = new OrdersService(prisma as unknown as PrismaService);
+    const service = new OrdersService(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+    );
 
     return {
       service,
@@ -123,6 +131,7 @@ describe('OrdersService', () => {
       transaction,
       userFindUnique,
       userUpdate,
+      notifications,
     };
   };
 
@@ -674,6 +683,92 @@ describe('OrdersService', () => {
     ).rejects.toMatchObject({
       response: {
         code: API_ERROR_CODES.orderPaymentDemoAlreadyConfirmed,
+      },
+    });
+  });
+
+  it('lets admins confirm a submitted QR payment and mark the order as paid', async () => {
+    const { service, orderFindUnique, orderUpdate } = buildService();
+
+    orderFindUnique
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        status: 'PENDING',
+        paymentMethod: 'QR_PAYMENT',
+        paymentDemoStatus: 'QR_SUBMITTED',
+      })
+      .mockResolvedValueOnce({
+        id: 'cm8order000001234567890123',
+        orderNo: 'FC-20260428-123456',
+        status: 'PAID',
+        refundStatus: 'NONE',
+        paymentMethod: 'QR_PAYMENT',
+        paymentDemoStatus: 'QR_SUBMITTED',
+        paymentSubmittedAt: new Date('2026-04-28T10:05:00.000Z'),
+        paymentCompletedAt: new Date('2026-04-28T10:20:00.000Z'),
+        createdAt: new Date('2026-04-28T10:00:00.000Z'),
+        customerFullName: 'Facee Customer',
+        customerEmail: 'customer@example.com',
+        customerPhone: '0800000000',
+        shippingAddressLine: '123 Facee Road',
+        shippingCity: 'Bangkok',
+        shippingPostalCode: '10110',
+        subtotal: 900,
+        shippingTotal: 60,
+        total: 960,
+        user: {
+          fullName: 'Facee Customer',
+          email: 'customer@example.com',
+          phone: '0800000000',
+          addressLine: '123 Facee Road',
+          city: 'Bangkok',
+          postalCode: '10110',
+        },
+        items: [],
+        cancellationRequests: [],
+      });
+
+    await expect(
+      service.confirmAdminQrPayment(currentUser.id, 'FC-20260428-123456'),
+    ).resolves.toMatchObject({
+      status: 'PAID',
+      paymentMethod: 'QR_PAYMENT',
+      paymentDemoStatus: 'QR_SUBMITTED',
+    });
+
+    const updateCalls = orderUpdate.mock.calls as Array<
+      [
+        {
+          where: { id: string };
+          data: {
+            status: string;
+            paymentCompletedAt?: unknown;
+          };
+        },
+      ]
+    >;
+    const updateArgs = updateCalls[0]?.[0];
+
+    expect(updateArgs?.where.id).toBe('cm8order000001234567890123');
+    expect(updateArgs?.data.status).toBe('PAID');
+    expect(updateArgs?.data.paymentCompletedAt).toBeInstanceOf(Date);
+  });
+
+  it('rejects admin QR confirmation when the order is not in submitted QR state', async () => {
+    const { service, orderFindUnique } = buildService();
+
+    orderFindUnique.mockResolvedValue({
+      id: 'cm8order000001234567890123',
+      status: 'PENDING',
+      paymentMethod: 'QR_PAYMENT',
+      paymentDemoStatus: 'NOT_STARTED',
+    });
+
+    await expect(
+      service.confirmAdminQrPayment(currentUser.id, 'FC-20260428-123456'),
+    ).rejects.toMatchObject({
+      response: {
+        code: API_ERROR_CODES.orderPaymentDemoNotAllowed,
       },
     });
   });

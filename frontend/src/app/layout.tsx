@@ -26,7 +26,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className="h-full antialiased"
+      className="dark h-full antialiased"
       suppressHydrationWarning
       data-scroll-behavior="smooth"
     >

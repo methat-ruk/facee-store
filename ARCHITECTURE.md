@@ -2,16 +2,19 @@
 
 ## Summary
 
-Facee is a two-app TypeScript project for a localized skincare storefront.
+Facee is a two-app TypeScript project for a localized skincare commerce
+platform.
 The repository uses:
 
 - `frontend/`: Next.js 16 App Router storefront
 - `backend/`: NestJS 11 API
 - `PostgreSQL + Prisma`: product, category, account, and order data model
 
-The current product focus is the **customer storefront**. A customer can browse
-products, authenticate, manage account data, create orders, and complete a
-sandbox payment step. Full admin tooling is still only partially implemented.
+The product now spans both the **customer storefront** and a focused **admin
+operations portal**. A customer can browse products, authenticate, manage
+account data, create orders, and complete a sandbox payment step. Admin users
+can monitor overview metrics, review order activity, confirm QR payments, and
+act on cancellation workflows.
 
 ## System Shape
 
@@ -42,10 +45,14 @@ Current customer routes:
 - `/[locale]/login`
 - `/[locale]/register`
 
-Current limited admin routes:
+Current admin routes:
 
+- `/[locale]/admin`
 - `/[locale]/admin/orders`
 - `/[locale]/admin/orders/[orderNo]`
+
+Customer-facing storefront routes now live under an internal `(storefront)`
+route group so the public URLs stay unchanged while admin uses its own shell.
 
 Route `/` redirects to the default locale storefront entry.
 
@@ -59,7 +66,8 @@ The backend is a NestJS API with the following module set:
 - `auth`: customer auth and cookie-backed session restore
 - `account`: profile, saved addresses, and saved sandbox payment methods
 - `orders`: customer order creation, order history, cancellation, sandbox
-  payment, and limited admin review endpoints
+  payment, admin order review, and dashboard aggregation
+- `notifications`: notification list/read APIs plus SSE streaming
 
 Supporting layers:
 
@@ -67,9 +75,9 @@ Supporting layers:
 - `src/prisma` for Prisma service/module wiring
 - `src/common` for shared guards and app-level error utilities
 
-The backend now exposes customer-facing commerce endpoints. Admin review
-endpoints exist for orders, but broader catalog/dashboard tooling is still
-planned.
+The backend now exposes customer-facing commerce endpoints, a focused admin
+operations surface, and a notification delivery layer for both admins and
+customers.
 
 ## Runtime Data Flow
 
@@ -105,6 +113,25 @@ planned.
    `PAID`.
 4. The storefront routes to the order confirmation page.
 
+### Admin Review
+
+1. Admin users enter the shared portal at `/[locale]/admin`.
+2. The overview page loads `/api/admin/dashboard` with a current-period summary,
+   recent orders, low-stock alerts, and cancellation review items.
+3. The order review surface loads `/api/admin/orders` and
+   `/api/admin/orders/:orderNo`.
+4. Admins can confirm submitted QR transfers, review cancellation requests, and
+   update refund records from the order detail surface.
+
+### Notifications
+
+1. The backend creates notification records when important order events happen.
+2. The frontend hydrates the latest notification list from `/api/notifications`.
+3. Authenticated clients subscribe to `/api/notifications/stream` with
+   Server-Sent Events.
+4. Admin and customer shells update unread badges and read-state actions
+   without polling.
+
 ### Account and Orders
 
 1. Authenticated customers manage profile data, saved addresses, and saved demo
@@ -137,6 +164,7 @@ Current Prisma storefront-relevant models:
 - `Order`
 - `OrderItem`
 - `OrderCancellationRequest`
+- `Notification`
 
 Current product detail content includes:
 
@@ -159,10 +187,10 @@ Current product detail content includes:
 
 Current client-side state is intentionally small:
 
-- theme preference
 - locale-aware navigation state
 - cart store used across catalog, PDP, cart, and checkout
 - auth restoration state for customer session UX
+- notifications store for unread counts, preview lists, and read actions
 
 Product content, account forms, and order/payment views still rely on API
 requests rather than large global client stores.
@@ -175,13 +203,16 @@ Facee uses a shadcn/ui-first setup:
 - app-level compositions in `frontend/src/components`
 - semantic theme tokens in `frontend/src/app/globals.css`
 
-The goal is consistent UI behavior without repeating one-off component styles.
+The project now uses a single dark theme across both storefront and admin
+surfaces. The goal is consistent UI behavior without repeating one-off
+component styles.
 
 ## What Exists vs. What Is Planned
 
 ### Implemented now
 
 - localized storefront shell
+- dedicated admin shell
 - catalog page
 - product detail page
 - customer auth flow
@@ -189,8 +220,9 @@ The goal is consistent UI behavior without repeating one-off component styles.
 - customer profile, address book, and saved demo card management
 - order list and order detail pages
 - sandbox QR/card payment flow
-- limited admin order review pages
-- theme toggle
+- admin overview and order review pages
+- admin QR payment confirmation
+- real-time notifications with SSE
 - locale switching
 - NestJS storefront API
 - Prisma schema, migrations, and seed data
@@ -198,6 +230,6 @@ The goal is consistent UI behavior without repeating one-off component styles.
 ### Planned next
 
 - real payment gateway integration
-- admin dashboard and product management
+- admin product management
 - broader admin operations
 - deployment docs and production hosting polish

@@ -113,3 +113,11 @@ export async function updateOrderRefundStatus(
 
   return orderDetailSchema.parse(response.data);
 }
+
+export async function confirmAdminQrPayment(orderNo: string) {
+  const response = await api.post(
+    apiConfig.endpoints.admin.confirmQrPayment(orderNo),
+  );
+
+  return orderDetailSchema.parse(response.data);
+}

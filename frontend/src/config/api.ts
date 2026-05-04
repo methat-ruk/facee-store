@@ -40,17 +40,30 @@ export const apiConfig = {
       `/orders/${orderNo}/payment-method`,
     orderCancellationRequests: (orderNo: string) =>
       `/orders/${orderNo}/cancellation-requests`,
+    notifications: {
+      list: '/notifications',
+      stream: '/notifications/stream',
+      readAll: '/notifications/read-all',
+      read: (notificationId: string) => `/notifications/${notificationId}/read`,
+      readOrder: (orderNo: string) => `/notifications/orders/${orderNo}/read`,
+    },
     admin: {
+      dashboard: '/admin/dashboard',
       orders: '/admin/orders',
       orderDetail: (orderNo: string) => `/admin/orders/${orderNo}`,
       cancellationReview: (requestId: string) =>
         `/admin/cancellation-requests/${requestId}/review`,
       refundStatus: (orderNo: string) =>
         `/admin/orders/${orderNo}/refund-status`,
+      confirmQrPayment: (orderNo: string) =>
+        `/admin/orders/${orderNo}/confirm-qr-payment`,
     },
   },
 } as const;
 
 export function buildApiUrl(path: string) {
-  return new URL(path, `${apiConfig.baseUrl}/`).toString();
+  const normalizedBaseUrl = apiConfig.baseUrl.replace(/\/+$/, '');
+  const normalizedPath = path.replace(/^\/+/, '');
+
+  return `${normalizedBaseUrl}/${normalizedPath}`;
 }
