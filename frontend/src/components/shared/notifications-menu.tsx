@@ -200,10 +200,10 @@ export function NotificationsMenu({
         side={isMobileViewport ? 'bottom' : 'right'}
         overlayClassName="z-[130] bg-[rgba(15,10,8,0.22)] supports-backdrop-filter:backdrop-blur-[3px]"
         className={cn(
-          'z-[140] border-border/90 bg-background/96 px-0 py-0',
+          'z-140 border-border/90 bg-background/96 px-0 py-0',
           isMobileViewport
             ? 'h-dvh rounded-none data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:top-0 data-[side=bottom]:rounded-none data-[side=bottom]:border-0'
-            : 'w-[28rem] data-[side=right]:w-[28rem]',
+            : 'w-md data-[side=right]:w-md',
         )}
       >
         <SheetHeader className="border-b border-border/70 px-5 py-4">
@@ -274,7 +274,7 @@ export function NotificationsMenu({
           align="end"
           side="bottom"
           sideOffset={sideOffset}
-          className="w-[22rem] rounded-[1.75rem] p-2"
+          className="w-88 rounded-[1.75rem] p-2"
         >
           <div className="flex items-center justify-between gap-3 px-3 py-2">
             <DropdownMenuLabel className="px-0 py-0 text-sm font-semibold tracking-normal text-foreground normal-case">
