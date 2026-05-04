@@ -43,6 +43,10 @@ export class PrismaService implements OnModuleDestroy {
     return this.client.orderCancellationRequest;
   }
 
+  get notification() {
+    return this.client.notification;
+  }
+
   $connect() {
     return this.client.$connect();
   }

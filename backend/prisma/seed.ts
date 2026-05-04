@@ -1,8 +1,17 @@
 import 'dotenv/config';
+import bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.cjs';
 
 const databaseUrl = process.env.DATABASE_URL;
+const PASSWORD_SALT_ROUNDS = 12;
+const adminSeed = {
+  id: 'admin_facee_seed',
+  email: 'admin@facee.local',
+  fullName: 'Facee Admin',
+  password: 'FaceeAdmin123!',
+  role: 'ADMIN' as const,
+};
 
 if (!databaseUrl) {
   throw new Error('DATABASE_URL is required to seed the database.');
@@ -392,6 +401,29 @@ const products: ProductSeed[] = [
 ];
 
 async function main() {
+  const adminPasswordHash = await bcrypt.hash(
+    adminSeed.password,
+    PASSWORD_SALT_ROUNDS,
+  );
+
+  await prisma.user.upsert({
+    where: {
+      email: adminSeed.email,
+    },
+    update: {
+      fullName: adminSeed.fullName,
+      passwordHash: adminPasswordHash,
+      role: adminSeed.role,
+    },
+    create: {
+      id: adminSeed.id,
+      email: adminSeed.email,
+      fullName: adminSeed.fullName,
+      passwordHash: adminPasswordHash,
+      role: adminSeed.role,
+    },
+  });
+
   for (const category of categories) {
     await prisma.category.upsert({
       where: {

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { MenuIcon, SearchIcon, ShoppingCartIcon, XIcon } from 'lucide-react';
 import {
   FormEvent,
+  startTransition,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -15,8 +16,8 @@ import { useSearchParams } from 'next/navigation';
 import { BrandWordmark } from '@/components/brand-wordmark';
 import { AuthActions } from '@/components/shared/auth-actions';
 import { LocaleSwitcher } from '@/components/shared/locale-switcher';
+import { NotificationsMenu } from '@/components/shared/notifications-menu';
 import { RouteTabs } from '@/components/shared/route-tabs';
-import { ThemeSwitch } from '@/components/shared/theme-switch';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -36,6 +37,7 @@ import { cn } from '@/lib/cn';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { getProducts } from '@/services/catalog';
 import { getCartItemCount, useCartStore } from '@/store/use-cart-store';
+import { useAuthStore } from '@/store/use-auth-store';
 import { CART_HIGHLIGHT_EVENT } from '@/features/products/cart-fly-animation';
 import { getLocalizedProduct } from '@/features/products/localized-content';
 import type { Product } from '@/features/products/schemas';
@@ -340,10 +342,12 @@ function StorefrontMenuPanel({
   onAction,
   showBrand = true,
   showNavigation = true,
+  showPreferences = true,
 }: {
   onAction?: () => void;
   showBrand?: boolean;
   showNavigation?: boolean;
+  showPreferences?: boolean;
 }) {
   const t = useTranslations('topbar');
 
@@ -372,22 +376,73 @@ function StorefrontMenuPanel({
         </div>
       ) : null}
       {showNavigation ? <Separator /> : null}
-      <div className="flex flex-col gap-3">
-        <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {t('menuPreferences')}
-        </p>
-        <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/80 px-4 py-3">
-          <LocaleSwitcher onAction={onAction} />
-          <ThemeSwitch onAction={onAction} />
-        </div>
-      </div>
-      <Separator />
+      {showPreferences ? (
+        <>
+          <div className="flex flex-col gap-3">
+            <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              {t('menuPreferences')}
+            </p>
+            <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/80 px-4 py-3">
+              <LocaleSwitcher onAction={onAction} />
+            </div>
+          </div>
+          <Separator />
+        </>
+      ) : null}
       <div className="flex flex-col gap-3">
         <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {t('menuAccount')}
         </p>
         <AuthActions menu onAction={onAction} />
       </div>
+    </div>
+  );
+}
+
+function StorefrontLocalePill() {
+  const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const t = useTranslations('topbar');
+
+  return (
+    <div className="hidden items-center rounded-full border border-border/80 bg-background/84 p-1 md:flex">
+      {(['en', 'th'] as const).map((item) => {
+        const isActive = item === locale;
+
+        return (
+          <button
+            key={item}
+            type="button"
+            className={cn(
+              'rounded-full px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] transition',
+              isActive
+                ? 'bg-[#b96f5a] text-white shadow-[0_10px_24px_rgba(185,111,90,0.22)]'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+            aria-label={
+              item === 'en' ? t('languageEnglish') : t('languageThai')
+            }
+            onClick={() => {
+              if (item === locale) {
+                return;
+              }
+
+              const query = searchParams.toString();
+              const href = query ? `${pathname}?${query}` : pathname;
+
+              startTransition(() => {
+                router.replace(href, {
+                  locale: item,
+                });
+              });
+            }}
+          >
+            {item}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -401,6 +456,7 @@ export function StorefrontTopbar() {
   const currentSearchQuery =
     pathname === '/products' ? (searchParams.get('query') ?? '') : '';
   const cartItemCount = useCartStore((state) => getCartItemCount(state.items));
+  const user = useAuthStore((state) => state.user);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -529,6 +585,12 @@ export function StorefrontTopbar() {
               </Link>
             </Button>
 
+            {user ? (
+              <NotificationsMenu audience="customer" sideOffset={40} />
+            ) : null}
+
+            <StorefrontLocalePill />
+
             <AuthActions />
 
             <div className="hidden md:block">
@@ -556,6 +618,7 @@ export function StorefrontTopbar() {
                 >
                   <StorefrontMenuPanel
                     showNavigation={false}
+                    showPreferences={false}
                     onAction={() => setDesktopMenuOpen(false)}
                   />
                 </DropdownMenuContent>
@@ -578,13 +641,12 @@ export function StorefrontTopbar() {
                 <SheetContent
                   side="top"
                   showCloseButton={false}
-                  overlayClassName="top-18 z-70 bg-[rgba(49,31,24,0.12)] supports-backdrop-filter:backdrop-blur-[2px]"
-                  className="top-20 right-4 left-4 z-75 rounded-[1.75rem] border border-border/90 bg-background/96 px-4 py-4 shadow-[0_24px_60px_rgba(132,83,60,0.14)] data-[side=top]:inset-x-4 data-[side=top]:top-20 data-[side=top]:rounded-[1.75rem] data-[side=top]:border"
+                  overlayClassName="top-22 z-70 bg-[rgba(49,31,24,0.12)] supports-backdrop-filter:backdrop-blur-[2px]"
+                  className="top-24 right-4 left-4 z-75 rounded-[1.75rem] border border-border/90 bg-background/96 px-4 py-4 shadow-[0_24px_60px_rgba(132,83,60,0.14)] data-[side=top]:inset-x-4 data-[side=top]:top-24 data-[side=top]:rounded-[1.75rem] data-[side=top]:border"
                 >
                   <SheetTitle className="sr-only">Facee navigation</SheetTitle>
                   <SheetDescription className="sr-only">
-                    Localized storefront navigation with theme and language
-                    controls.
+                    Localized storefront navigation with language controls.
                   </SheetDescription>
 
                   <StorefrontMenuPanel

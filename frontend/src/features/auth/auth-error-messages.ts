@@ -87,6 +87,7 @@ export function getAuthFormMessageKey(
     case 'VALIDATION_FAILED':
       return 'errorFormInvalid';
     case 'AUTH_INVALID_CREDENTIALS':
+    case 'AUTH_UNAUTHORIZED':
       return 'errorInvalidCredentials';
     case 'AUTH_EMAIL_ALREADY_EXISTS':
       return 'errorEmailExists';

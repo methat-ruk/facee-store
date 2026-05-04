@@ -11,6 +11,7 @@ import type {
 import { AppException } from '../../../common/errors/app-exception';
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { CreateCancellationRequest } from './dto/create-cancellation-request.dto';
 import type { CreateOrderRequest } from './dto/create-order-request.dto';
 import type { CreateOrderResponseDto } from './dto/create-order-response.dto';
@@ -69,6 +70,13 @@ const orderProductSelect = {
   price: true,
   stock: true,
 } as const;
+
+type ListAdminOrdersOptions = {
+  createdAt?: {
+    gte: Date;
+    lt: Date;
+  };
+};
 
 const orderDetailSelect = {
   id: true,
@@ -162,7 +170,10 @@ const orderListSelect = {
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createOrder(
     userId: string,
@@ -234,7 +245,7 @@ export class OrdersService {
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
-        return await this.prisma.$transaction(async (transaction) => {
+        const order = await this.prisma.$transaction(async (transaction) => {
           for (const item of pricedItems) {
             const result = await transaction.product.updateMany({
               where: {
@@ -263,7 +274,7 @@ export class OrdersService {
             }
           }
 
-          const order = await transaction.order.create({
+          return transaction.order.create({
             data: {
               orderNo: this.generateOrderNo(),
               userId,
@@ -295,9 +306,17 @@ export class OrdersService {
               orderNo: true,
             },
           });
-
-          return order;
         });
+
+        await this.notificationsService.notifyRole(
+          'ADMIN',
+          this.buildAdminOrderCreatedNotification(
+            order.orderNo,
+            address.recipientFullName,
+          ),
+        );
+
+        return order;
       } catch (error) {
         if (this.isOrderNoCollision(error)) {
           continue;
@@ -460,6 +479,13 @@ export class OrdersService {
             },
     });
 
+    if (order.paymentMethod === 'QR_PAYMENT') {
+      await this.notificationsService.notifyRole(
+        'ADMIN',
+        this.buildAdminQrSubmittedNotification(orderNo),
+      );
+    }
+
     return this.getOrderByOrderNo(userId, orderNo);
   }
 
@@ -561,11 +587,23 @@ export class OrdersService {
       },
     });
 
+    await this.notificationsService.notifyRole(
+      'ADMIN',
+      this.buildAdminCancellationRequestedNotification(orderNo),
+    );
+
     return this.getOrderByOrderNo(userId, orderNo);
   }
 
-  async listAdminOrders(): Promise<OrderListResponseDto> {
+  async listAdminOrders(
+    options: ListAdminOrdersOptions = {},
+  ): Promise<OrderListResponseDto> {
     const orders = await this.prisma.order.findMany({
+      where: options.createdAt
+        ? {
+            createdAt: options.createdAt,
+          }
+        : undefined,
       orderBy: {
         createdAt: 'desc',
       },
@@ -607,6 +645,7 @@ export class OrdersService {
         id: true,
         status: true,
         orderId: true,
+        requesterUserId: true,
         order: {
           select: {
             orderNo: true,
@@ -689,6 +728,17 @@ export class OrdersService {
       });
     }
 
+    await this.notificationsService.notifyUser(
+      request.requesterUserId,
+      input.decision === 'APPROVE'
+        ? this.buildCustomerCancellationApprovedNotification(
+            request.order.orderNo,
+          )
+        : this.buildCustomerCancellationRejectedNotification(
+            request.order.orderNo,
+          ),
+    );
+
     return this.getAdminOrderByOrderNo(request.order.orderNo);
   }
 
@@ -702,6 +752,7 @@ export class OrdersService {
       },
       select: {
         id: true,
+        userId: true,
       },
     });
 
@@ -718,7 +769,156 @@ export class OrdersService {
       },
     });
 
+    await this.notificationsService.notifyUser(
+      order.userId,
+      input.refundStatus === 'REFUNDED'
+        ? this.buildCustomerRefundCompletedNotification(orderNo)
+        : this.buildCustomerRefundPendingNotification(orderNo),
+    );
+
     return this.getAdminOrderByOrderNo(orderNo);
+  }
+
+  async confirmAdminQrPayment(
+    _adminUserId: string,
+    orderNo: string,
+  ): Promise<OrderDetailResponseDto> {
+    const order = await this.prisma.order.findUnique({
+      where: {
+        orderNo,
+      },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        paymentMethod: true,
+        paymentDemoStatus: true,
+      },
+    });
+
+    if (!order) {
+      throw this.buildOrderNotFound();
+    }
+
+    if (
+      order.status !== 'PENDING' ||
+      order.paymentMethod !== 'QR_PAYMENT' ||
+      order.paymentDemoStatus !== 'QR_SUBMITTED'
+    ) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        API_ERROR_CODES.orderPaymentDemoNotAllowed,
+        'This order is not ready for admin QR payment confirmation.',
+      );
+    }
+
+    await this.prisma.order.update({
+      where: {
+        id: order.id,
+      },
+      data: {
+        status: 'PAID',
+        paymentCompletedAt: new Date(),
+      },
+    });
+
+    await this.notificationsService.notifyUser(
+      order.userId,
+      this.buildCustomerQrConfirmedNotification(orderNo),
+    );
+
+    return this.getAdminOrderByOrderNo(orderNo);
+  }
+
+  private buildAdminOrderCreatedNotification(
+    orderNo: string,
+    customerName: string,
+  ) {
+    return {
+      type: 'ORDER_CREATED' as const,
+      orderNo,
+      titleEn: 'New order received',
+      titleTh: 'มีคำสั่งซื้อใหม่เข้ามา',
+      bodyEn: `Order ${orderNo} from ${customerName} has just been placed.`,
+      bodyTh: `ออเดอร์ ${orderNo} จาก ${customerName} ถูกสร้างเข้ามาใหม่แล้ว`,
+    };
+  }
+
+  private buildAdminQrSubmittedNotification(orderNo: string) {
+    return {
+      type: 'QR_PAYMENT_SUBMITTED' as const,
+      orderNo,
+      titleEn: 'QR payment needs review',
+      titleTh: 'มีรายการ QR รอตรวจสอบ',
+      bodyEn: `Order ${orderNo} has submitted a QR transfer for admin confirmation.`,
+      bodyTh: `ออเดอร์ ${orderNo} ส่งรายการชำระผ่าน QR เข้ามาแล้ว รอยืนยันจากแอดมิน`,
+    };
+  }
+
+  private buildAdminCancellationRequestedNotification(orderNo: string) {
+    return {
+      type: 'CANCELLATION_REQUESTED' as const,
+      orderNo,
+      titleEn: 'Cancellation request received',
+      titleTh: 'มีคำขอยกเลิกใหม่',
+      bodyEn: `Order ${orderNo} is waiting for a cancellation review.`,
+      bodyTh: `ออเดอร์ ${orderNo} มีคำขอยกเลิกเข้ามาและกำลังรอการตรวจสอบ`,
+    };
+  }
+
+  private buildCustomerQrConfirmedNotification(orderNo: string) {
+    return {
+      type: 'QR_PAYMENT_CONFIRMED' as const,
+      orderNo,
+      titleEn: 'Payment confirmed',
+      titleTh: 'ยืนยันการชำระเงินแล้ว',
+      bodyEn: `Your QR payment for order ${orderNo} has been confirmed.`,
+      bodyTh: `ระบบยืนยันการชำระเงินผ่าน QR ของออเดอร์ ${orderNo} แล้ว`,
+    };
+  }
+
+  private buildCustomerCancellationApprovedNotification(orderNo: string) {
+    return {
+      type: 'CANCELLATION_APPROVED' as const,
+      orderNo,
+      titleEn: 'Cancellation approved',
+      titleTh: 'อนุมัติการยกเลิกแล้ว',
+      bodyEn: `Your cancellation request for order ${orderNo} has been approved.`,
+      bodyTh: `คำขอยกเลิกของออเดอร์ ${orderNo} ได้รับการอนุมัติแล้ว`,
+    };
+  }
+
+  private buildCustomerCancellationRejectedNotification(orderNo: string) {
+    return {
+      type: 'CANCELLATION_REJECTED' as const,
+      orderNo,
+      titleEn: 'Cancellation update available',
+      titleTh: 'มีอัปเดตคำขอยกเลิก',
+      bodyEn: `Your cancellation request for order ${orderNo} has been reviewed.`,
+      bodyTh: `คำขอยกเลิกของออเดอร์ ${orderNo} ถูกตรวจสอบเรียบร้อยแล้ว`,
+    };
+  }
+
+  private buildCustomerRefundPendingNotification(orderNo: string) {
+    return {
+      type: 'REFUND_PENDING' as const,
+      orderNo,
+      titleEn: 'Refund is being processed',
+      titleTh: 'กำลังดำเนินการคืนเงิน',
+      bodyEn: `Refund handling for order ${orderNo} is now in progress.`,
+      bodyTh: `การคืนเงินของออเดอร์ ${orderNo} กำลังอยู่ระหว่างดำเนินการ`,
+    };
+  }
+
+  private buildCustomerRefundCompletedNotification(orderNo: string) {
+    return {
+      type: 'REFUND_COMPLETED' as const,
+      orderNo,
+      titleEn: 'Refund completed',
+      titleTh: 'คืนเงินสำเร็จแล้ว',
+      bodyEn: `Refund handling for order ${orderNo} has been completed.`,
+      bodyTh: `การคืนเงินของออเดอร์ ${orderNo} เสร็จสมบูรณ์แล้ว`,
+    };
   }
 
   private async ensureOwnedUser(userId: string) {

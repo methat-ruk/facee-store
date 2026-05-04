@@ -40,7 +40,6 @@ export function CartPage() {
     shipping,
     total,
     isRefreshing,
-    hasRefreshError,
     hasSnapshotItems,
     hasAdjustedItems,
     hasUnavailableItems,
@@ -108,7 +107,7 @@ export function CartPage() {
         </Badge>
       </section>
 
-      {hasRefreshError || hasSnapshotItems ? (
+      {hasSnapshotItems ? (
         <div className="flex items-start gap-3 rounded-2xl border border-border bg-card/80 px-4 py-3 text-sm leading-7 text-muted-foreground">
           <AlertTriangleIcon className="mt-1 shrink-0" />
           <p>{t('snapshotNotice')}</p>
@@ -212,15 +211,20 @@ export function CartPage() {
                       </Button>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-2">
-                      <p className="text-lg font-semibold text-foreground">
-                        {formatOrderPrice(item.lineTotal, locale)}
-                      </p>
+                    <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-3">
+                      <div className="text-left sm:text-right">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {t('subtotal')}
+                        </p>
+                        <p className="mt-1 text-lg font-semibold text-foreground">
+                          {formatOrderPrice(item.lineTotal, locale)}
+                        </p>
+                      </div>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="text-muted-foreground hover:text-destructive"
+                        className="border-destructive/20 text-destructive transition hover:border-destructive/45 hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => removeItem(item.id)}
                       >
                         <Trash2Icon data-icon="inline-start" />

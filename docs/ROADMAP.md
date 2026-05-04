@@ -2,9 +2,10 @@
 
 ## Current Status
 
-Facee currently has a polished customer storefront baseline:
+Facee currently has a polished customer storefront plus a focused admin
+operations baseline:
 
-- localized storefront shell
+- localized storefront shell in a single dark theme
 - category/product catalog
 - product detail page
 - customer auth
@@ -12,7 +13,9 @@ Facee currently has a polished customer storefront baseline:
 - sandbox payment flow
 - customer account/profile management
 - customer order history
-- NestJS storefront API plus customer/account/order endpoints
+- admin overview and order review surfaces
+- real-time notifications for admins and customers
+- NestJS API for storefront, account, order, admin, and notification flows
 
 ## Implemented Commerce Scope
 
@@ -33,13 +36,14 @@ Facee currently has a polished customer storefront baseline:
 
 ### Admin
 
-- admin dashboard shell expansion
+- admin dashboard expansion beyond overview + orders
 - product CRUD
 - category management
 - flash sale and merchandising controls
 - publish/unpublish workflow
-- payment review tools
 - inventory operations
+- richer notification history and filtering
+- broader finance and operational reporting
 
 ### Content and Media
 

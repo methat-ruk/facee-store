@@ -1,8 +1,13 @@
 'use client';
 
-import { ArrowRightIcon, PackageSearchIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  PackageSearchIcon,
+  SearchIcon,
+  XIcon,
+} from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
 import { checkoutPrimaryButtonClassName } from '@/features/checkout/checkout-ui';
 import type { OrderListItem } from '@/features/orders/schemas';
@@ -36,9 +42,27 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const deferredSearchValue = useDeferredValue(searchValue);
 
   const hasPendingPayment = (order: OrderListItem) =>
     order.status === 'PENDING' && order.paymentDemoStatus === 'NOT_STARTED';
+
+  const normalizedSearchValue = deferredSearchValue.trim().toLocaleLowerCase();
+  const filteredOrders = orders.filter((order) => {
+    if (!normalizedSearchValue) {
+      return true;
+    }
+
+    const matchesOrderNo = order.orderNo
+      .toLocaleLowerCase()
+      .includes(normalizedSearchValue);
+    const matchesProductName = order.previewItems.some((item) =>
+      item.productName.toLocaleLowerCase().includes(normalizedSearchValue),
+    );
+
+    return matchesOrderNo || matchesProductName;
+  });
 
   const loadOrders = async () => {
     setHasError(false);
@@ -141,6 +165,42 @@ export function OrdersPage() {
         </p>
       </section>
 
+      {orders.length > 0 ? (
+        <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+          <CardContent className="flex flex-col gap-4 p-5 sm:p-6">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {t('searchLabel')}
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {t('searchHint')}
+              </p>
+            </div>
+
+            <div className="relative">
+              <SearchIcon className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder={t('searchPlaceholder')}
+                className="h-12 rounded-full border-border/80 bg-background/60 pl-11 pr-12"
+                aria-label={t('searchLabel')}
+              />
+              {searchValue ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchValue('')}
+                  className="absolute right-4 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  aria-label={t('clearSearch')}
+                >
+                  <XIcon className="size-4" />
+                </button>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {orders.length === 0 ? (
         <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
           <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
@@ -160,9 +220,32 @@ export function OrdersPage() {
             </Button>
           </CardContent>
         </Card>
+      ) : filteredOrders.length === 0 ? (
+        <Card className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]">
+          <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full border border-border bg-muted text-foreground">
+              <SearchIcon />
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-lg font-medium text-foreground">
+                {t('searchEmptyTitle')}
+              </p>
+              <p className="max-w-xl text-sm leading-7 text-muted-foreground">
+                {t('searchEmptyDescription')}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSearchValue('')}
+            >
+              {t('clearSearch')}
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4">
-          {orders.map((order) => (
+          {filteredOrders.map((order) => (
             <Card
               key={order.orderNo}
               className="border-border/80 bg-card/95 shadow-[0_24px_70px_rgba(132,83,60,0.08)]"

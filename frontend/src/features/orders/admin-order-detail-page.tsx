@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -21,20 +22,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
 import type { OrderDetail } from '@/features/orders/schemas';
 import {
+  formatOrderDate,
   formatOrderPrice,
+  getOrderStatusBadgeClassName,
   getOrderStatusBadgeVariant,
+  getPaymentDemoStatusTranslationKey,
+  getPaymentMethodTranslationKey,
 } from '@/features/orders/ui';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import {
+  confirmAdminQrPayment,
   getAdminOrderDetail,
   reviewCancellationRequest,
   updateOrderRefundStatus,
 } from '@/services/orders';
-import { useAuthStore } from '@/store/use-auth-store';
+import { useNotificationsStore } from '@/store/use-notifications-store';
 
 type AdminOrderDetailPageProps = {
   orderNo: string;
@@ -42,63 +48,71 @@ type AdminOrderDetailPageProps = {
 
 export function AdminOrderDetailPage({ orderNo }: AdminOrderDetailPageProps) {
   const t = useTranslations('adminOrders');
-  const router = useRouter();
-  const user = useAuthStore((state) => state.user);
-  const isAuthInitialized = useAuthStore((state) => state.isInitialized);
-  const isRestoringProfile = useAuthStore((state) => state.isRestoringProfile);
+  const ordersT = useTranslations('orders');
+  const locale = useLocale();
+  const uiText =
+    locale === 'th'
+      ? {
+          intro:
+            'ตรวจสอบสินค้า การชำระเงิน สถานะการยกเลิก และการคืนเงินได้จากหน้าเดียว',
+          each: 'ต่อชิ้น',
+        }
+      : {
+          intro:
+            'Review order items, payment snapshot, cancellation state, and refund handling from one place.',
+          each: 'each',
+        };
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [reviewNote, setReviewNote] = useState('');
   const [refundStatus, setRefundStatus] = useState<
     'PENDING_MANUAL' | 'REFUNDED'
   >('PENDING_MANUAL');
   const [confirmAction, setConfirmAction] = useState<
-    'approve' | 'reject' | 'save-refund' | null
+    'approve' | 'reject' | 'save-refund' | 'confirm-qr' | null
   >(null);
+  const markOrderAsRead = useNotificationsStore(
+    (state) => state.markOrderAsRead,
+  );
 
   useEffect(() => {
-    if (!isAuthInitialized) {
-      return;
-    }
-
-    if (!user) {
-      router.replace(
-        buildAuthNoticeHref(
-          '/login',
-          'auth-required',
-          `/admin/orders/${orderNo}`,
-        ),
-      );
-      return;
-    }
-
-    if (user.role !== 'ADMIN') {
-      router.replace(buildAuthNoticeHref('/login', 'access-denied'));
-      return;
-    }
-
     let isCancelled = false;
 
-    void getAdminOrderDetail(orderNo).then((response) => {
-      if (isCancelled) {
-        return;
-      }
+    void getAdminOrderDetail(orderNo)
+      .then((response) => {
+        if (isCancelled) {
+          return;
+        }
 
-      setOrder(response);
-      setRefundStatus(
-        response.refundStatus === 'REFUNDED' ? 'REFUNDED' : 'PENDING_MANUAL',
-      );
-      setIsLoading(false);
-    });
+        setOrder(response);
+        setRefundStatus(
+          response.refundStatus === 'REFUNDED' ? 'REFUNDED' : 'PENDING_MANUAL',
+        );
+        setHasError(false);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (isCancelled) {
+          return;
+        }
+
+        setHasError(true);
+        setIsLoading(false);
+      });
 
     return () => {
       isCancelled = true;
     };
-  }, [isAuthInitialized, orderNo, router, user]);
+  }, [orderNo]);
 
-  if (!isAuthInitialized || isRestoringProfile || isLoading) {
+  useEffect(() => {
+    void markOrderAsRead(orderNo);
+  }, [markOrderAsRead, orderNo]);
+
+  if (isLoading) {
     return (
-      <main className="mx-auto flex min-h-[calc(100svh-16rem)] w-full max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+      <main className="flex min-h-[32rem] items-center justify-center px-1 py-6">
         <p className="text-sm font-medium text-muted-foreground">
           {t('loading')}
         </p>
@@ -106,14 +120,31 @@ export function AdminOrderDetailPage({ orderNo }: AdminOrderDetailPageProps) {
     );
   }
 
-  if (!user || user.role !== 'ADMIN' || !order) {
-    return null;
+  if (hasError || !order) {
+    return (
+      <main className="px-1 py-6">
+        <Card className="border-border/70 bg-[rgba(31,22,19,0.9)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+          <CardContent className="flex flex-col gap-4 p-6">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              {t('loading')}
+            </h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Unable to load this admin order right now.
+            </p>
+          </CardContent>
+        </Card>
+      </main>
+    );
   }
 
   const latestRequest = order.latestCancellationRequest;
+  const canConfirmQrPayment =
+    order.status === 'PENDING' &&
+    order.paymentMethod === 'QR_PAYMENT' &&
+    order.paymentDemoStatus === 'QR_SUBMITTED';
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="flex flex-col gap-6 px-1 pb-4">
       <Link
         href="/admin/orders"
         className="text-sm font-medium text-muted-foreground underline underline-offset-4"
@@ -121,39 +152,160 @@ export function AdminOrderDetailPage({ orderNo }: AdminOrderDetailPageProps) {
         {t('backToOrders')}
       </Link>
 
-      <section className="flex flex-wrap items-center gap-3">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-          {order.orderNo}
-        </h1>
-        <Badge variant={getOrderStatusBadgeVariant(order.status)}>
-          {t(`status.${order.status}`)}
-        </Badge>
-        <Badge variant="outline">
-          {t(`refundStatus.${order.refundStatus}`)}
-        </Badge>
+      <section className="rounded-[2rem] border border-border/70 bg-[rgba(31,22,19,0.9)] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.18)] sm:p-7">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              {order.orderNo}
+            </h2>
+            <Badge
+              variant={getOrderStatusBadgeVariant(order.status)}
+              className={getOrderStatusBadgeClassName(order.status)}
+            >
+              {t(`status.${order.status}`)}
+            </Badge>
+            <Badge variant="outline">
+              {t(`refundStatus.${order.refundStatus}`)}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {formatOrderDate(order.createdAt, locale)}
+            </span>
+          </div>
+          <p className="text-sm leading-7 text-muted-foreground">
+            {uiText.intro}
+          </p>
+        </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
-        <Card className="border-border/80 bg-card/95">
-          <CardHeader>
-            <CardTitle>{t('customerSnapshot')}</CardTitle>
-            <CardDescription>{order.contact.fullName}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm leading-7 text-muted-foreground">
-            <p>{order.contact.email}</p>
-            <p>{order.contact.phone}</p>
-            <p>
-              {order.contact.addressLine}, {order.contact.city}{' '}
-              {order.contact.postalCode}
-            </p>
-            <p className="pt-2 font-medium text-foreground">
-              {formatOrderPrice(order.total)}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_24rem]">
+        <div className="grid gap-6">
+          <Card className="border-border/70 bg-[rgba(31,22,19,0.9)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+            <CardHeader>
+              <CardTitle>{t('customerSnapshot')}</CardTitle>
+              <CardDescription>{order.contact.fullName}</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm leading-7 text-muted-foreground sm:grid-cols-2">
+              <p>{order.contact.email}</p>
+              <p>{order.contact.phone}</p>
+              <p>{order.contact.postalCode}</p>
+              <p>{order.contact.city}</p>
+              <p className="sm:col-span-2">{order.contact.addressLine}</p>
+            </CardContent>
+          </Card>
 
-        <div className="flex flex-col gap-6">
-          <Card className="border-border/80 bg-card/95">
+          <Card className="border-border/70 bg-[rgba(31,22,19,0.9)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+            <CardHeader>
+              <CardTitle>{ordersT('itemsTitle')}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              {order.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid gap-3 rounded-2xl border border-border/65 bg-background/72 p-4 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto]"
+                >
+                  <div className="relative size-[4.5rem] overflow-hidden rounded-2xl border border-border/70 bg-background/70">
+                    {item.productImageUrl ? (
+                      <Image
+                        src={item.productImageUrl}
+                        alt={item.productName}
+                        fill
+                        sizes="72px"
+                        className="object-cover object-top"
+                      />
+                    ) : (
+                      <div className="flex size-full items-center justify-center text-xs font-medium text-muted-foreground">
+                        {item.productName.slice(0, 1)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-foreground">
+                      {item.productName}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {ordersT('itemQuantity', { count: item.quantity })}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {formatOrderPrice(item.unitPrice, locale)} {uiText.each}
+                    </p>
+                  </div>
+
+                  <div className="text-left sm:text-right">
+                    <p className="text-base font-semibold text-foreground">
+                      {formatOrderPrice(item.lineTotal, locale)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6">
+          <Card className="border-border/70 bg-[rgba(31,22,19,0.9)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+            <CardHeader>
+              <CardTitle>{ordersT('paymentTitle')}</CardTitle>
+              <CardDescription>{ordersT('paymentDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm leading-7 text-muted-foreground">
+              <p>
+                {ordersT('paymentMethodLabel')}:{' '}
+                <span className="font-medium text-foreground">
+                  {ordersT(getPaymentMethodTranslationKey(order.paymentMethod))}
+                </span>
+              </p>
+              <p>
+                {ordersT('paymentStatusLabel')}:{' '}
+                <span className="font-medium text-foreground">
+                  {ordersT(
+                    getPaymentDemoStatusTranslationKey(order.paymentDemoStatus),
+                  )}
+                </span>
+              </p>
+              {order.paymentSubmittedAt ? (
+                <p>
+                  {ordersT('paymentSubmittedAtLabel')}:{' '}
+                  <span className="font-medium text-foreground">
+                    {formatOrderDate(order.paymentSubmittedAt, locale)}
+                  </span>
+                </p>
+              ) : null}
+              {order.paymentCompletedAt ? (
+                <p>
+                  {ordersT('paymentCompletedAtLabel')}:{' '}
+                  <span className="font-medium text-foreground">
+                    {formatOrderDate(order.paymentCompletedAt, locale)}
+                  </span>
+                </p>
+              ) : null}
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span>{ordersT('total')}</span>
+                <span className="text-xl font-semibold text-foreground">
+                  {formatOrderPrice(order.total, locale)}
+                </span>
+              </div>
+              {canConfirmQrPayment ? (
+                <>
+                  <Separator />
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm text-muted-foreground">
+                      {t('qrAwaitingAdminConfirmation')}
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => setConfirmAction('confirm-qr')}
+                    >
+                      {t('confirmQrPayment')}
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/70 bg-[rgba(31,22,19,0.9)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
             <CardHeader>
               <CardTitle>{t('cancellationPanelTitle')}</CardTitle>
             </CardHeader>
@@ -165,8 +317,12 @@ export function AdminOrderDetailPage({ orderNo }: AdminOrderDetailPageProps) {
                       {t(`cancellationRequestStatus.${latestRequest.status}`)}
                     </p>
                     <p>{t(`cancellationReason.${latestRequest.reasonCode}`)}</p>
+                    <p>{formatOrderDate(latestRequest.createdAt, locale)}</p>
                     {latestRequest.details ? (
                       <p>{latestRequest.details}</p>
+                    ) : null}
+                    {latestRequest.reviewNote ? (
+                      <p>{latestRequest.reviewNote}</p>
                     ) : null}
                   </div>
                   {latestRequest.status === 'REQUESTED' ? (
@@ -209,7 +365,7 @@ export function AdminOrderDetailPage({ orderNo }: AdminOrderDetailPageProps) {
             </CardContent>
           </Card>
 
-          <Card className="border-border/80 bg-card/95">
+          <Card className="border-border/70 bg-[rgba(31,22,19,0.9)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
             <CardHeader>
               <CardTitle>{t('refundPanelTitle')}</CardTitle>
             </CardHeader>
@@ -248,6 +404,7 @@ export function AdminOrderDetailPage({ orderNo }: AdminOrderDetailPageProps) {
           </Card>
         </div>
       </div>
+
       <ConfirmDialog
         open={confirmAction === 'approve'}
         title={t('confirmApproveTitle')}
@@ -300,6 +457,19 @@ export function AdminOrderDetailPage({ orderNo }: AdminOrderDetailPageProps) {
           const nextOrder = await updateOrderRefundStatus(order.orderNo, {
             refundStatus,
           });
+          setOrder(nextOrder);
+          setConfirmAction(null);
+        }}
+      />
+      <ConfirmDialog
+        open={confirmAction === 'confirm-qr'}
+        title={t('confirmQrPaymentTitle')}
+        description={t('confirmQrPaymentDescription')}
+        confirmLabel={t('confirmQrPayment')}
+        cancelLabel={t('cancelConfirm')}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          const nextOrder = await confirmAdminQrPayment(order.orderNo);
           setOrder(nextOrder);
           setConfirmAction(null);
         }}

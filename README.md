@@ -41,10 +41,12 @@ The repo currently includes:
 - PostgreSQL + Prisma for product, account, and order data
 - a customer cart, checkout, and sandbox payment flow
 - customer auth, profile, saved addresses, saved demo cards, and order history
+- a dark-only admin portal with overview and order review tools
+- real-time notifications for admins and customers via Server-Sent Events
 - a shared shadcn/ui-based design system
 
 The project is still in progress. This README keeps both the **implemented
-storefront baseline** and the **planned next steps** visible so it is easy to
+platform baseline** and the **planned next steps** visible so it is easy to
 see what exists today and what is still ahead.
 
 ## Current Features
@@ -52,7 +54,7 @@ see what exists today and what is still ahead.
 ### Storefront
 
 - localized routes with `next-intl`
-- sticky storefront shell with theme toggle
+- sticky storefront shell in a single dark theme
 - predictive product search with thumbnails, category, and pricing
 - product catalog with:
   - category filtering
@@ -82,7 +84,28 @@ see what exists today and what is still ahead.
   - account details
   - saved addresses
   - saved demo cards
+- customer notification bell with unread count and real-time order updates
 - login, register, logout, and guarded customer routes
+
+### Admin Portal
+
+- locale-aware admin workspace at `/[locale]/admin`
+- overview dashboard with:
+  - current-period KPI summary
+  - cancellation review queue
+  - recent orders table
+  - low-stock alerts
+- admin order list and detail views
+- QR payment confirmation from the admin order detail page
+- order-level notification badges and automatic mark-as-read behavior
+- collapsible sidebar and shared admin shell
+
+### Notifications
+
+- real-time notifications via `GET /api/notifications/stream`
+- unread badges for admin order review and customer account updates
+- mark-one, mark-order, and mark-all read actions
+- right-side full list surface for larger notification histories
 
 ### Backend API
 
@@ -97,7 +120,8 @@ see what exists today and what is still ahead.
 - customer account endpoints for profile, addresses, and saved payment methods
 - customer order endpoints for listing, detail, cancellation, and sandbox
   payment confirmation
-- admin order review endpoints for cancellation and refund handling
+- admin dashboard and order review endpoints
+- notification list, SSE stream, and read-state endpoints
 
 ### Data and Content
 
@@ -128,13 +152,13 @@ are not implemented yet.
 
 ### Admin
 
-- admin dashboard expansion
+- admin dashboard expansion beyond overview + orders
 - product CRUD
 - category management
 - flash sale / merchandising controls
 - publish/unpublish workflow
 - inventory operations
-- QR payment review workflow
+- richer notification management and activity history
 
 ### Deployment and Operations
 
@@ -225,6 +249,8 @@ Useful local URLs:
 - storefront entry: `http://localhost:3000/en`
 - storefront catalog: `http://localhost:3000/en/products`
 - thai storefront catalog: `http://localhost:3000/th/products`
+- admin overview: `http://localhost:3000/en/admin`
+- admin orders: `http://localhost:3000/en/admin/orders`
 - profile: `http://localhost:3000/en/profile`
 - checkout: `http://localhost:3000/en/checkout`
 - orders: `http://localhost:3000/en/orders`
@@ -269,7 +295,9 @@ npm --prefix backend run db:seed
 Facee is meant to show:
 
 - thoughtful storefront UX
+- a believable admin operations foundation
 - clean frontend/backend separation
 - route i18n and shared UI system design
 - practical NestJS + Prisma API work
+- real-time product notifications without paid infrastructure
 - an honest roadmap instead of pretending the system is already complete

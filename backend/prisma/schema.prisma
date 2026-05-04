@@ -24,6 +24,7 @@ model User {
   addresses              Address[]
   paymentMethods         SavedPaymentMethod[]
   orders                 Order[]
+  notifications          Notification[]
   requestedCancellations OrderCancellationRequest[] @relation("CancellationRequester")
   reviewedCancellations  OrderCancellationRequest[] @relation("CancellationReviewer")
   createdAt              DateTime                   @default(now())
@@ -157,6 +158,24 @@ model OrderItem {
   product        Product  @relation(fields: [productId], references: [id])
 }
 
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  orderNo   String?
+  titleEn   String
+  titleTh   String
+  bodyEn    String
+  bodyTh    String
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead, createdAt])
+}
+
 enum UserRole {
   ADMIN
   CUSTOMER
@@ -201,4 +220,15 @@ enum CancellationRequestStatus {
   REQUESTED
   APPROVED
   REJECTED
+}
+
+enum NotificationType {
+  ORDER_CREATED
+  QR_PAYMENT_SUBMITTED
+  QR_PAYMENT_CONFIRMED
+  CANCELLATION_REQUESTED
+  CANCELLATION_APPROVED
+  CANCELLATION_REJECTED
+  REFUND_PENDING
+  REFUND_COMPLETED
 }

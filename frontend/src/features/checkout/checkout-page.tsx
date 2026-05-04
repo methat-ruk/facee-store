@@ -56,7 +56,6 @@ export function CheckoutPage() {
     shipping,
     total,
     isRefreshing,
-    hasRefreshError,
     hasSnapshotItems,
     hasAdjustedItems,
     hasUnavailableItems,
@@ -273,7 +272,7 @@ export function CheckoutPage() {
         </Badge>
       </section>
 
-      {hasRefreshError || hasSnapshotItems ? (
+      {hasSnapshotItems ? (
         <div className="flex items-start gap-3 rounded-2xl border border-border bg-card/80 px-4 py-3 text-sm leading-7 text-muted-foreground">
           <AlertTriangleIcon className="mt-1 shrink-0" />
           <p>{t('snapshotNotice')}</p>

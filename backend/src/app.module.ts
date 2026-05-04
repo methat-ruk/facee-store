@@ -6,6 +6,7 @@ import { AccountModule } from './api/modules/account/account.module';
 import { AuthModule } from './api/modules/auth/auth.module';
 import { CategoriesModule } from './api/modules/categories/categories.module';
 import { HealthModule } from './api/modules/health/health.module';
+import { NotificationsModule } from './api/modules/notifications/notifications.module';
 import { OrdersModule } from './api/modules/orders/orders.module';
 import { ProductsModule } from './api/modules/products/products.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -28,6 +29,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     CategoriesModule,
     HealthModule,
+    NotificationsModule,
     OrdersModule,
     ProductsModule,
   ],

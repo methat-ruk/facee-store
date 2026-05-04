@@ -12,7 +12,7 @@ an in-progress storefront project.
 - Product catalog storefront
 - Localized product detail page
 - Route-based i18n for `en` and `th`
-- Theme toggle and shared storefront shell
+- Shared storefront shell and dedicated admin shell
 - Customer auth flow with cookie-backed session restore
 - Customer cart, checkout, order success, and order history flow
 - Sandbox payment flow with QR payment and demo card confirmation
@@ -20,6 +20,9 @@ an in-progress storefront project.
 - Predictive product search in the storefront topbar
 - Flash sale product flag and compare-at pricing support
 - Admin order review endpoints for cancellation and refund handling
+- Admin portal overview and order review workspace at `/[locale]/admin`
+- Admin QR payment confirmation flow
+- Notification persistence, SSE stream, unread badges, and read-state actions
 
 ### Changed
 
@@ -29,6 +32,9 @@ an in-progress storefront project.
   pricing and flash sale presentation
 - Backend guard placement was normalized so shared guards live under
   `src/common/guards`
+- Frontend and admin UI now run in a single dark theme
+- Admin orders UI was simplified around review-focused statuses and
+  notification-aware order rows
 
 ### Planned
 

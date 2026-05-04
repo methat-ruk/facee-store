@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { getShippingFee } from '@/features/checkout/checkout-ui';
 import { getLocalizedProduct } from '@/features/products/localized-content';
-import type { ProductDetail } from '@/features/products/schemas';
-import { getProductDetail } from '@/services/catalog';
+import type { Product } from '@/features/products/schemas';
+import { getProducts } from '@/services/catalog';
 import {
   type CartItem,
   getCartItemCount,
@@ -17,7 +17,7 @@ import {
 type RefreshResult =
   | {
       status: 'ready';
-      product: ProductDetail;
+      product: Product;
     }
   | {
       status: 'unavailable';
@@ -95,66 +95,80 @@ export function useCartView() {
       setHasRefreshError(false);
     });
 
-    Promise.all(
-      items.map(async (item) => {
-        try {
-          const response = await getProductDetail(item.slug);
+    void getProducts({
+      sort: 'name-asc',
+      page: 1,
+      limit: 24,
+    })
+      .then((response) => {
+        if (isCancelled) {
+          return;
+        }
 
-          return {
-            id: item.id,
-            result: {
-              status: 'ready',
-              product: response.product,
-            } satisfies RefreshResult,
-          };
-        } catch (error) {
-          if (axios.isAxiosError(error) && error.response?.status === 404) {
-            return {
-              id: item.id,
-              result: {
-                status: 'unavailable',
-              } satisfies RefreshResult,
-            };
+        const nextResults = items.reduce<Record<string, RefreshResult>>(
+          (acc, item) => {
+            const matchedProduct = response.items.find(
+              (product) => product.id === item.id || product.slug === item.slug,
+            );
+
+            acc[item.id] = matchedProduct
+              ? {
+                  status: 'ready',
+                  product: matchedProduct,
+                }
+              : {
+                  status: 'unavailable',
+                };
+
+            return acc;
+          },
+          {},
+        );
+
+        setRefreshResults(nextResults);
+        setHasRefreshError(false);
+        setIsRefreshing(false);
+
+        for (const item of items) {
+          const result = nextResults[item.id];
+
+          if (result?.status !== 'ready') {
+            continue;
           }
 
-          return {
-            id: item.id,
-            result: {
-              status: 'snapshot',
-            } satisfies RefreshResult,
-            hasError: true,
-          };
+          if (
+            result.product.stock > 0 &&
+            item.quantity > result.product.stock
+          ) {
+            updateItemQuantity(item.id, result.product.stock);
+          }
         }
-      }),
-    ).then((results) => {
-      if (isCancelled) {
-        return;
-      }
-
-      const nextResults = results.reduce<Record<string, RefreshResult>>(
-        (acc, current) => {
-          acc[current.id] = current.result;
-          return acc;
-        },
-        {},
-      );
-
-      setRefreshResults(nextResults);
-      setHasRefreshError(results.some((result) => result.hasError));
-      setIsRefreshing(false);
-
-      for (const item of items) {
-        const result = nextResults[item.id];
-
-        if (result?.status !== 'ready') {
-          continue;
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return;
         }
 
-        if (result.product.stock > 0 && item.quantity > result.product.stock) {
-          updateItemQuantity(item.id, result.product.stock);
-        }
-      }
-    });
+        const hasNotFoundError =
+          axios.isAxiosError(error) && error.response?.status === 404;
+        const fallbackResults = items.reduce<Record<string, RefreshResult>>(
+          (acc, item) => {
+            acc[item.id] = hasNotFoundError
+              ? {
+                  status: 'unavailable',
+                }
+              : {
+                  status: 'snapshot',
+                };
+            return acc;
+          },
+          {},
+        );
+
+        setRefreshResults(fallbackResults);
+        setHasRefreshError(!hasNotFoundError);
+        setIsRefreshing(false);
+      });
 
     return () => {
       isCancelled = true;
