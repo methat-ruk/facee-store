@@ -29,6 +29,7 @@ import {
   getOrderStatusBadgeVariant,
 } from '@/features/orders/ui';
 import { Link, useRouter } from '@/i18n/navigation';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { listOrders } from '@/services/orders';
 import { useAuthStore } from '@/store/use-auth-store';
 
@@ -285,6 +286,9 @@ export function OrdersPage() {
                               src={item.productImageUrl}
                               alt={item.productName}
                               fill
+                              unoptimized={shouldBypassNextImageOptimization(
+                                item.productImageUrl,
+                              )}
                               sizes="48px"
                               className="object-cover object-top"
                             />

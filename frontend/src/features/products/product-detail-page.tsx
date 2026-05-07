@@ -34,6 +34,17 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
 
   const { product, relatedProducts } = detailResponse;
   const localizedProduct = getLocalizedProduct(product, locale);
+  const displayProduct = {
+    ...localizedProduct,
+    name: product.name,
+    subtitle: product.subtitle,
+    description: product.description,
+    howToUse: product.howToUse,
+    benefits: product.benefits,
+    ingredients: product.ingredients,
+    galleryImages: product.galleryImages,
+    imageUrl: product.imageUrl,
+  };
 
   return (
     <main className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-10 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
@@ -49,9 +60,9 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
 
       <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
         <ProductDetailGallery
-          name={localizedProduct.name}
-          imageUrl={localizedProduct.imageUrl}
-          galleryImages={localizedProduct.galleryImages}
+          name={displayProduct.name}
+          imageUrl={displayProduct.imageUrl}
+          galleryImages={displayProduct.galleryImages}
         />
 
         <div className="flex flex-col gap-8 lg:sticky lg:top-28">
@@ -70,20 +81,20 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
 
             <div className="space-y-4">
               <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                {localizedProduct.name}
+                {displayProduct.name}
               </h1>
-              {localizedProduct.subtitle ? (
+              {displayProduct.subtitle ? (
                 <p className="max-w-2xl text-lg leading-8 text-foreground/85">
-                  {localizedProduct.subtitle}
+                  {displayProduct.subtitle}
                 </p>
               ) : null}
               <p className="max-w-2xl leading-8 text-muted-foreground">
-                {localizedProduct.description}
+                {displayProduct.description}
               </p>
             </div>
           </div>
 
-          <ProductPurchasePanel product={localizedProduct} />
+          <ProductPurchasePanel product={displayProduct} />
         </div>
       </section>
 
@@ -99,10 +110,10 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
           </h2>
         </div>
         <ProductDetailTabs
-          description={localizedProduct.description}
-          benefits={localizedProduct.benefits}
-          howToUse={localizedProduct.howToUse}
-          ingredients={localizedProduct.ingredients}
+          description={displayProduct.description}
+          benefits={displayProduct.benefits}
+          howToUse={displayProduct.howToUse}
+          ingredients={displayProduct.ingredients}
         />
       </section>
 

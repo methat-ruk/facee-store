@@ -67,6 +67,7 @@ const categoryGalleryMap = {
 
 type ProductSeed = {
   name: string;
+  sku: string;
   slug: string;
   subtitle: string;
   description: string;
@@ -96,6 +97,7 @@ function buildGallery(
 const products: ProductSeed[] = [
   {
     name: 'Cloud Calm Gel Cleanser',
+    sku: 'FCE-CLN-001',
     slug: 'cloud-calm-gel-cleanser',
     subtitle:
       'A comfort-first gel wash that leaves skin fresh, soft, and balanced.',
@@ -121,6 +123,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Soft Reset Cream Cleanser',
+    sku: 'FCE-CLN-002',
     slug: 'soft-reset-cream-cleanser',
     subtitle: 'A plush cream cleanser made to comfort dry or sensitive skin.',
     description:
@@ -145,6 +148,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Bright Dew Vitamin Serum',
+    sku: 'FCE-SRM-001',
     slug: 'bright-dew-vitamin-serum',
     subtitle:
       'A glow-focused serum for uneven tone, dullness, and daily radiance.',
@@ -172,6 +176,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Barrier Bloom Peptide Serum',
+    sku: 'FCE-SRM-002',
     slug: 'barrier-bloom-peptide-serum',
     subtitle:
       'A silky peptide serum designed to support bounce and barrier comfort.',
@@ -199,6 +204,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Daily Veil Moisture Cream',
+    sku: 'FCE-MST-001',
     slug: 'daily-veil-moisture-cream',
     subtitle: 'A balanced daily cream for smooth hydration with a soft finish.',
     description:
@@ -223,6 +229,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Overnight Silk Repair Cream',
+    sku: 'FCE-MST-002',
     slug: 'overnight-silk-repair-cream',
     subtitle: 'A richer recovery cream built for deep overnight comfort.',
     description:
@@ -247,6 +254,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Velvet Shield SPF 50',
+    sku: 'FCE-SUN-001',
     slug: 'velvet-shield-spf-50',
     subtitle:
       'A soft-finish daily sunscreen that feels smooth and invisible on skin.',
@@ -274,6 +282,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Airy Glow Tone-Up SPF 50',
+    sku: 'FCE-SUN-002',
     slug: 'airy-glow-tone-up-spf-50',
     subtitle: 'A brightening sunscreen with a fresh tone-up finish.',
     description:
@@ -298,6 +307,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Pure Balance BHA Serum',
+    sku: 'FCE-SRM-003',
     slug: 'pure-balance-bha-serum',
     subtitle:
       'A clarifying serum for texture, visible pores, and oilier zones.',
@@ -325,6 +335,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Hydra Petal Water Cream',
+    sku: 'FCE-MST-003',
     slug: 'hydra-petal-water-cream',
     subtitle:
       'A fresh gel-cream with featherlight hydration and a dewy finish.',
@@ -352,6 +363,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Quiet Bloom Amino Cleanser',
+    sku: 'FCE-CLN-003',
     slug: 'quiet-bloom-amino-cleanser',
     subtitle: 'A low-foam cleanser for calm, comfortable everyday cleansing.',
     description:
@@ -376,6 +388,7 @@ const products: ProductSeed[] = [
   },
   {
     name: 'Invisible Finish UV Milk',
+    sku: 'FCE-SUN-003',
     slug: 'invisible-finish-uv-milk',
     subtitle: 'A fluid UV milk with a soft-matte finish for warm, humid days.',
     description:
@@ -449,6 +462,7 @@ async function main() {
       },
       update: {
         name: product.name,
+        sku: product.sku,
         subtitle: product.subtitle,
         description: product.description,
         howToUse: product.howToUse,
@@ -465,6 +479,7 @@ async function main() {
       },
       create: {
         name: product.name,
+        sku: product.sku,
         slug: product.slug,
         subtitle: product.subtitle,
         description: product.description,

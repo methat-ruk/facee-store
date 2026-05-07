@@ -49,22 +49,40 @@ function buildBangkokUtcIso(date: Date, includeNextDay = false) {
   return new Date(utcMs).toISOString();
 }
 
-function formatRangeLabel(
+function formatSingleDateLabel(
   locale: string,
-  range: DateRange | undefined,
+  date: Date | undefined,
   fallback: string,
 ) {
-  if (!range?.from || !range.to) {
+  if (!date) {
     return fallback;
   }
 
-  const formatter = new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  });
+  }).format(date);
+}
 
-  return `${formatter.format(range.from)} - ${formatter.format(range.to)}`;
+function isDateBetween(date: Date, from?: Date, to?: Date) {
+  if (!from || !to) {
+    return false;
+  }
+
+  const current = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  ).getTime();
+  const start = new Date(
+    from.getFullYear(),
+    from.getMonth(),
+    from.getDate(),
+  ).getTime();
+  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate()).getTime();
+
+  return current > start && current < end;
 }
 
 function KpiCard({
@@ -104,7 +122,9 @@ export function AdminOverviewPage() {
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isDesktopCalendarOpen, setIsDesktopCalendarOpen] = useState(false);
+  const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
+  const [activeDateField, setActiveDateField] = useState<'from' | 'to'>('from');
   const [selectedRange, setSelectedRange] = useState<DateRange | undefined>(
     () => getCurrentMonthRange(),
   );
@@ -170,10 +190,49 @@ export function AdminOverviewPage() {
       : currentMonth;
   }, [selectedRange]);
 
-  const rangeLabel = useMemo(
-    () => formatRangeLabel(locale, resolvedRange, uiText.currentMonth),
-    [locale, resolvedRange, uiText.currentMonth],
+  const startDateText = locale === 'th' ? 'วันเริ่มต้น' : 'Start date';
+  const endDateText = locale === 'th' ? 'วันสิ้นสุด' : 'End date';
+  const startDateLabel = useMemo(
+    () =>
+      formatSingleDateLabel(locale, resolvedRange.from, uiText.currentMonth),
+    [locale, resolvedRange.from, uiText.currentMonth],
   );
+  const endDateLabel = useMemo(
+    () => formatSingleDateLabel(locale, resolvedRange.to, uiText.currentMonth),
+    [locale, resolvedRange.to, uiText.currentMonth],
+  );
+
+  function handleSingleDateSelect(date: Date | undefined) {
+    if (!date) {
+      return;
+    }
+
+    setSelectedRange((current) => {
+      const currentRange = current ?? getCurrentMonthRange();
+      const currentFrom = currentRange.from ?? date;
+      const currentTo = currentRange.to ?? currentFrom;
+
+      if (activeDateField === 'from') {
+        return date > currentTo
+          ? { from: date, to: date }
+          : { from: date, to: currentTo };
+      }
+
+      return date < currentFrom
+        ? { from: date, to: date }
+        : { from: currentFrom, to: date };
+    });
+    setIsLoading(true);
+    setIsDesktopCalendarOpen(false);
+    setIsMobileCalendarOpen(false);
+  }
+
+  function resetToCurrentMonth() {
+    setIsLoading(true);
+    setSelectedRange(getCurrentMonthRange());
+    setIsDesktopCalendarOpen(false);
+    setIsMobileCalendarOpen(false);
+  }
 
   async function requestDashboard(range: DateRange) {
     if (!range.from || !range.to) {
@@ -283,7 +342,7 @@ export function AdminOverviewPage() {
   return (
     <main className="flex flex-col gap-5 px-1 pb-4">
       <section className="rounded-[2rem] border border-border/70 bg-[rgba(31,22,19,0.9)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex flex-col gap-5 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
           <div className="space-y-3">
             <h2 className="font-serif text-[2rem] leading-none tracking-[0.01em] text-[#fbf1eb] sm:text-[2.25rem]">
               {uiText.greeting}
@@ -293,74 +352,215 @@ export function AdminOverviewPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 xl:min-w-[20rem] xl:items-end">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="flex flex-col gap-3 lg:ml-auto lg:min-w-[20rem] lg:items-end">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground lg:self-end lg:text-right">
               {uiText.rangeLabel}
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="min-w-[18rem] justify-between rounded-full"
-                  >
-                    <span className="flex items-center gap-2">
-                      <CalendarRangeIcon data-icon="inline-start" />
-                      {rangeLabel}
-                    </span>
-                    <ChevronRightIcon data-icon="inline-end" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="w-auto rounded-[1.5rem] border border-border/70 bg-[rgba(27,19,17,0.98)] p-0"
+            <div className="hidden flex-wrap items-start gap-2 lg:justify-end sm:flex">
+              <div className="flex min-w-[15rem] flex-col gap-1.5 text-left">
+                <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {startDateText}
+                </p>
+                <Popover
+                  open={isDesktopCalendarOpen && activeDateField === 'from'}
+                  onOpenChange={(open) => {
+                    setActiveDateField('from');
+                    setIsDesktopCalendarOpen(open);
+                  }}
                 >
-                  <Calendar
-                    mode="range"
-                    numberOfMonths={2}
-                    defaultMonth={resolvedRange.from}
-                    selected={resolvedRange}
-                    onSelect={(range) => {
-                      if (!range?.from || !range.to) {
-                        setSelectedRange(range);
-                        return;
-                      }
-
-                      setIsLoading(true);
-                      setSelectedRange(range);
-                      setIsCalendarOpen(false);
-                    }}
-                  />
-                  <div className="flex items-center justify-between border-t border-border/60 px-4 py-3">
-                    <p className="text-xs text-muted-foreground">
-                      {uiText.chooseRange}
-                    </p>
+                  <PopoverTrigger asChild>
                     <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setIsLoading(true);
-                        setSelectedRange(getCurrentMonthRange());
-                        setIsCalendarOpen(false);
-                      }}
+                      variant="outline"
+                      className="min-w-[15rem] justify-between rounded-full"
                     >
-                      {uiText.resetMonth}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <CalendarRangeIcon data-icon="inline-start" />
+                        <span className="truncate">{startDateLabel}</span>
+                      </span>
+                      <ChevronRightIcon data-icon="inline-end" />
                     </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              <Button asChild>
-                <Link href="/admin/orders">
-                  {t('reviewOrders')}
-                  <ArrowRightIcon data-icon="inline-end" />
-                </Link>
-              </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    className="hidden w-auto rounded-[1.5rem] border border-border/70 bg-[rgba(27,19,17,0.98)] p-0 sm:block"
+                  >
+                    <Calendar
+                      mode="single"
+                      defaultMonth={resolvedRange.from}
+                      selected={resolvedRange.from}
+                      modifiers={{
+                        range_start: resolvedRange.from,
+                        range_end: resolvedRange.to,
+                        range_middle: (date) =>
+                          isDateBetween(
+                            date,
+                            resolvedRange.from,
+                            resolvedRange.to,
+                          ),
+                      }}
+                      onSelect={handleSingleDateSelect}
+                    />
+                    <div className="flex items-center justify-between border-t border-border/60 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">
+                        {startDateText}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetToCurrentMonth}
+                      >
+                        {uiText.resetMonth}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex min-w-[15rem] flex-col gap-1.5 text-left">
+                <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {endDateText}
+                </p>
+                <Popover
+                  open={isDesktopCalendarOpen && activeDateField === 'to'}
+                  onOpenChange={(open) => {
+                    setActiveDateField('to');
+                    setIsDesktopCalendarOpen(open);
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="min-w-[15rem] justify-between rounded-full"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <CalendarRangeIcon data-icon="inline-start" />
+                        <span className="truncate">{endDateLabel}</span>
+                      </span>
+                      <ChevronRightIcon data-icon="inline-end" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    className="hidden w-auto rounded-[1.5rem] border border-border/70 bg-[rgba(27,19,17,0.98)] p-0 sm:block"
+                  >
+                    <Calendar
+                      mode="single"
+                      defaultMonth={resolvedRange.to ?? resolvedRange.from}
+                      selected={resolvedRange.to}
+                      modifiers={{
+                        range_start: resolvedRange.from,
+                        range_end: resolvedRange.to,
+                        range_middle: (date) =>
+                          isDateBetween(
+                            date,
+                            resolvedRange.from,
+                            resolvedRange.to,
+                          ),
+                      }}
+                      onSelect={handleSingleDateSelect}
+                    />
+                    <div className="flex items-center justify-between border-t border-border/60 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">
+                        {endDateText}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetToCurrentMonth}
+                      >
+                        {uiText.resetMonth}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:hidden">
+              <div className="grid gap-1.5">
+                <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {startDateText}
+                </p>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between rounded-full"
+                  onClick={() => {
+                    setActiveDateField('from');
+                    setIsMobileCalendarOpen(true);
+                  }}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <CalendarRangeIcon data-icon="inline-start" />
+                    <span className="truncate">{startDateLabel}</span>
+                  </span>
+                  <ChevronRightIcon data-icon="inline-end" />
+                </Button>
+              </div>
+              <div className="grid gap-1.5">
+                <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {endDateText}
+                </p>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between rounded-full"
+                  onClick={() => {
+                    setActiveDateField('to');
+                    setIsMobileCalendarOpen(true);
+                  }}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <CalendarRangeIcon data-icon="inline-start" />
+                    <span className="truncate">{endDateLabel}</span>
+                  </span>
+                  <ChevronRightIcon data-icon="inline-end" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {isMobileCalendarOpen ? (
+        <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/62 px-4 py-6 sm:hidden">
+          <div
+            className="absolute inset-0"
+            onClick={() => setIsMobileCalendarOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-sm rounded-[1.6rem] border border-border/70 bg-[rgba(27,19,17,0.98)] p-0 shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
+            <Calendar
+              mode="single"
+              defaultMonth={
+                activeDateField === 'to'
+                  ? (resolvedRange.to ?? resolvedRange.from)
+                  : resolvedRange.from
+              }
+              selected={
+                activeDateField === 'to' ? resolvedRange.to : resolvedRange.from
+              }
+              modifiers={{
+                range_start: resolvedRange.from,
+                range_end: resolvedRange.to,
+                range_middle: (date) =>
+                  isDateBetween(date, resolvedRange.from, resolvedRange.to),
+              }}
+              onSelect={handleSingleDateSelect}
+            />
+            <div className="flex items-center justify-between border-t border-border/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">
+                {activeDateField === 'to' ? endDateText : startDateText}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={resetToCurrentMonth}
+              >
+                {uiText.resetMonth}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard

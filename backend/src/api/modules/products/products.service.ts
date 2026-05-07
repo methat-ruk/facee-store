@@ -9,7 +9,7 @@ type ProductsStorefrontPrisma = {
   product: Pick<PrismaService['product'], 'count' | 'findFirst' | 'findMany'>;
 };
 
-const productCardSelect = {
+export const productCardSelect = {
   id: true,
   name: true,
   slug: true,
@@ -28,7 +28,7 @@ const productCardSelect = {
   },
 } satisfies Prisma.ProductSelect;
 
-const productDetailSelect = {
+export const productDetailSelect = {
   ...productCardSelect,
   subtitle: true,
   howToUse: true,
@@ -36,6 +36,16 @@ const productDetailSelect = {
   ingredients: true,
   galleryImages: true,
 } satisfies Prisma.ProductSelect;
+
+export function toNumber(
+  value: Prisma.Decimal | { toString(): string } | null,
+): number | null {
+  if (!value) {
+    return null;
+  }
+
+  return Number(value.toString());
+}
 
 @Injectable()
 export class ProductsService {
@@ -97,9 +107,7 @@ export class ProductsService {
       items: items.map((item: (typeof items)[number]) => ({
         ...item,
         price: Number(item.price),
-        compareAtPrice: item.compareAtPrice
-          ? Number(item.compareAtPrice)
-          : null,
+        compareAtPrice: toNumber(item.compareAtPrice),
       })),
       meta: {
         page,
@@ -142,17 +150,13 @@ export class ProductsService {
       product: {
         ...product,
         price: Number(product.price),
-        compareAtPrice: product.compareAtPrice
-          ? Number(product.compareAtPrice)
-          : null,
+        compareAtPrice: toNumber(product.compareAtPrice),
       },
       relatedProducts: relatedProducts.map(
         (item: (typeof relatedProducts)[number]) => ({
           ...item,
           price: Number(item.price),
-          compareAtPrice: item.compareAtPrice
-            ? Number(item.compareAtPrice)
-            : null,
+          compareAtPrice: toNumber(item.compareAtPrice),
         }),
       ),
     };

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { cn } from '@/lib/utils';
 
 type ProductDetailGalleryProps = {
@@ -37,9 +38,9 @@ export function ProductDetailGallery({
             src={selectedImage}
             alt={name}
             fill
-            loading="eager"
+            priority
+            unoptimized={shouldBypassNextImageOptimization(selectedImage)}
             sizes="(min-width: 1024px) 48vw, 100vw"
-            fetchPriority="high"
             className="object-cover object-center"
           />
         ) : (
@@ -82,6 +83,7 @@ export function ProductDetailGallery({
                   src={image}
                   alt={`${name} ${index + 1}`}
                   fill
+                  unoptimized={shouldBypassNextImageOptimization(image)}
                   sizes="80px"
                   className="object-cover object-center"
                 />

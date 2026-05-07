@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { ProductAvailabilityBadge } from '@/components/shared/product-availability-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatOrderPrice } from '@/features/orders/ui';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { getLocalizedProduct } from './localized-content';
 import type { Product } from './schemas';
 
@@ -38,8 +39,10 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
             src={localizedProduct.imageUrl}
             alt={localizedProduct.name}
             fill
-            loading={eagerImage ? 'eager' : 'lazy'}
-            fetchPriority={eagerImage ? 'high' : 'auto'}
+            priority={eagerImage}
+            unoptimized={shouldBypassNextImageOptimization(
+              localizedProduct.imageUrl,
+            )}
             sizes="(min-width: 1280px) 360px, (min-width: 640px) calc(50vw - 2.5rem), calc(100vw - 3rem)"
             className="cursor-pointer object-cover object-top transition duration-500 group-hover:scale-[1.04]"
           />

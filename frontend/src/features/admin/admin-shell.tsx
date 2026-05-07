@@ -7,7 +7,6 @@ import {
   MenuIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
-  SearchIcon,
   StoreIcon,
 } from 'lucide-react';
 import { startTransition, useEffect, useMemo, useState } from 'react';
@@ -23,7 +22,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import {
   Sheet,
   SheetContent,
@@ -273,6 +271,27 @@ function AdminNav({
 }
 
 function getPageMeta(pathname: string, locale: AppLocale) {
+  if (
+    pathname === '/admin/products' ||
+    pathname.startsWith('/admin/products/')
+  ) {
+    return locale === 'th'
+      ? {
+          title: 'Products',
+          subtitle:
+            'จัดการรายการสินค้า ราคา สต็อก การเผยแพร่ และรูปภาพในพื้นที่เดียว',
+          searchPlaceholder: 'ค้นหาสินค้าด้วยชื่อ SKU หรือ slug',
+          searchRoute: '/admin/products',
+        }
+      : {
+          title: 'Products',
+          subtitle:
+            'Manage catalog entries, pricing, stock, publishing, and media in one place.',
+          searchPlaceholder: 'Search products by name, SKU, or slug',
+          searchRoute: '/admin/products',
+        };
+  }
+
   if (pathname === '/admin/orders' || pathname.startsWith('/admin/orders/')) {
     return locale === 'th'
       ? {
@@ -301,8 +320,6 @@ function getPageMeta(pathname: string, locale: AppLocale) {
 function AdminChrome({ children }: AdminShellProps) {
   const locale = useLocale() as AppLocale;
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const t = useTranslations('adminShell');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -312,8 +329,6 @@ function AdminChrome({ children }: AdminShellProps) {
 
     return window.localStorage.getItem('facee-admin-sidebar') === 'collapsed';
   });
-  const initialQuery =
-    pathname === '/admin/orders' ? (searchParams.get('query') ?? '') : '';
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
   const pageMeta = getPageMeta(pathname, locale);
 
@@ -328,32 +343,14 @@ function AdminChrome({ children }: AdminShellProps) {
     });
   }
 
-  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const formData = new FormData(event.currentTarget);
-    const normalizedQuery = String(formData.get('query') ?? '').trim();
-    const params = new URLSearchParams();
-
-    if (normalizedQuery) {
-      params.set('query', normalizedQuery);
-    }
-
-    const nextHref = params.toString()
-      ? `/admin/orders?${params.toString()}`
-      : '/admin/orders';
-    setMobileNavOpen(false);
-    router.push(nextHref);
-  }
-
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(113,72,55,0.18),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(90,56,44,0.2),transparent_28%),linear-gradient(180deg,#1a1412_0%,#140f0d_100%)] text-foreground">
+    <div className="relative h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(113,72,55,0.18),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(90,56,44,0.2),transparent_28%),linear-gradient(180deg,#1a1412_0%,#140f0d_100%)] text-foreground">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),transparent_38%)]" />
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-420 gap-4 px-3 py-3 sm:px-4 lg:gap-5 lg:px-5 lg:py-5">
+      <div className="relative flex h-full w-full gap-4 px-3 py-3 sm:px-3 lg:gap-3 lg:px-3 lg:py-3">
         <aside
           className={cn(
-            'hidden shrink-0 flex-col rounded-[2rem] border border-border/70 bg-[rgba(27,19,17,0.94)] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.26)] backdrop-blur-xl lg:flex',
-            isSidebarCollapsed ? 'w-23' : 'w-71.5',
+            'hidden h-full shrink-0 flex-col rounded-[2rem] border border-border/70 bg-[rgba(27,19,17,0.94)] p-4 shadow-[0_28px_90px_rgba(0,0,0,0.26)] backdrop-blur-xl lg:flex',
+            isSidebarCollapsed ? 'w-22' : 'w-66',
           )}
         >
           <div
@@ -461,7 +458,7 @@ function AdminChrome({ children }: AdminShellProps) {
           )}
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
           <header className="rounded-[2rem] border border-border/70 bg-[rgba(27,19,17,0.94)] px-4 py-4 shadow-[0_28px_90px_rgba(0,0,0,0.26)] backdrop-blur-xl sm:px-5">
             <div className="flex flex-wrap items-center gap-3 xl:flex-nowrap">
               <div className="flex items-center gap-3 lg:hidden">
@@ -514,24 +511,7 @@ function AdminChrome({ children }: AdminShellProps) {
                 <h1 className="truncate font-serif text-[2.35rem] leading-none tracking-[0.01em] text-[#fbf1eb]">
                   {pageMeta.title}
                 </h1>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                  {pageMeta.subtitle}
-                </p>
               </div>
-
-              <form
-                key={`${pathname}-${initialQuery}`}
-                className="order-3 flex w-full items-center gap-2 rounded-full border border-border/70 bg-background/78 px-4 py-2 shadow-[0_14px_30px_rgba(0,0,0,0.16)] md:order-0 md:w-[min(30rem,45vw)]"
-                onSubmit={handleSearchSubmit}
-              >
-                <SearchIcon className="size-4 text-muted-foreground" />
-                <Input
-                  name="query"
-                  defaultValue={initialQuery}
-                  placeholder={t('searchPlaceholder')}
-                  className="border-none bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent!"
-                />
-              </form>
 
               <div className="ml-auto flex items-center gap-2">
                 <NotificationsMenu audience="admin" />

@@ -24,6 +24,7 @@ import {
   checkoutPrimaryButtonClassName,
   FREE_SHIPPING_THRESHOLD,
 } from '@/features/checkout/checkout-ui';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import type { OrderDetail } from '@/features/orders/schemas';
 import {
   formatOrderDate,
@@ -326,6 +327,9 @@ export function CheckoutSuccessPage({ orderNo }: CheckoutSuccessPageProps) {
                           src={item.productImageUrl}
                           alt={item.productName}
                           fill
+                          unoptimized={shouldBypassNextImageOptimization(
+                            item.productImageUrl,
+                          )}
                           sizes="64px"
                           className="object-cover object-top"
                         />

@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { formatOrderPrice } from '@/features/orders/ui';
 import { Link } from '@/i18n/navigation';
 import { useCartView } from '@/features/cart/use-cart-view';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 
 const cartCtaClassName =
   'bg-[#9f604b] !text-[#fffaf6] hover:bg-[#884d3b] hover:!text-[#fffaf6] [&_svg]:!text-[#fffaf6] dark:bg-[#5a2f26] dark:!text-[#fffaf6] dark:hover:bg-[#4a261f]';
@@ -138,6 +139,9 @@ export function CartPage() {
                       src={item.imageUrl}
                       alt={item.name}
                       fill
+                      unoptimized={shouldBypassNextImageOptimization(
+                        item.imageUrl,
+                      )}
                       sizes="112px"
                       className="object-cover object-top"
                     />
