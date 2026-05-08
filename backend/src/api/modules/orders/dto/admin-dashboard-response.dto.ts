@@ -15,6 +15,7 @@ export const adminDashboardCancellationQueueItemSchema = z.object({
   orderNo: z.string(),
   customerName: z.string(),
   reasonCode: cancellationReasonCodeSchema,
+  details: z.string().nullable(),
   requestedAt: z.string().datetime(),
   orderTotal: z.number().nonnegative(),
 });

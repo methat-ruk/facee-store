@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowRightIcon, SearchIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  getAdminOrdersPageText,
+  getAdminOrdersTableColumns,
+} from '@/features/admin-orders/messages';
 import type { OrderListItem } from '@/features/orders/schemas';
 import {
+  formatOrderDate,
+  formatOrderPrice,
   getOrderStatusBadgeClassName,
   getOrderStatusBadgeVariant,
 } from '@/features/orders/ui';
@@ -47,35 +53,8 @@ export function AdminOrdersPage() {
   const limit = ROWS_PER_PAGE_OPTIONS.includes(requestedLimit as 12 | 25 | 50)
     ? (requestedLimit as (typeof ROWS_PER_PAGE_OPTIONS)[number])
     : 25;
-  const uiText =
-    locale === 'th'
-      ? {
-          all: 'ทั้งหมด',
-          followUp: 'ต้องติดตาม',
-          shown: 'รายการที่แสดง',
-          resultLabel: 'รายการออเดอร์ที่กรองแล้ว',
-          allOrders: 'Orders',
-          searchPlaceholder:
-            'à¸„à¹‰à¸™à¸«à¸²à¸”à¹‰à¸§à¸¢à¹€à¸¥à¸‚à¸­à¸­à¹€à¸”à¸­à¸£à¹Œà¸«à¸£à¸·à¸­à¸ªà¸–à¸²à¸™à¸°',
-          rowsPerPage: 'แถวต่อหน้า',
-          previous: 'ก่อนหน้า',
-          next: 'ถัดไป',
-          cleanDescription:
-            'เปิดหน้าในเพื่อดูข้อมูลลูกค้า รายการสินค้า การชำระเงิน และราคารวมโดยละเอียด',
-        }
-      : {
-          all: 'All',
-          followUp: 'Needs follow-up',
-          shown: 'orders shown',
-          resultLabel: 'Filtered order list',
-          allOrders: 'Orders',
-          searchPlaceholder: 'Search by order number or status',
-          rowsPerPage: 'Rows per page',
-          previous: 'Previous',
-          next: 'Next',
-          cleanDescription:
-            'Open the detail view to review customer, payment, item, and pricing information.',
-        };
+  const pageText = getAdminOrdersPageText(locale);
+  const columns = getAdminOrdersTableColumns(locale);
 
   useEffect(() => {
     let isCancelled = false;
@@ -104,22 +83,25 @@ export function AdminOrdersPage() {
     };
   }, []);
 
-  function setParam(name: string, value?: string) {
-    const params = new URLSearchParams(searchParams.toString());
+  const setParam = useCallback(
+    (name: string, value?: string) => {
+      const params = new URLSearchParams(searchParams.toString());
 
-    if (!value) {
-      params.delete(name);
-    } else {
-      params.set(name, value);
-    }
+      if (!value) {
+        params.delete(name);
+      } else {
+        params.set(name, value);
+      }
 
-    if (name !== 'page') {
-      params.set('page', '1');
-    }
+      if (name !== 'page') {
+        params.set('page', '1');
+      }
 
-    const nextQuery = params.toString();
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-  }
+      const nextQuery = params.toString();
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
 
   const statusCounts = useMemo(() => {
     return orders.reduce<Record<string, number>>((counts, order) => {
@@ -159,21 +141,24 @@ export function AdminOrdersPage() {
         order.contact.phone,
         order.status,
         order.paymentMethod,
+        order.refundStatus,
       ]
         .join(' ')
         .toLowerCase();
 
-      const normalizedQuery = searchValue.trim().toLowerCase();
-      const matchesQuery =
-        !normalizedQuery || haystack.includes(normalizedQuery);
+      const matchesSearch = searchValue.trim()
+        ? haystack.includes(searchValue.trim().toLowerCase())
+        : true;
+
       const matchesStatus =
         activeStatus === 'ALL' || order.status === activeStatus;
-      const needsFollowUp =
-        order.status === 'PENDING' ||
-        order.hasPendingCancellationRequest ||
-        order.refundStatus === 'PENDING_MANUAL';
+      const matchesFollowUp = !followUpOnly
+        ? true
+        : order.status === 'PENDING' ||
+          order.hasPendingCancellationRequest ||
+          order.refundStatus === 'PENDING_MANUAL';
 
-      return matchesQuery && matchesStatus && (!followUpOnly || needsFollowUp);
+      return matchesSearch && matchesStatus && matchesFollowUp;
     });
   }, [activeStatus, followUpOnly, orders, searchValue]);
 
@@ -182,10 +167,17 @@ export function AdminOrdersPage() {
     Math.max(1, Number.isFinite(requestedPage) ? requestedPage : 1),
     totalPages,
   );
-  const paginatedOrders = useMemo(() => {
-    const start = (currentPage - 1) * limit;
-    return filteredOrders.slice(start, start + limit);
-  }, [currentPage, filteredOrders, limit]);
+
+  useEffect(() => {
+    if (requestedPage !== currentPage) {
+      setParam('page', String(currentPage));
+    }
+  }, [currentPage, requestedPage, setParam]);
+
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * limit,
+    currentPage * limit,
+  );
 
   if (isLoading) {
     return (
@@ -228,10 +220,10 @@ export function AdminOrdersPage() {
         <div className="flex flex-col gap-5">
           <div className="space-y-3">
             <h2 className="font-serif text-[2.2rem] leading-none tracking-[0.01em] text-[#fbf1eb] sm:text-[2.75rem]">
-              {uiText.allOrders}
+              {pageText.allOrders}
             </h2>
             <p className="max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-              {uiText.cleanDescription}
+              {pageText.cleanDescription}
             </p>
           </div>
 
@@ -240,7 +232,7 @@ export function AdminOrdersPage() {
             <Input
               value={searchValue}
               onChange={(event) => setSearchValue(event.target.value)}
-              placeholder={uiText.searchPlaceholder}
+              placeholder={pageText.searchPlaceholder}
               className="border-none bg-transparent px-0 text-foreground shadow-none focus-visible:ring-0 dark:bg-transparent!"
             />
           </div>
@@ -252,7 +244,7 @@ export function AdminOrdersPage() {
               size="sm"
               onClick={() => setActiveStatus('ALL')}
             >
-              {`${uiText.all} (${orders.length})`}
+              {`${pageText.all} (${orders.length})`}
             </Button>
             {(['PENDING', 'PAID', 'CANCELED'] as const).map((status) => (
               <Button
@@ -271,7 +263,7 @@ export function AdminOrdersPage() {
               size="sm"
               onClick={() => setFollowUpOnly((current) => !current)}
             >
-              {`${uiText.followUp} (${followUpCount})`}
+              {`${pageText.followUp} (${followUpCount})`}
             </Button>
           </div>
         </div>
@@ -279,52 +271,106 @@ export function AdminOrdersPage() {
 
       <section className="rounded-[2rem] border border-border/70 bg-[rgba(31,22,19,0.9)] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.18)] sm:p-4">
         <div className="grid gap-3">
-          {paginatedOrders.map((order) => (
-            <Card
-              key={order.orderNo}
-              className="border-border/65 bg-background/68 shadow-none transition hover:border-[#c4917e] hover:bg-background/82"
-            >
-              <CardContent className="grid gap-2 px-4 py-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                <div className="flex min-w-0 flex-col gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <CardTitle className="text-lg font-semibold tracking-tight text-foreground sm:text-[1.1rem]">
-                      {order.orderNo}
-                    </CardTitle>
-                    <Badge
-                      variant={getOrderStatusBadgeVariant(order.status)}
-                      className={getOrderStatusBadgeClassName(order.status)}
-                    >
-                      {t(`status.${order.status}`)}
-                    </Badge>
-                    {order.hasPendingCancellationRequest ? (
-                      <Badge variant="outline">
-                        {t('pendingCancellation')}
-                      </Badge>
-                    ) : null}
-                    {unreadOrderNotifications[order.orderNo] ? (
-                      <Badge
-                        variant="outline"
-                        className="border-[#b96f5a]/40 bg-[#b96f5a]/14 text-[#f0d2c4]"
-                      >
-                        {t('hasNotification', {
-                          count: unreadOrderNotifications[order.orderNo],
-                        })}
-                      </Badge>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="flex justify-start sm:justify-end">
-                  <Button asChild variant="outline">
-                    <Link href={`/admin/orders/${order.orderNo}`}>
+          {paginatedOrders.length > 0 ? (
+            <div className="overflow-x-auto rounded-[1.6rem] border border-border/65 bg-background/68">
+              <table className="w-full min-w-[1120px] border-separate border-spacing-0">
+                <thead>
+                  <tr className="text-left">
+                    <th className="px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:px-5">
+                      {columns.order}
+                    </th>
+                    <th className="px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {columns.customer}
+                    </th>
+                    <th className="px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {columns.createdAt}
+                    </th>
+                    <th className="px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {columns.items}
+                    </th>
+                    <th className="px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {columns.total}
+                    </th>
+                    <th className="px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {columns.status}
+                    </th>
+                    <th className="px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {columns.followUp}
+                    </th>
+                    <th className="px-4 py-3 text-right text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:px-5">
                       {t('viewOrder')}
-                      <ArrowRightIcon data-icon="inline-end" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOrders.map((order) => (
+                    <tr
+                      key={order.orderNo}
+                      className="transition hover:bg-[rgba(53,37,31,0.34)]"
+                    >
+                      <td className="border-t border-border/60 px-4 py-4 align-top sm:px-5">
+                        <div className="min-w-0">
+                          <CardTitle className="text-base font-semibold tracking-tight text-foreground">
+                            {order.orderNo}
+                          </CardTitle>
+                          {unreadOrderNotifications[order.orderNo] ? (
+                            <p className="mt-1 text-xs text-[#f0d2c4]">
+                              {t('hasNotification', {
+                                count: unreadOrderNotifications[order.orderNo],
+                              })}
+                            </p>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="border-t border-border/60 px-4 py-4 align-top">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {order.contact.fullName}
+                        </p>
+                      </td>
+                      <td className="border-t border-border/60 px-4 py-4 align-top text-sm text-muted-foreground">
+                        {formatOrderDate(order.createdAt, locale)}
+                      </td>
+                      <td className="border-t border-border/60 px-4 py-4 align-top text-sm text-muted-foreground">
+                        <p className="font-medium text-foreground">
+                          {order.itemCount}
+                        </p>
+                      </td>
+                      <td className="border-t border-border/60 px-4 py-4 align-top text-sm font-medium text-foreground">
+                        {formatOrderPrice(order.total, locale)}
+                      </td>
+                      <td className="border-t border-border/60 px-4 py-4 align-top">
+                        <Badge
+                          variant={getOrderStatusBadgeVariant(order.status)}
+                          className={getOrderStatusBadgeClassName(order.status)}
+                        >
+                          {t(`status.${order.status}`)}
+                        </Badge>
+                      </td>
+                      <td className="border-t border-border/60 px-4 py-4 align-top">
+                        {order.hasPendingCancellationRequest ? (
+                          <Badge variant="outline">
+                            {t('pendingCancellation')}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            —
+                          </span>
+                        )}
+                      </td>
+                      <td className="border-t border-border/60 px-4 py-4 text-right align-top sm:px-5">
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/admin/orders/${order.orderNo}`}>
+                            {t('viewOrder')}
+                            <ArrowRightIcon data-icon="inline-end" />
+                          </Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
 
           {filteredOrders.length === 0 ? (
             <Card className="border-border/70 bg-[rgba(255,250,247,0.82)] shadow-[0_20px_50px_rgba(126,76,57,0.08)] dark:bg-[rgba(34,25,21,0.82)]">
@@ -343,7 +389,7 @@ export function AdminOrdersPage() {
             <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">
-                  {uiText.rowsPerPage}
+                  {pageText.rowsPerPage}
                 </span>
                 <Select
                   value={String(limit)}
@@ -369,7 +415,7 @@ export function AdminOrdersPage() {
                   disabled={currentPage <= 1}
                   onClick={() => setParam('page', String(currentPage - 1))}
                 >
-                  {uiText.previous}
+                  {pageText.previous}
                 </Button>
                 <p className="text-sm text-muted-foreground">
                   {currentPage} / {totalPages}
@@ -380,7 +426,7 @@ export function AdminOrdersPage() {
                   disabled={currentPage >= totalPages}
                   onClick={() => setParam('page', String(currentPage + 1))}
                 >
-                  {uiText.next}
+                  {pageText.next}
                 </Button>
               </div>
             </div>

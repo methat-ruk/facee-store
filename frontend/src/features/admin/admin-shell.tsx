@@ -305,6 +305,23 @@ function getPageMeta(pathname: string, locale: AppLocale) {
         };
   }
 
+  if (
+    pathname === '/admin/customers' ||
+    pathname.startsWith('/admin/customers/')
+  ) {
+    return locale === 'th'
+      ? {
+          title: 'Customers',
+          subtitle:
+            'ดูแลโปรไฟล์ลูกค้า ออเดอร์ล่าสุด และข้อมูลช่วยเหลือจากพื้นที่เดียว',
+        }
+      : {
+          title: 'Customers',
+          subtitle:
+            'Review customer profiles, recent orders, and support data in one place.',
+        };
+  }
+
   return locale === 'th'
     ? {
         title: 'Overview',

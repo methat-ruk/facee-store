@@ -6,6 +6,7 @@ export const API_ERROR_CODES = {
   categoryNotFound: 'CATEGORY_NOT_FOUND',
   cancellationRequestExists: 'CANCELLATION_REQUEST_EXISTS',
   cancellationRequestNotFound: 'CANCELLATION_REQUEST_NOT_FOUND',
+  customerNotFound: 'CUSTOMER_NOT_FOUND',
   internalServerError: 'INTERNAL_SERVER_ERROR',
   orderCancelNotAllowed: 'ORDER_CANCEL_NOT_ALLOWED',
   orderEmpty: 'ORDER_EMPTY',

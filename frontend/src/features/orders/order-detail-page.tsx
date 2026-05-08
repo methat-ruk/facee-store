@@ -495,8 +495,14 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
                     {t('requestedAtLabel')}:{' '}
                     {formatOrderDate(latestRequest.createdAt, locale)}
                   </p>
-                  <p>{t(`cancellationReason.${latestRequest.reasonCode}`)}</p>
-                  {latestRequest.details ? (
+                  <p>
+                    {latestRequest.reasonCode === 'OTHER' &&
+                    latestRequest.details?.trim()
+                      ? latestRequest.details
+                      : t(`cancellationReason.${latestRequest.reasonCode}`)}
+                  </p>
+                  {latestRequest.reasonCode !== 'OTHER' &&
+                  latestRequest.details ? (
                     <p>{latestRequest.details}</p>
                   ) : null}
                   {latestRequest.reviewedAt ? (
