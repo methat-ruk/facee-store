@@ -79,8 +79,10 @@ model Category {
 model Product {
   id          String      @id @default(cuid())
   name        String
+  sku         String      @unique
   slug        String      @unique
   subtitle    String?
+  sizeLabel   String?
   description String
   howToUse    String      @default("")
   benefits    String[]    @default([])
@@ -97,6 +99,19 @@ model Product {
   orderItems  OrderItem[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+}
+
+model ProductMediaAsset {
+  id           String   @id @default(cuid())
+  originalName String
+  filename     String
+  url          String   @unique
+  contentType  String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  @@unique([filename])
+  @@index([createdAt])
 }
 
 model Order {

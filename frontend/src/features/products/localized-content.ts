@@ -21,7 +21,7 @@ const categoryCopy = {
   },
 } as const;
 
-const productCopy = {
+export const productCopy = {
   'cloud-calm-gel-cleanser': {
     th: {
       name: 'Cloud Calm Gel Cleanser',
@@ -263,24 +263,11 @@ export function getLocalizedProduct<T extends ProductLike>(
     };
   }
 
-  const translatedCopy =
-    productCopy[product.slug as keyof typeof productCopy]?.th ?? null;
-
   return {
     ...product,
-    name: translatedCopy?.name ?? product.name,
-    description: translatedCopy?.description ?? product.description,
     category: {
       ...product.category,
       name: getLocalizedCategoryName(product.category, normalizedLocale),
     },
-    ...('subtitle' in product
-      ? {
-          subtitle: translatedCopy?.subtitle ?? product.subtitle,
-          howToUse: translatedCopy?.howToUse ?? product.howToUse,
-          benefits: translatedCopy?.benefits ?? product.benefits,
-          ingredients: translatedCopy?.ingredients ?? product.ingredients,
-        }
-      : {}),
   } as T;
 }

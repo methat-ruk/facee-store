@@ -17,7 +17,7 @@ import {
 import { getCategories, getProducts } from '@/services/catalog';
 
 const DEFAULT_SORT: ProductSort = 'newest';
-const DEFAULT_LIMIT = 9;
+const DEFAULT_LIMIT = 24;
 
 export function ProductCatalogPage() {
   const t = useTranslations('products');
@@ -131,7 +131,7 @@ export function ProductCatalogPage() {
   )?.name;
 
   return (
-    <main className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="mx-auto flex h-full w-full max-w-[1560px] flex-1 flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <header className="space-y-3 border-b border-border/70 pb-8">
         <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
           {t('title')}
@@ -173,12 +173,12 @@ export function ProductCatalogPage() {
           <CatalogLoading />
         ) : catalog && catalog.items.length > 0 ? (
           <div className="space-y-8">
-            <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 items-start gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {catalog.items.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
-                  eagerImage={index === 0}
+                  eagerImage={index < 6}
                 />
               ))}
             </div>

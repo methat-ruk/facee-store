@@ -158,10 +158,6 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
             {isAdded ? t('addedToCart') : t('addToCart')}
           </span>
         </Button>
-
-        <p className="text-sm leading-7 text-muted-foreground">
-          {isOutOfStock ? t('outOfStockHelper') : t('addToCartHelper')}
-        </p>
       </CardContent>
     </Card>
   );

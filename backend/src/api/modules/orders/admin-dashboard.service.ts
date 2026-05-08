@@ -95,6 +95,7 @@ export class AdminDashboardService {
           id: true,
           name: true,
           slug: true,
+          imageUrl: true,
           stock: true,
           category: {
             select: {
@@ -141,6 +142,7 @@ export class AdminDashboardService {
         productId: product.id,
         productName: product.name,
         productSlug: product.slug,
+        imageUrl: product.imageUrl,
         stock: product.stock,
         categoryName: product.category.name,
       })),

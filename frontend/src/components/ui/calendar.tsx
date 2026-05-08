@@ -36,13 +36,13 @@ export function Calendar({
         day_button:
           'inline-flex size-10 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted hover:text-foreground',
         selected:
-          'rounded-full bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
+          'rounded-full bg-primary text-[#20120f] font-semibold hover:bg-primary hover:text-[#20120f] focus:bg-primary focus:text-[#20120f] [&>button]:text-[#20120f] [&>button]:font-semibold',
         range_start:
-          'rounded-full bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
+          'rounded-full bg-primary text-[#20120f] font-semibold hover:bg-primary hover:text-[#20120f] [&>button]:text-[#20120f] [&>button]:font-semibold',
         range_end:
-          'rounded-full bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground',
+          'rounded-full bg-primary text-[#20120f] font-semibold hover:bg-primary hover:text-[#20120f] [&>button]:text-[#20120f] [&>button]:font-semibold',
         range_middle:
-          'rounded-none bg-primary/14 text-foreground hover:bg-primary/20',
+          'rounded-none bg-[#d8b2a2]/28 text-[#f6ebe6] hover:bg-[#d8b2a2]/36',
         today: 'rounded-full border border-border/70 text-foreground',
         outside: 'text-muted-foreground/45',
         disabled: 'text-muted-foreground/35',

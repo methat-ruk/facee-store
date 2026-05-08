@@ -1,25 +1,37 @@
 'use client';
 
-import { ArrowRightIcon } from 'lucide-react';
+import { ArrowRightIcon, SearchIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { OrderListItem } from '@/features/orders/schemas';
 import {
   getOrderStatusBadgeClassName,
   getOrderStatusBadgeVariant,
 } from '@/features/orders/ui';
-import { Link } from '@/i18n/navigation';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { listAdminOrders } from '@/services/orders';
 import { useNotificationsStore } from '@/store/use-notifications-store';
+
+const ROWS_PER_PAGE_OPTIONS = [12, 25, 50] as const;
 
 export function AdminOrdersPage() {
   const t = useTranslations('adminOrders');
   const shellT = useTranslations('admin');
   const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,8 +40,13 @@ export function AdminOrdersPage() {
     'ALL' | OrderListItem['status']
   >('ALL');
   const [followUpOnly, setFollowUpOnly] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const notifications = useNotificationsStore((state) => state.items);
-  const query = searchParams.get('query')?.trim().toLowerCase() ?? '';
+  const requestedPage = Number(searchParams.get('page') ?? '1');
+  const requestedLimit = Number(searchParams.get('limit') ?? '25');
+  const limit = ROWS_PER_PAGE_OPTIONS.includes(requestedLimit as 12 | 25 | 50)
+    ? (requestedLimit as (typeof ROWS_PER_PAGE_OPTIONS)[number])
+    : 25;
   const uiText =
     locale === 'th'
       ? {
@@ -38,6 +55,11 @@ export function AdminOrdersPage() {
           shown: 'รายการที่แสดง',
           resultLabel: 'รายการออเดอร์ที่กรองแล้ว',
           allOrders: 'Orders',
+          searchPlaceholder:
+            'à¸„à¹‰à¸™à¸«à¸²à¸”à¹‰à¸§à¸¢à¹€à¸¥à¸‚à¸­à¸­à¹€à¸”à¸­à¸£à¹Œà¸«à¸£à¸·à¸­à¸ªà¸–à¸²à¸™à¸°',
+          rowsPerPage: 'แถวต่อหน้า',
+          previous: 'ก่อนหน้า',
+          next: 'ถัดไป',
           cleanDescription:
             'เปิดหน้าในเพื่อดูข้อมูลลูกค้า รายการสินค้า การชำระเงิน และราคารวมโดยละเอียด',
         }
@@ -47,6 +69,10 @@ export function AdminOrdersPage() {
           shown: 'orders shown',
           resultLabel: 'Filtered order list',
           allOrders: 'Orders',
+          searchPlaceholder: 'Search by order number or status',
+          rowsPerPage: 'Rows per page',
+          previous: 'Previous',
+          next: 'Next',
           cleanDescription:
             'Open the detail view to review customer, payment, item, and pricing information.',
         };
@@ -77,6 +103,23 @@ export function AdminOrdersPage() {
       isCancelled = true;
     };
   }, []);
+
+  function setParam(name: string, value?: string) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (!value) {
+      params.delete(name);
+    } else {
+      params.set(name, value);
+    }
+
+    if (name !== 'page') {
+      params.set('page', '1');
+    }
+
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }
 
   const statusCounts = useMemo(() => {
     return orders.reduce<Record<string, number>>((counts, order) => {
@@ -120,7 +163,9 @@ export function AdminOrdersPage() {
         .join(' ')
         .toLowerCase();
 
-      const matchesQuery = !query || haystack.includes(query);
+      const normalizedQuery = searchValue.trim().toLowerCase();
+      const matchesQuery =
+        !normalizedQuery || haystack.includes(normalizedQuery);
       const matchesStatus =
         activeStatus === 'ALL' || order.status === activeStatus;
       const needsFollowUp =
@@ -130,11 +175,21 @@ export function AdminOrdersPage() {
 
       return matchesQuery && matchesStatus && (!followUpOnly || needsFollowUp);
     });
-  }, [activeStatus, followUpOnly, orders, query]);
+  }, [activeStatus, followUpOnly, orders, searchValue]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / limit));
+  const currentPage = Math.min(
+    Math.max(1, Number.isFinite(requestedPage) ? requestedPage : 1),
+    totalPages,
+  );
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * limit;
+    return filteredOrders.slice(start, start + limit);
+  }, [currentPage, filteredOrders, limit]);
 
   if (isLoading) {
     return (
-      <main className="flex min-h-[32rem] items-center justify-center px-1 py-6">
+      <main className="flex min-h-128 items-center justify-center px-1 py-6">
         <p className="text-sm font-medium text-muted-foreground">
           {t('loading')}
         </p>
@@ -180,6 +235,16 @@ export function AdminOrdersPage() {
             </p>
           </div>
 
+          <div className="flex min-w-0 items-center gap-2 rounded-full border border-border/70 bg-background/72 px-4 py-2">
+            <SearchIcon className="size-4 text-muted-foreground" />
+            <Input
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder={uiText.searchPlaceholder}
+              className="border-none bg-transparent px-0 text-foreground shadow-none focus-visible:ring-0 dark:bg-transparent!"
+            />
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -209,28 +274,17 @@ export function AdminOrdersPage() {
               {`${uiText.followUp} (${followUpCount})`}
             </Button>
           </div>
-
-          <div className="rounded-[1.5rem] border border-border/65 bg-background/72 px-4 py-3">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              {uiText.resultLabel}
-            </p>
-            <p className="mt-2 text-sm text-foreground">
-              {query || activeStatus !== 'ALL' || followUpOnly
-                ? `${filteredOrders.length} ${uiText.shown}`
-                : shellT('ordersSummary', { count: orders.length })}
-            </p>
-          </div>
         </div>
       </section>
 
       <section className="rounded-[2rem] border border-border/70 bg-[rgba(31,22,19,0.9)] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.18)] sm:p-4">
         <div className="grid gap-3">
-          {filteredOrders.map((order) => (
+          {paginatedOrders.map((order) => (
             <Card
               key={order.orderNo}
               className="border-border/65 bg-background/68 shadow-none transition hover:border-[#c4917e] hover:bg-background/82"
             >
-              <CardContent className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5">
+              <CardContent className="grid gap-2 px-4 py-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div className="flex min-w-0 flex-col gap-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <CardTitle className="text-lg font-semibold tracking-tight text-foreground sm:text-[1.1rem]">
@@ -283,6 +337,53 @@ export function AdminOrdersPage() {
                 </p>
               </CardContent>
             </Card>
+          ) : null}
+
+          {filteredOrders.length > 0 ? (
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">
+                  {uiText.rowsPerPage}
+                </span>
+                <Select
+                  value={String(limit)}
+                  onValueChange={(value) => setParam('limit', value)}
+                >
+                  <SelectTrigger className="w-26">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROWS_PER_PAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={String(option)}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={currentPage <= 1}
+                  onClick={() => setParam('page', String(currentPage - 1))}
+                >
+                  {uiText.previous}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  {currentPage} / {totalPages}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setParam('page', String(currentPage + 1))}
+                >
+                  {uiText.next}
+                </Button>
+              </div>
+            </div>
           ) : null}
         </div>
       </section>

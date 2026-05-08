@@ -29,6 +29,7 @@ import {
   checkoutPrimaryButtonClassName,
   FREE_SHIPPING_THRESHOLD,
 } from '@/features/checkout/checkout-ui';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import {
   paymentMethodSchema,
   type PaymentMethod,
@@ -465,6 +466,9 @@ export function CheckoutPage() {
                         src={item.imageUrl}
                         alt={item.name}
                         fill
+                        unoptimized={shouldBypassNextImageOptimization(
+                          item.imageUrl,
+                        )}
                         sizes="64px"
                         className="object-cover object-top"
                       />

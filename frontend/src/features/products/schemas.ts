@@ -21,12 +21,15 @@ export const productSchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
+  createdAt: z.iso.datetime(),
+  sizeLabel: z.string().nullable(),
   description: z.string(),
   imageUrl: z.string().nullable(),
   isFlashSale: z.boolean(),
   price: z.number(),
   compareAtPrice: z.number().nullable(),
   stock: z.number().int(),
+  soldCount: z.number().int(),
   category: categorySchema,
 });
 
@@ -60,7 +63,7 @@ export const catalogQuerySchema = z.object({
   query: z.string().trim().min(1).optional(),
   sort: productSortSchema.default('newest'),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(24).default(9),
+  limit: z.coerce.number().int().min(1).max(24).default(24),
 });
 
 export type Category = z.infer<typeof categorySchema>;

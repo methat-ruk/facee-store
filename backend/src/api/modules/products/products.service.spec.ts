@@ -2,6 +2,20 @@ jest.mock('../../../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+jest.mock(
+  '../../../generated/prisma/client.cjs',
+  () => ({
+    Prisma: {
+      join: (values: unknown[]) => values,
+      sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+        strings,
+        values,
+      }),
+    },
+  }),
+  { virtual: true },
+);
+
 import type { PrismaService } from '../../../prisma/prisma.service';
 import { getProductsQuerySchema } from './dto/get-products-query.dto';
 import { ProductsService } from './products.service';
@@ -11,6 +25,7 @@ describe('ProductsService', () => {
     const count = jest.fn();
     const findFirst = jest.fn();
     const findMany = jest.fn();
+    const $queryRaw = jest.fn().mockResolvedValue([]);
 
     const prisma = {
       product: {
@@ -18,11 +33,13 @@ describe('ProductsService', () => {
         findFirst,
         findMany,
       },
+      $queryRaw,
     } satisfies {
       product: Pick<
         PrismaService['product'],
         'count' | 'findFirst' | 'findMany'
       >;
+      $queryRaw: PrismaService['$queryRaw'];
     };
 
     const service = new ProductsService(prisma);
@@ -32,6 +49,7 @@ describe('ProductsService', () => {
       count,
       findFirst,
       findMany,
+      $queryRaw,
     };
   };
 
@@ -39,7 +57,7 @@ describe('ProductsService', () => {
     expect(getProductsQuerySchema.parse({})).toEqual({
       sort: 'newest',
       page: 1,
-      limit: 9,
+      limit: 24,
     });
 
     expect(
@@ -66,7 +84,7 @@ describe('ProductsService', () => {
   });
 
   it('returns paginated published products by default', async () => {
-    const { service, count, findMany } = buildService();
+    const { service, count, findMany, $queryRaw } = buildService();
 
     count.mockResolvedValue(1);
     findMany.mockResolvedValue([
@@ -74,6 +92,8 @@ describe('ProductsService', () => {
         id: 'cm8product00000123456789012',
         name: 'Cloud Calm Gel Cleanser',
         slug: 'cloud-calm-gel-cleanser',
+        createdAt: new Date('2026-05-01T10:00:00.000Z'),
+        sizeLabel: '150 ml',
         description: 'Gentle cleanser.',
         imageUrl: null,
         isFlashSale: false,
@@ -85,6 +105,12 @@ describe('ProductsService', () => {
           name: 'Cleansers',
           slug: 'cleansers',
         },
+      },
+    ]);
+    $queryRaw.mockResolvedValue([
+      {
+        productId: 'cm8product00000123456789012',
+        soldCount: 26,
       },
     ]);
 
@@ -100,12 +126,15 @@ describe('ProductsService', () => {
           id: 'cm8product00000123456789012',
           name: 'Cloud Calm Gel Cleanser',
           slug: 'cloud-calm-gel-cleanser',
+          createdAt: '2026-05-01T10:00:00.000Z',
+          sizeLabel: '150 ml',
           description: 'Gentle cleanser.',
           imageUrl: null,
           isFlashSale: false,
           price: 490,
           compareAtPrice: null,
           stock: 28,
+          soldCount: 26,
           category: {
             id: 'cm8category000001234567890',
             name: 'Cleansers',
@@ -141,10 +170,11 @@ describe('ProductsService', () => {
   });
 
   it('applies category filtering and sort ordering', async () => {
-    const { service, count, findMany } = buildService();
+    const { service, count, findMany, $queryRaw } = buildService();
 
     count.mockResolvedValue(0);
     findMany.mockResolvedValue([]);
+    $queryRaw.mockResolvedValue([]);
 
     await service.findAll({
       category: 'serums',
@@ -171,10 +201,11 @@ describe('ProductsService', () => {
   });
 
   it('applies text search across published products', async () => {
-    const { service, count, findMany } = buildService();
+    const { service, count, findMany, $queryRaw } = buildService();
 
     count.mockResolvedValue(0);
     findMany.mockResolvedValue([]);
+    $queryRaw.mockResolvedValue([]);
 
     await service.findAll({
       query: 'cleanser',
@@ -211,10 +242,11 @@ describe('ProductsService', () => {
   });
 
   it('clamps requested page to the last available page', async () => {
-    const { service, count, findMany } = buildService();
+    const { service, count, findMany, $queryRaw } = buildService();
 
     count.mockResolvedValue(10);
     findMany.mockResolvedValue([]);
+    $queryRaw.mockResolvedValue([]);
 
     const response = await service.findAll({
       sort: 'name-asc',
@@ -240,12 +272,14 @@ describe('ProductsService', () => {
   });
 
   it('returns a rich published product detail payload by slug', async () => {
-    const { service, findFirst, findMany } = buildService();
+    const { service, findFirst, findMany, $queryRaw } = buildService();
 
     findFirst.mockResolvedValue({
       id: 'cm8product00000123456789012',
       name: 'Cloud Calm Gel Cleanser',
       slug: 'cloud-calm-gel-cleanser',
+      createdAt: new Date('2026-05-01T10:00:00.000Z'),
+      sizeLabel: '150 ml',
       subtitle: 'A comfort-first gel cleanser for calm everyday cleansing.',
       description: 'Gentle cleanser.',
       howToUse: 'Massage onto damp skin and rinse with lukewarm water.',
@@ -271,6 +305,8 @@ describe('ProductsService', () => {
         id: 'cm8product00000123456789013',
         name: 'Soft Reset Cream Cleanser',
         slug: 'soft-reset-cream-cleanser',
+        createdAt: new Date('2026-05-02T10:00:00.000Z'),
+        sizeLabel: '120 ml',
         description: 'Cream cleanser.',
         imageUrl: '/images/products/soft-reset-cream-cleanser.png',
         isFlashSale: false,
@@ -284,6 +320,16 @@ describe('ProductsService', () => {
         },
       },
     ]);
+    $queryRaw.mockResolvedValue([
+      {
+        productId: 'cm8product00000123456789012',
+        soldCount: 26,
+      },
+      {
+        productId: 'cm8product00000123456789013',
+        soldCount: 11,
+      },
+    ]);
 
     await expect(
       service.findBySlug('cloud-calm-gel-cleanser'),
@@ -292,6 +338,8 @@ describe('ProductsService', () => {
         id: 'cm8product00000123456789012',
         name: 'Cloud Calm Gel Cleanser',
         slug: 'cloud-calm-gel-cleanser',
+        createdAt: '2026-05-01T10:00:00.000Z',
+        sizeLabel: '150 ml',
         subtitle: 'A comfort-first gel cleanser for calm everyday cleansing.',
         description: 'Gentle cleanser.',
         howToUse: 'Massage onto damp skin and rinse with lukewarm water.',
@@ -306,6 +354,7 @@ describe('ProductsService', () => {
         price: 490,
         compareAtPrice: null,
         stock: 28,
+        soldCount: 26,
         category: {
           id: 'cm8category000001234567890',
           name: 'Cleansers',
@@ -317,12 +366,15 @@ describe('ProductsService', () => {
           id: 'cm8product00000123456789013',
           name: 'Soft Reset Cream Cleanser',
           slug: 'soft-reset-cream-cleanser',
+          createdAt: '2026-05-02T10:00:00.000Z',
+          sizeLabel: '120 ml',
           description: 'Cream cleanser.',
           imageUrl: '/images/products/soft-reset-cream-cleanser.png',
           isFlashSale: false,
           price: 520,
           compareAtPrice: null,
           stock: 14,
+          soldCount: 11,
           category: {
             id: 'cm8category000001234567890',
             name: 'Cleansers',

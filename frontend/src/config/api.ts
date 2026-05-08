@@ -57,6 +57,10 @@ export const apiConfig = {
         `/admin/orders/${orderNo}/refund-status`,
       confirmQrPayment: (orderNo: string) =>
         `/admin/orders/${orderNo}/confirm-qr-payment`,
+      products: '/admin/products',
+      productCategories: '/admin/products/categories',
+      productDetail: (productId: string) => `/admin/products/${productId}`,
+      productUpload: '/admin/products/upload',
     },
   },
 } as const;

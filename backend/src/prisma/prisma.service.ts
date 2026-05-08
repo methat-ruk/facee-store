@@ -51,6 +51,25 @@ export class PrismaService implements OnModuleDestroy {
     return this.client.$connect();
   }
 
+  $queryRaw<T = unknown>(
+    query: TemplateStringsArray | Prisma.Sql,
+    ...values: unknown[]
+  ) {
+    if (Array.isArray(query)) {
+      return this.client.$queryRaw<T>(query, ...values);
+    }
+
+    return this.client.$queryRaw<T>(query);
+  }
+
+  $executeRaw(query: TemplateStringsArray | Prisma.Sql, ...values: unknown[]) {
+    if (Array.isArray(query)) {
+      return this.client.$executeRaw(query, ...values);
+    }
+
+    return this.client.$executeRaw(query);
+  }
+
   $disconnect() {
     return this.client.$disconnect();
   }

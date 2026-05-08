@@ -43,6 +43,22 @@ function appendFieldError(
 }
 
 function getIssueFieldCode(field: string, issue: ZodIssueLike): ApiErrorCode {
+  if (issue.message === 'Compare-at price must be greater than price.') {
+    return API_ERROR_CODES.productCompareAtPriceInvalid;
+  }
+
+  if (issue.message === 'Invalid media URL.') {
+    return API_ERROR_CODES.productMediaUrlInvalid;
+  }
+
+  if (field === 'benefits' && issue.message) {
+    return API_ERROR_CODES.productBenefitsRequired;
+  }
+
+  if (field === 'ingredients' && issue.message) {
+    return API_ERROR_CODES.productIngredientsRequired;
+  }
+
   if (field === 'email' && issue.code === 'invalid_format') {
     return API_ERROR_CODES.invalidEmail;
   }
@@ -60,6 +76,26 @@ function getIssueFieldCode(field: string, issue: ZodIssueLike): ApiErrorCode {
     issue.message === 'Passwords do not match.'
   ) {
     return API_ERROR_CODES.passwordMismatch;
+  }
+
+  if (field === 'sku' && issue.code === 'invalid_format') {
+    return API_ERROR_CODES.productSkuInvalid;
+  }
+
+  if (field === 'slug' && issue.code === 'invalid_format') {
+    return API_ERROR_CODES.productSlugInvalid;
+  }
+
+  if (field === 'categoryId' && issue.code === 'invalid_format') {
+    return API_ERROR_CODES.productCategoryInvalid;
+  }
+
+  if (field === 'price' && issue.code !== 'too_small') {
+    return API_ERROR_CODES.productPriceInvalid;
+  }
+
+  if (field === 'stock' && issue.code !== 'too_small') {
+    return API_ERROR_CODES.productStockInvalid;
   }
 
   return API_ERROR_CODES.required;

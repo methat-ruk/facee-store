@@ -33,6 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { buildAuthNoticeHref } from '@/features/auth/auth-routing';
 import { checkoutPrimaryButtonClassName } from '@/features/checkout/checkout-ui';
+import { shouldBypassNextImageOptimization } from '@/lib/image';
 import {
   cancellationReasonCodeSchema,
   type CreateCancellationRequestInput,
@@ -353,6 +354,9 @@ export function OrderDetailPage({ orderNo }: OrderDetailPageProps) {
                         src={item.productImageUrl}
                         alt={item.productName}
                         fill
+                        unoptimized={shouldBypassNextImageOptimization(
+                          item.productImageUrl,
+                        )}
                         sizes="64px"
                         className="object-cover object-top"
                       />

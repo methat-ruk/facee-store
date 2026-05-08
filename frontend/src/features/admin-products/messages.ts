@@ -1,0 +1,191 @@
+type Translate = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
+export function getAdminProductsPageText(t: Translate) {
+  return {
+    heading: t('page.heading'),
+    description: t('page.description'),
+    total: t('page.total'),
+    published: t('page.published'),
+    hidden: t('page.hidden'),
+    lowStock: t('page.lowStock'),
+    searchPlaceholder: t('page.searchPlaceholder'),
+    all: t('page.all'),
+    publishedFilter: t('page.publishedFilter'),
+    hiddenFilter: t('page.hiddenFilter'),
+    onSale: t('page.onSale'),
+    lowStockFilter: t('page.lowStockFilter'),
+    allCategories: t('page.allCategories'),
+    addProduct: t('page.addProduct'),
+    productList: t('page.productList'),
+    rowsPerPage: t('page.rowsPerPage'),
+    product: t('page.product'),
+    category: t('page.category'),
+    status: t('page.status'),
+    price: t('page.price'),
+    compareAt: t('page.compareAt'),
+    stock: t('page.stock'),
+    updated: t('page.updated'),
+    actions: t('page.actions'),
+    edit: t('page.edit'),
+    compareAtEmpty: t('page.compareAtEmpty'),
+    empty: t('page.empty'),
+    previous: t('page.previous'),
+    next: t('page.next'),
+    clearFilters: t('page.clearFilters'),
+    loadFailed: t('page.loadFailed'),
+    currentViewCount: (count: number) => t('page.currentViewCount', { count }),
+  };
+}
+
+export function getAdminProductEditorText(t: Translate, productId?: string) {
+  const isEditing = Boolean(productId);
+
+  return {
+    title: isEditing ? t('editor.title.edit') : t('editor.title.create'),
+    description: t('editor.description'),
+    back: t('editor.back'),
+    loading: t('editor.loading'),
+    save: isEditing ? t('editor.save.edit') : t('editor.save.create'),
+    saving: isEditing ? t('editor.saving.edit') : t('editor.saving.create'),
+    detailsTitle: t('editor.detailsTitle'),
+    detailsDescription: t('editor.detailsDescription'),
+    merchandisingTitle: t('editor.merchandisingTitle'),
+    merchandisingDescription: t('editor.merchandisingDescription'),
+    mediaTitle: t('editor.mediaTitle'),
+    mediaDescription: t('editor.mediaDescription'),
+    contentTitle: t('editor.contentTitle'),
+    contentDescription: t('editor.contentDescription'),
+    name: t('editor.name'),
+    sku: t('editor.sku'),
+    slug: t('editor.slug'),
+    subtitle: t('editor.subtitle'),
+    sizeLabel: t('editor.sizeLabel'),
+    sizePlaceholder: t('editor.sizePlaceholder'),
+    category: t('editor.category'),
+    descriptionLabel: t('editor.descriptionLabel'),
+    howToUse: t('editor.howToUse'),
+    benefits: t('editor.benefits'),
+    ingredients: t('editor.ingredients'),
+    benefitsDescription: t('editor.benefitsDescription'),
+    ingredientsDescription: t('editor.ingredientsDescription'),
+    addBenefit: t('editor.addBenefit'),
+    addIngredient: t('editor.addIngredient'),
+    itemPlaceholder: t('editor.itemPlaceholder'),
+    namePlaceholder: t('editor.namePlaceholder'),
+    nameHelper: t('editor.nameHelper'),
+    slugHelper: t('editor.slugHelper'),
+    skuHelper: t('editor.skuHelper'),
+    subtitlePlaceholder: t('editor.subtitlePlaceholder'),
+    subtitleHelper: t('editor.subtitleHelper'),
+    descriptionPlaceholder: t('editor.descriptionPlaceholder'),
+    howToUsePlaceholder: t('editor.howToUsePlaceholder'),
+    price: t('editor.price'),
+    compareAtPrice: t('editor.compareAtPrice'),
+    stock: t('editor.stock'),
+    publish: t('editor.publish'),
+    onSale: t('editor.onSale'),
+    priceHelper: t('editor.priceHelper'),
+    compareAtHelper: t('editor.compareAtHelper'),
+    galleryImages: t('editor.galleryImages'),
+    uploadCover: t('editor.uploadCover'),
+    uploadGallery: t('editor.uploadImages'),
+    uploadRequirements: t('editor.uploadRequirements'),
+    uploadRecommendedSize: t('editor.uploadRecommendedSize'),
+    uploadAspect: t('editor.uploadAspect'),
+    warningsTitle: t('editor.warningsTitle'),
+    setAsCover: t('editor.setAsCover'),
+    coverImage: t('editor.coverImage'),
+    removeImage: t('editor.removeImage'),
+    previewImage: t('editor.previewImage'),
+    removeImageTitle: t('editor.removeImageTitle'),
+    removeImageDescription: t('editor.removeImageDescription'),
+    cancel: t('editor.cancel'),
+    confirmRemove: t('editor.confirmRemove'),
+    closePreview: t('editor.closePreview'),
+    saveSuccessTitle: t('editor.saveSuccessTitle'),
+    saveSuccessDescription: t('editor.saveSuccessDescription'),
+    validationErrorTitle: t('editor.validationErrorTitle'),
+    uploadSuccessTitle: t('editor.uploadSuccessTitle'),
+    uploadSuccessDescription: t('editor.uploadSuccessDescription'),
+    removeImageSuccessTitle: t('editor.removeImageSuccessTitle'),
+    removeImageSuccessDescription: t('editor.removeImageSuccessDescription'),
+    emptyGallery: t('editor.emptyGallery'),
+    emptyGalleryDescription: t('editor.emptyGalleryDescription'),
+    uploadFailed: t('editor.uploadFailed'),
+    loadFailed: t('editor.loadFailed'),
+    saveFailed: t('editor.saveFailed'),
+    hidden: t('editor.hidden'),
+    published: t('editor.published'),
+    galleryItemLabel: (index: number) =>
+      t('editor.galleryItemLabel', { index }),
+  };
+}
+
+export function getAdminProductUploadWarningText(t: Translate) {
+  return {
+    landscape: (name: string) => t('editor.warning.landscape', { name }),
+    square: (name: string) => t('editor.warning.square', { name }),
+    aspect: (name: string) => t('editor.warning.aspect', { name }),
+  };
+}
+
+export function getAdminProductValidationText(t: Translate) {
+  const schemaMessageMap: Record<string, string> = {
+    PRODUCT_NAME_REQUIRED: t('editor.validation.nameRequired'),
+    PRODUCT_SKU_REQUIRED: t('editor.validation.skuRequired'),
+    PRODUCT_SKU_FORMAT: t('editor.validation.skuFormat'),
+    PRODUCT_SLUG_REQUIRED: t('editor.validation.slugRequired'),
+    PRODUCT_SLUG_FORMAT: t('editor.validation.slugFormat'),
+    PRODUCT_DESCRIPTION_REQUIRED: t('editor.validation.descriptionRequired'),
+    PRODUCT_HOW_TO_USE_REQUIRED: t('editor.validation.howToUseRequired'),
+    PRODUCT_LIST_REQUIRED: t('editor.validation.listRequired'),
+    PRODUCT_PRICE_REQUIRED: t('editor.validation.priceRequired'),
+    PRODUCT_STOCK_REQUIRED: t('editor.validation.stockRequired'),
+    PRODUCT_CATEGORY_REQUIRED: t('editor.validation.categoryRequired'),
+    PRODUCT_COMPARE_AT_PRICE_INVALID: t(
+      'editor.validation.compareAtPriceInvalid',
+    ),
+  };
+
+  const apiCodeMap: Record<string, string> = {
+    PRODUCT_SKU_EXISTS: t('editor.validation.skuExists'),
+    PRODUCT_SLUG_EXISTS: t('editor.validation.slugExists'),
+    PRODUCT_COMPARE_AT_PRICE_INVALID: t(
+      'editor.validation.compareAtPriceInvalid',
+    ),
+    PRODUCT_MEDIA_URL_INVALID: t('editor.validation.mediaInvalid'),
+    PRODUCT_SKU_INVALID: t('editor.validation.skuFormat'),
+    PRODUCT_SLUG_INVALID: t('editor.validation.slugFormat'),
+    PRODUCT_CATEGORY_INVALID: t('editor.validation.categoryInvalid'),
+    CATEGORY_NOT_FOUND: t('editor.validation.categoryInvalid'),
+    PRODUCT_BENEFITS_REQUIRED: t('editor.validation.benefitsRequired'),
+    PRODUCT_INGREDIENTS_REQUIRED: t('editor.validation.ingredientsRequired'),
+    PRODUCT_PRICE_INVALID: t('editor.validation.priceInvalid'),
+    PRODUCT_STOCK_INVALID: t('editor.validation.stockInvalid'),
+  };
+
+  const requiredFieldMap: Record<string, string> = {
+    name: t('editor.validation.nameRequired'),
+    sku: t('editor.validation.skuRequired'),
+    slug: t('editor.validation.slugRequired'),
+    description: t('editor.validation.descriptionRequired'),
+    howToUse: t('editor.validation.howToUseRequired'),
+    categoryId: t('editor.validation.categoryRequired'),
+    price: t('editor.validation.priceRequired'),
+    stock: t('editor.validation.stockRequired'),
+    benefits: t('editor.validation.benefitsRequired'),
+    ingredients: t('editor.validation.ingredientsRequired'),
+  };
+
+  return {
+    schemaMessageMap,
+    apiCodeMap,
+    requiredFieldMap,
+    fallback: (field: string) =>
+      t('editor.validation.fieldFallback', { field }),
+    fallbackAgain: t('editor.validation.fieldFallbackAgain'),
+  };
+}

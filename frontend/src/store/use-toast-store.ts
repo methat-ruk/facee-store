@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 
-export type ToastTone = 'error' | 'info' | 'success';
+export type ToastTone = 'error' | 'info' | 'success' | 'warning';
 
 export type ToastItem = {
   id: string;

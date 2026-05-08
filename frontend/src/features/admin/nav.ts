@@ -24,7 +24,7 @@ export const adminNavItems = [
     labelKey: 'products',
     href: '/admin/products',
     icon: BoxIcon,
-    disabled: true,
+    disabled: false,
   },
   {
     labelKey: 'customers',
