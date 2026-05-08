@@ -292,6 +292,27 @@ Response sections include:
 - `recentOrders`
 - `stockAlerts`
 
+### `GET /api/admin/customers`
+
+Returns admin-facing customer list data for search and support workflows.
+
+Supported query params:
+
+- `query`
+- `page`
+- `limit`
+
+### `GET /api/admin/customers/:customerId`
+
+Returns one admin-facing customer detail payload.
+
+This admin customer detail surface is read-only and currently includes:
+
+- account profile
+- saved addresses
+- customer summary stats
+- recent orders
+
 ### `GET /api/admin/orders/:orderNo`
 
 Returns one admin-facing order detail payload.
@@ -347,7 +368,7 @@ Implemented:
 - product detail by slug
 - customer order create/list/detail/cancel flow
 - sandbox payment confirmation flow
-- admin dashboard and order review endpoints
+- admin dashboard, customer directory, and order review endpoints
 - admin QR payment confirmation
 - notification list, SSE stream, and read-state endpoints
 

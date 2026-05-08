@@ -41,7 +41,7 @@ The repo currently includes:
 - PostgreSQL + Prisma for product, account, and order data
 - a customer cart, checkout, and sandbox payment flow
 - customer auth, profile, saved addresses, saved demo cards, and order history
-- a dark-only admin portal with overview and order review tools
+- a dark-only admin portal with overview, customer lookup, and order review tools
 - real-time notifications for admins and customers via Server-Sent Events
 - a shared shadcn/ui-based design system
 
@@ -96,6 +96,7 @@ see what exists today and what is still ahead.
   - recent orders table
   - low-stock alerts
 - admin order list and detail views
+- admin customer list and read-only customer detail views
 - QR payment confirmation from the admin order detail page
 - order-level notification badges and automatic mark-as-read behavior
 - collapsible sidebar and shared admin shell
@@ -120,7 +121,7 @@ see what exists today and what is still ahead.
 - customer account endpoints for profile, addresses, and saved payment methods
 - customer order endpoints for listing, detail, cancellation, and sandbox
   payment confirmation
-- admin dashboard and order review endpoints
+- admin dashboard, customer directory, and order review endpoints
 - notification list, SSE stream, and read-state endpoints
 
 ### Data and Content
@@ -251,6 +252,7 @@ Useful local URLs:
 - thai storefront catalog: `http://localhost:3000/th/products`
 - admin overview: `http://localhost:3000/en/admin`
 - admin orders: `http://localhost:3000/en/admin/orders`
+- admin customers: `http://localhost:3000/en/admin/customers`
 - profile: `http://localhost:3000/en/profile`
 - checkout: `http://localhost:3000/en/checkout`
 - orders: `http://localhost:3000/en/orders`
