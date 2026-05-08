@@ -67,6 +67,7 @@ export class AdminDashboardService {
         select: {
           id: true,
           reasonCode: true,
+          details: true,
           createdAt: true,
           order: {
             select: {
@@ -133,6 +134,7 @@ export class AdminDashboardService {
             request.order.user?.fullName ??
             'Facee Customer',
           reasonCode: request.reasonCode,
+          details: request.details,
           requestedAt: request.createdAt.toISOString(),
           orderTotal: Number(request.order.total),
         }),

@@ -13,8 +13,8 @@ The repository uses:
 The product now spans both the **customer storefront** and a focused **admin
 operations portal**. A customer can browse products, authenticate, manage
 account data, create orders, and complete a sandbox payment step. Admin users
-can monitor overview metrics, review order activity, confirm QR payments, and
-act on cancellation workflows.
+can monitor overview metrics, inspect customer records, review order activity,
+confirm QR payments, and act on cancellation workflows.
 
 ## System Shape
 
@@ -48,6 +48,8 @@ Current customer routes:
 Current admin routes:
 
 - `/[locale]/admin`
+- `/[locale]/admin/customers`
+- `/[locale]/admin/customers/[customerId]`
 - `/[locale]/admin/orders`
 - `/[locale]/admin/orders/[orderNo]`
 
@@ -118,9 +120,12 @@ customers.
 1. Admin users enter the shared portal at `/[locale]/admin`.
 2. The overview page loads `/api/admin/dashboard` with a current-period summary,
    recent orders, low-stock alerts, and cancellation review items.
-3. The order review surface loads `/api/admin/orders` and
+3. The customer workspace loads `/api/admin/customers` and
+   `/api/admin/customers/:customerId` for read-only profile, address, and
+   recent-order inspection.
+4. The order review surface loads `/api/admin/orders` and
    `/api/admin/orders/:orderNo`.
-4. Admins can confirm submitted QR transfers, review cancellation requests, and
+5. Admins can confirm submitted QR transfers, review cancellation requests, and
    update refund records from the order detail surface.
 
 ### Notifications
@@ -221,6 +226,7 @@ component styles.
 - order list and order detail pages
 - sandbox QR/card payment flow
 - admin overview and order review pages
+- admin customer directory and read-only customer detail pages
 - admin QR payment confirmation
 - real-time notifications with SSE
 - locale switching

@@ -92,6 +92,7 @@ describe('AdminDashboardService', () => {
       {
         id: 'req-1',
         reasonCode: 'WRONG_ADDRESS',
+        details: null,
         createdAt: new Date('2026-04-30T07:00:00.000Z'),
         order: {
           orderNo: 'FC-20260430-100001',
@@ -102,7 +103,8 @@ describe('AdminDashboardService', () => {
       },
       {
         id: 'req-2',
-        reasonCode: 'ORDER_DELAY',
+        reasonCode: 'OTHER',
+        details: 'ส่งช้าเกินไป ขอเปลี่ยนใจค่ะ',
         createdAt: new Date('2026-04-30T08:00:00.000Z'),
         order: {
           orderNo: 'FC-20260430-100002',
@@ -149,6 +151,7 @@ describe('AdminDashboardService', () => {
           orderNo: 'FC-20260430-100001',
           customerName: 'Aree',
           reasonCode: 'WRONG_ADDRESS',
+          details: null,
           requestedAt: '2026-04-30T07:00:00.000Z',
           orderTotal: 960,
         },
@@ -156,7 +159,8 @@ describe('AdminDashboardService', () => {
           requestId: 'req-2',
           orderNo: 'FC-20260430-100002',
           customerName: 'Nalin',
-          reasonCode: 'ORDER_DELAY',
+          reasonCode: 'OTHER',
+          details: 'ส่งช้าเกินไป ขอเปลี่ยนใจค่ะ',
           requestedAt: '2026-04-30T08:00:00.000Z',
           orderTotal: 1280,
         },

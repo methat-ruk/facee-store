@@ -303,11 +303,6 @@ export function OrdersPage() {
 
                     <div className="min-w-0 text-sm leading-7 text-muted-foreground">
                       <p>{formatOrderDate(order.createdAt, locale)}</p>
-                      <p>{order.contact.fullName}</p>
-                      <p className="truncate">{order.contact.addressLine}</p>
-                      <p>
-                        {order.contact.city} {order.contact.postalCode}
-                      </p>
                     </div>
 
                     <div className="flex flex-col gap-1 text-sm sm:items-end">

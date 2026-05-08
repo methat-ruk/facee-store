@@ -1,4 +1,4 @@
-import { AdminOrderDetailPage } from '@/features/orders/admin-order-detail-page';
+import { AdminOrderDetailPage } from '@/features/admin-orders/admin-order-detail-page';
 
 type LocaleAdminOrderDetailPageProps = {
   params: Promise<{

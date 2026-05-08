@@ -30,7 +30,7 @@ export const adminNavItems = [
     labelKey: 'customers',
     href: '/admin/customers',
     icon: UsersIcon,
-    disabled: true,
+    disabled: false,
   },
   {
     labelKey: 'inventory',

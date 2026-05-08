@@ -592,7 +592,10 @@ export function AdminOverviewPage() {
                     </div>
                     <div className="space-y-1">
                       <Badge variant="outline">
-                        {t(`cancellationReasons.${request.reasonCode}`)}
+                        {request.reasonCode === 'OTHER' &&
+                        request.details?.trim()
+                          ? request.details
+                          : t(`cancellationReasons.${request.reasonCode}`)}
                       </Badge>
                       <p className="text-sm text-muted-foreground">
                         {formatOrderDate(request.requestedAt, locale)}

@@ -35,6 +35,15 @@ export const paymentDemoStatusSchema = z.enum([
   'CARD_COMPLETED',
 ]);
 
+export const orderStatusSchema = z.enum([
+  'PENDING',
+  'PAID',
+  'PACKING',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELED',
+]);
+
 export const cancellationReasonCodeSchema = z.enum([
   'WRONG_ADDRESS',
   'DUPLICATE_ORDER',
@@ -62,14 +71,7 @@ export const cancellationRequestSummarySchema = z.object({
 
 export const orderDetailResponseSchema = z.object({
   orderNo: z.string(),
-  status: z.enum([
-    'PENDING',
-    'PAID',
-    'PACKING',
-    'SHIPPED',
-    'DELIVERED',
-    'CANCELED',
-  ]),
+  status: orderStatusSchema,
   refundStatus: refundStatusSchema,
   paymentMethod: paymentMethodSchema,
   paymentDemoStatus: paymentDemoStatusSchema,

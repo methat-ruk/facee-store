@@ -21,6 +21,7 @@ an in-progress storefront project.
 - Flash sale product flag and compare-at pricing support
 - Admin order review endpoints for cancellation and refund handling
 - Admin portal overview and order review workspace at `/[locale]/admin`
+- Admin customer directory with read-only customer detail views
 - Admin QR payment confirmation flow
 - Notification persistence, SSE stream, unread badges, and read-state actions
 
@@ -35,6 +36,8 @@ an in-progress storefront project.
 - Frontend and admin UI now run in a single dark theme
 - Admin orders UI was simplified around review-focused statuses and
   notification-aware order rows
+- Admin customer detail scope was corrected to read-only profile/address
+  inspection without admin payment-method management
 
 ### Planned
 
