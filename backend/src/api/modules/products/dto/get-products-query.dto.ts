@@ -13,7 +13,7 @@ export const getProductsQuerySchema = z.object({
   query: z.string().trim().min(1).optional(),
   sort: productSortSchema.default('newest'),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(24).default(9),
+  limit: z.coerce.number().int().min(1).max(24).default(24),
 });
 
 export class GetProductsQueryDto extends createZodDto(getProductsQuerySchema) {}

@@ -30,6 +30,7 @@ export const adminProductBaseInputSchema = z
       .max(120)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     subtitle: z.string().trim().max(160).nullable(),
+    sizeLabel: z.string().trim().max(40).nullable().optional(),
     description: productTextSchema,
     howToUse: productTextSchema,
     benefits: productStringArraySchema,
@@ -71,6 +72,7 @@ export const updateAdminProductSchema = z
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
       .optional(),
     subtitle: z.string().trim().max(160).nullable().optional(),
+    sizeLabel: z.string().trim().max(40).nullable().optional(),
     description: productTextSchema.optional(),
     howToUse: productTextSchema.optional(),
     benefits: z.array(productTextSchema).optional(),

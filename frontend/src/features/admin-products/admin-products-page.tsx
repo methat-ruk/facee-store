@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -11,7 +11,7 @@ import {
   SparklesIcon,
 } from 'lucide-react';
 import { useEffect, useState, type ComponentType } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import {
   type AdminProductStatusFilter,
   type AdminProductSummary,
 } from '@/features/admin-products/schemas';
+import { getAdminProductsPageText } from '@/features/admin-products/messages';
 import { formatOrderDate, formatOrderPrice } from '@/features/orders/ui';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import {
@@ -40,22 +41,27 @@ const ROWS_PER_PAGE_OPTIONS = [12, 25, 50] as const;
 function getProductBadges(
   product: Pick<AdminProductSummary, 'isPublished' | 'isFlashSale' | 'stock'>,
   locale: string,
+  onSaleLabel: string,
 ) {
   const items = [
     product.isPublished
       ? {
-          label: locale === 'th' ? 'เผยแพร่แล้ว' : 'Published',
+          label:
+            locale === 'th' ? 'à¹€à¸œà¸¢à¹à¸žà¸£à¹ˆà¹à¸¥à¹‰à¸§' : 'Published',
           className: 'border-emerald-400/30 bg-emerald-400/15 text-emerald-100',
         }
       : {
-          label: locale === 'th' ? 'ยังไม่เผยแพร่' : 'Hidden',
+          label:
+            locale === 'th'
+              ? 'à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹€à¸œà¸¢à¹à¸žà¸£à¹ˆ'
+              : 'Hidden',
           className: 'border-border/70 bg-background/70 text-muted-foreground',
         },
   ];
 
   if (product.isFlashSale) {
     items.push({
-      label: 'Flash sale',
+      label: onSaleLabel,
       className: 'border-[#d69d85]/35 bg-[#d69d85]/14 text-[#f7ddcf]',
     });
   }
@@ -64,7 +70,7 @@ function getProductBadges(
     items.push({
       label:
         locale === 'th'
-          ? `สต็อกต่ำ ${product.stock}`
+          ? `à¸ªà¸•à¹‡à¸­à¸à¸•à¹ˆà¸³ ${product.stock}`
           : `Low stock ${product.stock}`,
       className: 'border-amber-400/30 bg-amber-400/15 text-amber-100',
     });
@@ -138,84 +144,8 @@ export function AdminProductsPage() {
     ? (requestedLimit as (typeof ROWS_PER_PAGE_OPTIONS)[number])
     : 25;
 
-  const uiText =
-    locale === 'th'
-      ? {
-          heading: 'พื้นที่จัดการสินค้า',
-          description:
-            'จัดการรายการสินค้า ราคา สต็อก การเผยแพร่ และรูปภาพในพื้นที่เดียว',
-          total: 'สินค้าทั้งหมด',
-          published: 'เผยแพร่แล้ว',
-          hidden: 'ยังไม่เผยแพร่',
-          lowStock: 'สต็อกต่ำ',
-          searchPlaceholder: 'ค้นหาด้วยชื่อสินค้า SKU หรือ slug',
-          search: 'ค้นหา',
-          all: 'ทั้งหมด',
-          publishedFilter: 'เผยแพร่แล้ว',
-          hiddenFilter: 'ยังไม่เผยแพร่',
-          flashSale: 'Flash sale',
-          lowStockFilter: 'Low stock',
-          allCategories: 'ทุกหมวดหมู่',
-          addProduct: 'Add product',
-          productList: 'รายการสินค้า',
-          resultLabel: 'รายการตามตัวกรอง',
-          rowsPerPage: 'แถวต่อหน้า',
-          product: 'สินค้า',
-          category: 'หมวดหมู่',
-          status: 'สถานะ',
-          price: 'ราคา',
-          compareAt: 'ราคาเทียบ',
-          stock: 'สต็อก',
-          updated: 'อัปเดตล่าสุด',
-          actions: 'Actions',
-          edit: 'Edit',
-          compareAtEmpty: '-',
-          empty: 'ยังไม่มีสินค้าตรงกับตัวกรองนี้',
-          previous: 'ก่อนหน้า',
-          next: 'ถัดไป',
-          clearFilters: 'ล้างตัวกรอง',
-          loadFailed: 'โหลดข้อมูลสินค้าไม่สำเร็จ',
-          currentViewCount: (count: number) =>
-            `${count} รายการตามตัวกรองปัจจุบัน`,
-        }
-      : {
-          heading: 'Product workspace',
-          description:
-            'Manage catalog entries, pricing, stock, publishing, and media from one review surface.',
-          total: 'Total products',
-          published: 'Published',
-          hidden: 'Hidden',
-          lowStock: 'Low stock',
-          searchPlaceholder: 'Search by product name, SKU, or slug',
-          search: 'Search',
-          all: 'All',
-          publishedFilter: 'Published',
-          hiddenFilter: 'Hidden',
-          flashSale: 'Flash sale',
-          lowStockFilter: 'Low stock',
-          allCategories: 'All categories',
-          addProduct: 'Add product',
-          productList: 'Product list',
-          resultLabel: 'Current results',
-          rowsPerPage: 'Rows per page',
-          product: 'Product',
-          category: 'Category',
-          status: 'Status',
-          price: 'Price',
-          compareAt: 'Compare-at',
-          stock: 'Stock',
-          updated: 'Updated',
-          actions: 'Actions',
-          edit: 'Edit',
-          compareAtEmpty: '-',
-          empty: 'No products matched this view.',
-          previous: 'Previous',
-          next: 'Next',
-          clearFilters: 'Clear filters',
-          loadFailed: 'Unable to load the product workspace.',
-          currentViewCount: (count: number) =>
-            `${count} products in the current view.`,
-        };
+  const t = useTranslations('adminProducts');
+  const uiText = getAdminProductsPageText(t);
 
   useEffect(() => {
     let isCancelled = false;
@@ -407,7 +337,7 @@ export function AdminProductsPage() {
                   setParam('flashSale', flashSaleOnly ? undefined : 'true')
                 }
               >
-                {uiText.flashSale}
+                {uiText.onSale}
               </Button>
               <Button
                 type="button"
@@ -508,15 +438,17 @@ export function AdminProductsPage() {
                   </td>
                   <td className="border-y border-border/60 px-4 py-4">
                     <div className="flex flex-wrap gap-2">
-                      {getProductBadges(product, locale).map((badge) => (
-                        <Badge
-                          key={badge.label}
-                          variant="outline"
-                          className={badge.className}
-                        >
-                          {badge.label}
-                        </Badge>
-                      ))}
+                      {getProductBadges(product, locale, uiText.onSale).map(
+                        (badge) => (
+                          <Badge
+                            key={badge.label}
+                            variant="outline"
+                            className={badge.className}
+                          >
+                            {badge.label}
+                          </Badge>
+                        ),
+                      )}
                     </div>
                   </td>
                   <td className="border-y border-border/60 px-4 py-4 text-sm font-medium text-foreground">

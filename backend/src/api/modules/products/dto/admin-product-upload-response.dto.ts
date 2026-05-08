@@ -2,9 +2,9 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const adminProductUploadItemSchema = z.object({
-  key: z.string(),
+  originalName: z.string(),
+  filename: z.string(),
   url: z.string().url(),
-  fileName: z.string(),
   contentType: z.string(),
   size: z.number().int().nonnegative(),
 });

@@ -2,9 +2,8 @@
 
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ProductAvailabilityBadge } from '@/components/shared/product-availability-badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { formatOrderPrice } from '@/features/orders/ui';
 import { shouldBypassNextImageOptimization } from '@/lib/image';
 import { getLocalizedProduct } from './localized-content';
@@ -18,22 +17,43 @@ type ProductCardProps = {
 export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
   const locale = useLocale();
   const t = useTranslations('products');
+  const [currentTimestamp] = useState(() => Date.now());
   const localizedProduct = getLocalizedProduct(product, locale);
   const hasDiscount =
     localizedProduct.compareAtPrice !== null &&
     localizedProduct.compareAtPrice > localizedProduct.price;
+  const isNewArrival =
+    currentTimestamp - new Date(localizedProduct.createdAt).getTime() <
+    14 * 24 * 60 * 60 * 1000;
+  const soldCountLabel =
+    localizedProduct.soldCount > 0
+      ? t('soldCount', {
+          count: new Intl.NumberFormat(locale, {
+            notation:
+              localizedProduct.soldCount >= 1000 ? 'compact' : 'standard',
+            maximumFractionDigits: localizedProduct.soldCount >= 1000 ? 1 : 0,
+          }).format(localizedProduct.soldCount),
+        })
+      : null;
 
   return (
-    <Card className="group h-full gap-0 overflow-hidden border-border/80 bg-card/92 py-0 shadow-[0_24px_70px_rgba(132,83,60,0.1)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(132,83,60,0.16)]">
+    <article className="group self-start overflow-hidden rounded-[1.1rem] border border-border/70 bg-card/95 shadow-[0_16px_42px_rgba(132,83,60,0.08)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_55px_rgba(132,83,60,0.14)]">
       <Link
         href={`/products/${localizedProduct.slug}`}
-        className="relative block h-76 cursor-pointer overflow-hidden bg-[linear-gradient(180deg,#fff3ea_0%,#f7ddd0_100%)]"
+        className="relative block aspect-[4/5] cursor-pointer overflow-hidden bg-[linear-gradient(180deg,#fff3ea_0%,#f7ddd0_100%)]"
       >
-        {localizedProduct.isFlashSale ? (
-          <div className="absolute top-3 left-3 z-10 rounded-full bg-[#9f2f24] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_30px_rgba(159,47,36,0.28)]">
-            {t('flashSale')}
-          </div>
-        ) : null}
+        <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1.5">
+          {localizedProduct.isFlashSale ? (
+            <div className="rounded-full bg-[#9f2f24] px-2.5 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(159,47,36,0.24)]">
+              {t('flashSale')}
+            </div>
+          ) : null}
+          {isNewArrival ? (
+            <div className="rounded-full border border-[#fff1e8]/80 bg-[linear-gradient(135deg,#ff935f_0%,#ef6b3d_100%)] px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-white shadow-[0_12px_28px_rgba(239,107,61,0.34)] ring-1 ring-white/12">
+              {t('newBadge')}
+            </div>
+          ) : null}
+        </div>
         {localizedProduct.imageUrl ? (
           <Image
             src={localizedProduct.imageUrl}
@@ -43,11 +63,11 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
             unoptimized={shouldBypassNextImageOptimization(
               localizedProduct.imageUrl,
             )}
-            sizes="(min-width: 1280px) 360px, (min-width: 640px) calc(50vw - 2.5rem), calc(100vw - 3rem)"
+            sizes="(min-width: 1536px) 240px, (min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
             className="cursor-pointer object-cover object-top transition duration-500 group-hover:scale-[1.04]"
           />
         ) : (
-          <div className="flex h-full items-center justify-center px-8 text-center">
+          <div className="flex aspect-[4/5] items-center justify-center px-6 text-center">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
                 {t('brandFallback')}
@@ -60,46 +80,42 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
         )}
       </Link>
 
-      <CardContent className="flex flex-1 flex-col space-y-4 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                {localizedProduct.category.name}
-              </p>
-            </div>
-            <Link
-              href={`/products/${localizedProduct.slug}`}
-              className="inline-block"
-            >
-              <h2 className="mt-2 cursor-pointer text-lg font-semibold text-foreground transition-colors hover:text-[#8c5a46]">
-                {localizedProduct.name}
-              </h2>
-            </Link>
-          </div>
-          <ProductAvailabilityBadge stock={localizedProduct.stock} />
-        </div>
+      <div className="space-y-2.5 p-3">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          {localizedProduct.category.name}
+        </p>
 
-        <p className="line-clamp-3 text-sm leading-7 text-muted-foreground">
+        <Link href={`/products/${localizedProduct.slug}`} className="block">
+          <h2 className="line-clamp-2 cursor-pointer text-sm font-medium leading-5 text-foreground transition-colors hover:text-[#8c5a46] sm:text-[0.95rem]">
+            {localizedProduct.name}
+          </h2>
+        </Link>
+
+        <p
+          title={localizedProduct.description}
+          className="line-clamp-1 text-xs leading-5 text-muted-foreground transition-all hover:line-clamp-none hover:text-foreground/78"
+        >
           {localizedProduct.description}
         </p>
 
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <div className="flex flex-col items-start">
-            {hasDiscount ? (
-              <span className="text-sm text-muted-foreground line-through decoration-muted-foreground/80">
-                {formatOrderPrice(localizedProduct.compareAtPrice ?? 0, locale)}
-              </span>
-            ) : null}
-            <span className="text-xl font-semibold text-foreground">
+        <div className="flex flex-col items-start">
+          {hasDiscount ? (
+            <span className="text-xs text-muted-foreground line-through decoration-muted-foreground/80">
+              {formatOrderPrice(localizedProduct.compareAtPrice ?? 0, locale)}
+            </span>
+          ) : null}
+          <div className="flex w-full items-end justify-between gap-3">
+            <span className="text-base font-semibold text-foreground sm:text-lg">
               {formatOrderPrice(localizedProduct.price, locale)}
             </span>
+            {soldCountLabel ? (
+              <span className="shrink-0 text-[0.72rem] font-medium text-muted-foreground">
+                {soldCountLabel}
+              </span>
+            ) : null}
           </div>
-          <span className="text-sm text-muted-foreground">
-            {t('availableCount', { count: localizedProduct.stock })}
-          </span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }

@@ -41,6 +41,8 @@ describe('AdminProductsService', () => {
     const prisma = {
       product,
       category,
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      $executeRaw: jest.fn().mockResolvedValue(0),
     };
 
     const service = new AdminProductsService(
@@ -438,9 +440,9 @@ describe('AdminProductsService', () => {
     const { service, productMediaService } = buildService();
     productMediaService.uploadMany.mockResolvedValue([
       {
-        key: 'products/example.png',
+        originalName: 'example.png',
+        filename: 'products-example-uuid.png',
         url: 'http://localhost:4000/uploads/products/example.png',
-        fileName: 'example.png',
         contentType: 'image/png',
         size: 1234,
       },

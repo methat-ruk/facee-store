@@ -54,6 +54,49 @@ describe('mapExceptionToApiErrorResponse', () => {
     });
   });
 
+  it('maps product validation issues to specific field codes', () => {
+    const schema = z
+      .object({
+        sku: z.string().regex(/^[A-Z0-9-]+$/),
+        compareAtPrice: z.number(),
+        benefits: z.array(z.string()).refine((items) => items.length > 0),
+        imageUrl: z.string().refine(() => false, 'Invalid media URL.'),
+      })
+      .superRefine((value, ctx) => {
+        if (value.compareAtPrice <= 350) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Compare-at price must be greater than price.',
+            path: ['compareAtPrice'],
+          });
+        }
+      })
+      .safeParse({
+        sku: 'bad sku',
+        compareAtPrice: 300,
+        benefits: [],
+        imageUrl: '/broken',
+      });
+
+    if (schema.success) {
+      throw new Error('Expected schema to fail.');
+    }
+
+    const exception = new ZodValidationException(schema.error);
+
+    expect(mapExceptionToApiErrorResponse(exception)).toEqual({
+      statusCode: 400,
+      code: API_ERROR_CODES.validationFailed,
+      message: 'Request validation failed.',
+      fieldErrors: {
+        sku: [API_ERROR_CODES.productSkuInvalid],
+        compareAtPrice: [API_ERROR_CODES.productCompareAtPriceInvalid],
+        benefits: [API_ERROR_CODES.productBenefitsRequired],
+        imageUrl: [API_ERROR_CODES.productMediaUrlInvalid],
+      },
+    });
+  });
+
   it('maps bare unauthorized exceptions to AUTH_UNAUTHORIZED', () => {
     const exception = new BadRequestException('Request is invalid.');
 

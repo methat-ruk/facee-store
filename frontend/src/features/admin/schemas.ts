@@ -31,6 +31,7 @@ export const adminDashboardStockAlertSchema = z.object({
   productId: z.string(),
   productName: z.string(),
   productSlug: z.string(),
+  imageUrl: z.string().nullable(),
   stock: z.number().int().nonnegative(),
   categoryName: z.string(),
 });

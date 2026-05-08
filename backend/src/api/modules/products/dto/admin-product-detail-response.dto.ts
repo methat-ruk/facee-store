@@ -8,6 +8,7 @@ export const adminEditableProductSchema = z.object({
   sku: z.string(),
   slug: z.string(),
   subtitle: z.string().nullable(),
+  sizeLabel: z.string().nullable(),
   description: z.string(),
   howToUse: z.string(),
   benefits: z.array(z.string()),
@@ -22,6 +23,13 @@ export const adminEditableProductSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   category: adminProductCategorySchema,
+  mediaAssets: z.array(
+    z.object({
+      originalName: z.string(),
+      filename: z.string(),
+      url: z.string(),
+    }),
+  ),
 });
 
 export const adminProductDetailResponseSchema = z.object({

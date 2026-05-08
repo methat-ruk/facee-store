@@ -189,7 +189,7 @@ export function AdminOrdersPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-[32rem] items-center justify-center px-1 py-6">
+      <main className="flex min-h-128 items-center justify-center px-1 py-6">
         <p className="text-sm font-medium text-muted-foreground">
           {t('loading')}
         </p>
@@ -284,7 +284,7 @@ export function AdminOrdersPage() {
               key={order.orderNo}
               className="border-border/65 bg-background/68 shadow-none transition hover:border-[#c4917e] hover:bg-background/82"
             >
-              <CardContent className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5">
+              <CardContent className="grid gap-2 px-4 py-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div className="flex min-w-0 flex-col gap-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <CardTitle className="text-lg font-semibold tracking-tight text-foreground sm:text-[1.1rem]">
@@ -349,7 +349,7 @@ export function AdminOrdersPage() {
                   value={String(limit)}
                   onValueChange={(value) => setParam('limit', value)}
                 >
-                  <SelectTrigger className="w-[6.5rem]">
+                  <SelectTrigger className="w-26">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

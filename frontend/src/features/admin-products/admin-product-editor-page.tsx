@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -13,8 +13,8 @@ import {
   SaveIcon,
   Trash2Icon,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useLocale } from 'next-intl';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { Badge } from '@/components/ui/badge';
@@ -31,9 +31,15 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  getAdminProductEditorText,
+  getAdminProductUploadWarningText,
+  getAdminProductValidationText,
+} from '@/features/admin-products/messages';
 import { type AdminProductUpsertInput } from '@/features/admin-products/schemas';
 import { Link, useRouter } from '@/i18n/navigation';
-import { toApiError } from '@/services/api-error';
+import { cn } from '@/lib/utils';
+import { ApiError, toApiError } from '@/services/api-error';
 import {
   createAdminProduct,
   getAdminProductDetail,
@@ -61,6 +67,7 @@ type ProductEditorFormValues = {
   sku: string;
   slug: string;
   subtitle: string;
+  sizeLabel: string;
   description: string;
   howToUse: string;
   benefits: ListField[];
@@ -80,6 +87,7 @@ const defaultValues: ProductEditorFormValues = {
   sku: '',
   slug: '',
   subtitle: '',
+  sizeLabel: '',
   description: '',
   howToUse: '',
   benefits: [{ value: '' }],
@@ -144,6 +152,7 @@ const productEditorFormSchema = z
       .max(120)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, PRODUCT_EDITOR_ERROR.slugFormat),
     subtitle: z.string().trim(),
+    sizeLabel: z.string().trim().max(40),
     description: z
       .string()
       .trim()
@@ -182,51 +191,82 @@ const productEditorFormSchema = z
   });
 
 function getProductEditorErrorMessage(
-  locale: string,
+  validationText: ReturnType<typeof getAdminProductValidationText>,
   message: string | undefined,
 ) {
   if (!message) {
     return message;
   }
 
-  const isThai = locale === 'th';
+  return validationText.schemaMessageMap[message] ?? message;
+}
 
-  switch (message) {
-    case PRODUCT_EDITOR_ERROR.nameRequired:
-      return isThai ? 'กรุณากรอกชื่อสินค้า' : 'Enter the product name.';
-    case PRODUCT_EDITOR_ERROR.skuRequired:
-      return isThai ? 'กรุณากรอก SKU' : 'Enter the product SKU.';
-    case PRODUCT_EDITOR_ERROR.skuFormat:
-      return isThai
-        ? 'SKU ใช้ได้เฉพาะตัวอักษรอังกฤษ ตัวเลข และขีด -'
-        : 'SKU can use letters, numbers, and hyphens only.';
-    case PRODUCT_EDITOR_ERROR.slugRequired:
-      return isThai ? 'กรุณากรอก slug' : 'Enter the product slug.';
-    case PRODUCT_EDITOR_ERROR.slugFormat:
-      return isThai
-        ? 'Slug ใช้ตัวพิมพ์เล็ก ตัวเลข และขีด - เท่านั้น'
-        : 'Slug must use lowercase letters, numbers, and hyphens only.';
-    case PRODUCT_EDITOR_ERROR.descriptionRequired:
-      return isThai
-        ? 'กรุณากรอกคำอธิบายสินค้า'
-        : 'Enter the product description.';
-    case PRODUCT_EDITOR_ERROR.howToUseRequired:
-      return isThai ? 'กรุณากรอกวิธีใช้' : 'Enter how to use this product.';
-    case PRODUCT_EDITOR_ERROR.listRequired:
-      return isThai ? 'กรุณาเพิ่มอย่างน้อย 1 รายการ' : 'Add at least one item.';
-    case PRODUCT_EDITOR_ERROR.priceRequired:
-      return isThai ? 'กรุณากรอกราคาปัจจุบัน' : 'Enter the current price.';
-    case PRODUCT_EDITOR_ERROR.stockRequired:
-      return isThai ? 'กรุณากรอกจำนวนสต็อก' : 'Enter the stock quantity.';
-    case PRODUCT_EDITOR_ERROR.categoryRequired:
-      return isThai ? 'กรุณาเลือกหมวดหมู่' : 'Choose a category.';
-    case PRODUCT_EDITOR_ERROR.compareAtPriceInvalid:
-      return isThai
-        ? 'ราคาเดิมต้องมากกว่าราคาปัจจุบัน'
-        : 'Compare-at price must be greater than price.';
-    default:
-      return message;
+type ProductEditorFieldName =
+  | 'name'
+  | 'sku'
+  | 'slug'
+  | 'subtitle'
+  | 'sizeLabel'
+  | 'description'
+  | 'howToUse'
+  | 'benefits'
+  | 'ingredients'
+  | 'imageUrl'
+  | 'galleryImages'
+  | 'price'
+  | 'compareAtPrice'
+  | 'stock'
+  | 'categoryId';
+
+function getAdminProductApiFieldErrorMessage(
+  validationText: ReturnType<typeof getAdminProductValidationText>,
+  field: ProductEditorFieldName,
+  codes: string[],
+) {
+  const primaryCode = codes[0];
+
+  if (primaryCode === 'REQUIRED') {
+    return (
+      validationText.requiredFieldMap[field] ?? validationText.fallback(field)
+    );
   }
+
+  return (
+    validationText.apiCodeMap[primaryCode] ?? validationText.fallback(field)
+  );
+}
+
+function applyAdminProductApiFieldErrors(
+  apiError: ApiError,
+  validationText: ReturnType<typeof getAdminProductValidationText>,
+  setError: ReturnType<typeof useForm<ProductEditorFormValues>>['setError'],
+) {
+  const fieldEntries = Object.entries(apiError.fieldErrors ?? {}) as Array<
+    [string, string[]]
+  >;
+
+  if (fieldEntries.length === 0) {
+    return null;
+  }
+
+  let firstMessage: string | null = null;
+
+  for (const [field, codes] of fieldEntries) {
+    const typedField = field as ProductEditorFieldName;
+    const message = getAdminProductApiFieldErrorMessage(
+      validationText,
+      typedField,
+      codes,
+    );
+
+    if (!firstMessage) {
+      firstMessage = message;
+    }
+
+    setError(typedField, { message });
+  }
+
+  return firstMessage;
 }
 
 function slugify(value: string) {
@@ -246,6 +286,35 @@ function toListFields(values: string[]) {
 
 function toListValues(values: ListField[]) {
   return values.map((item) => item.value.trim()).filter(Boolean);
+}
+
+async function getImageFileDimensions(file: File) {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const dimensions = await new Promise<{ width: number; height: number }>(
+      (resolve, reject) => {
+        const image = new Image();
+
+        image.onload = () => {
+          resolve({
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+          });
+        };
+
+        image.onerror = () => {
+          reject(new Error('Unable to read image dimensions.'));
+        };
+
+        image.src = objectUrl;
+      },
+    );
+
+    return dimensions;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 function toFieldErrorMessages(errors: unknown) {
@@ -268,6 +337,28 @@ function toFieldErrorMessages(errors: unknown) {
 
     return undefined;
   });
+}
+
+function getFieldGroupErrorMessage(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  if ('message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+
+  if (
+    'root' in error &&
+    error.root &&
+    typeof error.root === 'object' &&
+    'message' in error.root &&
+    typeof error.root.message === 'string'
+  ) {
+    return error.root.message;
+  }
+
+  return undefined;
 }
 
 function DynamicListEditor({
@@ -298,7 +389,13 @@ function DynamicListEditor({
   errorMessage?: string;
 }) {
   return (
-    <Card className="border-border/65 bg-background/68 shadow-none">
+    <Card
+      className={cn(
+        'border-border/65 bg-background/68 shadow-none',
+        errorMessage &&
+          'border-destructive bg-destructive/5 ring-2 ring-destructive/25',
+      )}
+    >
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
         <div className="space-y-2">
           <CardTitle className="text-lg">{title}</CardTitle>
@@ -330,6 +427,7 @@ function DynamicListEditor({
               <Input
                 {...register(`${fieldName}.${index}.value`)}
                 placeholder={emptyLabel}
+                aria-invalid={itemErrors?.[index] ? 'true' : undefined}
               />
               {itemErrors?.[index] ? (
                 <p className="text-xs text-destructive sm:col-start-2">
@@ -385,7 +483,6 @@ function DynamicListEditor({
 export function AdminProductEditorPage({
   productId,
 }: AdminProductEditorPageProps) {
-  const locale = useLocale();
   const router = useRouter();
   const [categories, setCategories] = useState<
     Awaited<ReturnType<typeof listAdminProductCategories>>
@@ -400,163 +497,73 @@ export function AdminProductEditorPage({
   const [previewImage, setPreviewImage] = useState<PreviewImageState | null>(
     null,
   );
+  const [uploadWarnings, setUploadWarnings] = useState<string[]>([]);
   const [pendingRemoveImageUrl, setPendingRemoveImageUrl] = useState<
     string | null
   >(null);
-  const coverInputRef = useRef<HTMLInputElement | null>(null);
-  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const pushToast = useToastStore((state) => state.pushToast);
 
-  const uiText =
-    locale === 'th'
-      ? {
-          title: productId ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่',
-          description:
-            'จัดการข้อมูลสินค้า ราคา สต็อก การเผยแพร่ และรูปภาพให้พร้อมสำหรับ storefront',
-          back: 'กลับไปหน้าสินค้า',
-          loading: 'กำลังโหลดข้อมูลสินค้า...',
-          save: productId ? 'บันทึกการเปลี่ยนแปลง' : 'สร้างสินค้า',
-          saving: productId ? 'กำลังบันทึก...' : 'กำลังสร้าง...',
-          detailsTitle: 'รายละเอียดสินค้า',
-          detailsDescription:
-            'กำหนดข้อมูลหลักของสินค้าให้พร้อมสำหรับการค้นหาและใช้งานในระบบ',
-          merchandisingTitle: 'การขายและสต็อก',
-          merchandisingDescription:
-            'อัปเดตราคา สถานะการขาย และปริมาณสต็อกในพื้นที่เดียว',
-          mediaTitle: 'รูปภาพสินค้า',
-          mediaDescription:
-            'อัปโหลดรูปหลักและจัดลำดับรูป gallery ให้พร้อมใช้งาน',
-          contentTitle: 'เนื้อหาสินค้า',
-          contentDescription:
-            'ดูแลคำอธิบาย วิธีใช้ และรายการข้อมูลที่จะไปแสดงหน้าลูกค้า',
-          name: 'ชื่อสินค้า',
-          sku: 'SKU',
-          slug: 'Slug',
-          subtitle: 'คำโปรยสั้น',
-          category: 'หมวดหมู่',
-          descriptionLabel: 'คำอธิบายสินค้า',
-          howToUse: 'วิธีใช้',
-          benefits: 'ประโยชน์หลัก',
-          ingredients: 'ส่วนผสม',
-          benefitsDescription:
-            'เพิ่มประโยชน์เป็นรายการแยกทีละข้อ เพื่อให้เรียงลำดับและปรับแก้ได้ง่ายก่อนแสดงบนหน้าลูกค้า',
-          ingredientsDescription:
-            'จัดการส่วนผสมแบบ 1 รายการต่อ 1 กล่อง เพื่อให้เพิ่ม ลบ แก้ไข และย้ายตำแหน่งได้ชัดเจน',
-          addBenefit: 'เพิ่มข้อ',
-          addIngredient: 'เพิ่มรายการ',
-          itemPlaceholder: 'กรอกข้อมูลแต่ละข้อ',
-          price: 'ราคา',
-          compareAtPrice: 'ราคาเทียบ',
-          stock: 'สต็อก',
-          publish: 'เผยแพร่สินค้า',
-          flashSale: 'Flash sale',
-          coverImage: 'รูปหน้าปก',
-          galleryImages: 'แกลเลอรีรูปภาพ',
-          uploadCover: 'อัปโหลดรูปหน้าปก',
-          uploadGallery: 'อัปโหลดรูปเพิ่ม',
-          uploadRequirements: 'JPG, PNG, WEBP · สูงสุด 6 MB',
-          setAsCover: 'ตั้งเป็นรูปหลัก',
-          removeImage: 'ลบรูป',
-          previewImage: 'ดูภาพขนาดใหญ่',
-          removeImageTitle: 'ลบรูปนี้ออก?',
-          removeImageDescription:
-            'รูปจะถูกนำออกจากรายการในฟอร์มทันที แม้ว่ายังไม่ได้กดบันทึกการเปลี่ยนแปลง',
-          cancel: 'ยกเลิก',
-          confirmRemove: 'ยืนยันการลบ',
-          closePreview: 'ปิดภาพ',
-          saveSuccessTitle: 'บันทึกสินค้าแล้ว',
-          saveSuccessDescription:
-            'ข้อมูลสินค้าได้รับการอัปเดตแล้ว และพร้อมแสดงผลตามค่าล่าสุด',
-          validationErrorTitle: 'ยังบันทึกไม่ได้',
-          validationErrorDescription:
-            'กรุณาตรวจสอบข้อมูลที่จำเป็นและข้อความแจ้งเตือนในแบบฟอร์มก่อนบันทึกอีกครั้ง',
-          uploadSuccessTitle: 'อัปโหลดรูปสำเร็จ',
-          uploadSuccessDescription:
-            'เพิ่มรูปภาพสินค้าเข้าแบบฟอร์มเรียบร้อยแล้ว',
-          removeImageSuccessTitle: 'นำรูปออกแล้ว',
-          removeImageSuccessDescription:
-            'รูปถูกนำออกจากแบบฟอร์มแล้ว และจะไม่อยู่ในสินค้านี้เมื่อบันทึก',
-          emptyGallery: 'ยังไม่มีรูปในแกลเลอรี',
-          uploadFailed: 'อัปโหลดรูปภาพไม่สำเร็จ',
-          loadFailed: 'โหลดข้อมูลสินค้าไม่สำเร็จ',
-          saveFailed: 'บันทึกสินค้าไม่สำเร็จ',
-          hidden: 'ยังไม่เผยแพร่',
-          published: 'เผยแพร่แล้ว',
+  const t = useTranslations('adminProducts');
+  const uiText = getAdminProductEditorText(t, productId);
+  const uploadWarningText = getAdminProductUploadWarningText(t);
+  const validationText = getAdminProductValidationText(t);
+
+  function getUploadGuidance() {
+    return {
+      size: uiText.uploadRecommendedSize,
+      aspect: uiText.uploadAspect,
+      warningsTitle: uiText.warningsTitle,
+    };
+  }
+
+  function getUploadWarningMessage(
+    name: string,
+    type: 'landscape' | 'square' | 'aspect',
+  ) {
+    if (type === 'landscape') {
+      return uploadWarningText.landscape(name);
+    }
+
+    if (type === 'square') {
+      return uploadWarningText.square(name);
+    }
+
+    return uploadWarningText.aspect(name);
+  }
+
+  async function buildUploadWarnings(files: File[]) {
+    const warnings: string[] = [];
+
+    for (const file of files) {
+      try {
+        const { width, height } = await getImageFileDimensions(file);
+        const ratio = width / height;
+        const targetRatio = 4 / 5;
+        const ratioDelta = Math.abs(ratio - targetRatio);
+
+        if (width > height) {
+          warnings.push(getUploadWarningMessage(file.name, 'landscape'));
+          continue;
         }
-      : {
-          title: productId ? 'Edit product' : 'Create a new product',
-          description:
-            'Manage catalog copy, pricing, stock, publishing, and product imagery for the storefront.',
-          back: 'Back to products',
-          loading: 'Loading product details...',
-          save: productId ? 'Save changes' : 'Create product',
-          saving: productId ? 'Saving...' : 'Creating...',
-          detailsTitle: 'Product details',
-          detailsDescription:
-            'Set the core identity, naming, and routing fields for this catalog entry.',
-          merchandisingTitle: 'Merchandising and stock',
-          merchandisingDescription:
-            'Review selling price, publish state, campaign flag, and available units together.',
-          mediaTitle: 'Product media',
-          mediaDescription:
-            'Upload the lead image and arrange supporting gallery visuals for the storefront.',
-          contentTitle: 'Customer-facing content',
-          contentDescription:
-            'Maintain the descriptive copy and structured lists shown on the product page.',
-          name: 'Product name',
-          sku: 'SKU',
-          slug: 'Slug',
-          subtitle: 'Subtitle',
-          category: 'Category',
-          descriptionLabel: 'Description',
-          howToUse: 'How to use',
-          benefits: 'Benefits',
-          ingredients: 'Ingredients',
-          benefitsDescription:
-            'Manage each customer-facing benefit as a separate line so the product page stays easy to scan.',
-          ingredientsDescription:
-            'Keep ingredients as one row per item so the team can add, edit, remove, and reorder them cleanly.',
-          addBenefit: 'Add benefit',
-          addIngredient: 'Add ingredient',
-          itemPlaceholder: 'Add one item here',
-          price: 'Price',
-          compareAtPrice: 'Compare-at price',
-          stock: 'Stock',
-          publish: 'Publish product',
-          flashSale: 'Flash sale',
-          coverImage: 'Cover image',
-          galleryImages: 'Gallery images',
-          uploadCover: 'Upload cover image',
-          uploadGallery: 'Upload more images',
-          uploadRequirements: 'JPG, PNG, WEBP · Up to 6 MB',
-          setAsCover: 'Set as cover',
-          removeImage: 'Remove image',
-          previewImage: 'Preview image',
-          removeImageTitle: 'Remove this image?',
-          removeImageDescription:
-            'The image will be removed from this form immediately, even before you save changes.',
-          cancel: 'Cancel',
-          confirmRemove: 'Remove image',
-          closePreview: 'Close preview',
-          saveSuccessTitle: 'Product saved',
-          saveSuccessDescription:
-            'The product has been updated and is ready to reflect the latest content.',
-          validationErrorTitle: 'Unable to save yet',
-          validationErrorDescription:
-            'Please review the required fields and any inline validation messages before saving again.',
-          uploadSuccessTitle: 'Images uploaded',
-          uploadSuccessDescription:
-            'The selected images were added to this product form successfully.',
-          removeImageSuccessTitle: 'Image removed',
-          removeImageSuccessDescription:
-            'The image was removed from this form and will stay out after you save.',
-          emptyGallery: 'No gallery images yet.',
-          uploadFailed: 'Unable to upload product images right now.',
-          loadFailed: 'Unable to load this product right now.',
-          saveFailed: 'Unable to save this product right now.',
-          hidden: 'Hidden',
-          published: 'Published',
-        };
+
+        if (Math.abs(width - height) <= 4) {
+          warnings.push(getUploadWarningMessage(file.name, 'square'));
+          continue;
+        }
+
+        if (ratioDelta > 0.08) {
+          warnings.push(getUploadWarningMessage(file.name, 'aspect'));
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return warnings;
+  }
+
+  const uploadGuidance = getUploadGuidance();
 
   const form = useForm<ProductEditorFormValues>({
     defaultValues,
@@ -593,6 +600,33 @@ export function AdminProductEditorPage({
     control: form.control,
     name: 'compareAtPrice',
   });
+
+  const applyProductToForm = useCallback(
+    (product: Awaited<ReturnType<typeof getAdminProductDetail>>['product']) => {
+      form.reset({
+        name: product.name,
+        sku: product.sku,
+        slug: product.slug,
+        subtitle: product.subtitle ?? '',
+        sizeLabel: product.sizeLabel ?? '',
+        description: product.description,
+        howToUse: product.howToUse,
+        benefits: toListFields(product.benefits),
+        ingredients: toListFields(product.ingredients),
+        imageUrl: product.imageUrl ?? '',
+        galleryImages: product.galleryImages,
+        isPublished: product.isPublished,
+        isFlashSale: product.isFlashSale,
+        price: String(product.price),
+        compareAtPrice:
+          product.compareAtPrice === null ? '' : String(product.compareAtPrice),
+        stock: String(product.stock),
+        categoryId: product.category.id,
+      });
+      setHasCustomizedSlug(true);
+    },
+    [form],
+  );
 
   useEffect(() => {
     if (productId || hasCustomizedSlug) {
@@ -643,29 +677,7 @@ export function AdminProductEditorPage({
         setCategories(categoryResponse);
 
         if (productResponse) {
-          const product = productResponse.product;
-
-          form.reset({
-            name: product.name,
-            sku: product.sku,
-            slug: product.slug,
-            subtitle: product.subtitle ?? '',
-            description: product.description,
-            howToUse: product.howToUse,
-            benefits: toListFields(product.benefits),
-            ingredients: toListFields(product.ingredients),
-            imageUrl: product.imageUrl ?? '',
-            galleryImages: product.galleryImages,
-            isPublished: product.isPublished,
-            isFlashSale: product.isFlashSale,
-            price: String(product.price),
-            compareAtPrice:
-              product.compareAtPrice === null
-                ? ''
-                : String(product.compareAtPrice),
-            stock: String(product.stock),
-            categoryId: product.category.id,
-          });
+          applyProductToForm(productResponse.product);
         } else if (!form.getValues('categoryId') && categoryResponse[0]) {
           form.setValue('categoryId', categoryResponse[0].id, {
             shouldDirty: false,
@@ -688,35 +700,54 @@ export function AdminProductEditorPage({
     return () => {
       isCancelled = true;
     };
-  }, [form, productId, uiText.loadFailed]);
+  }, [applyProductToForm, form, productId, uiText.loadFailed]);
 
-  async function handleUpload(
-    files: FileList | null,
-    mode: 'cover' | 'gallery',
-  ) {
+  async function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) {
       return;
     }
 
+    const selectedFiles = Array.from(files);
+    const nextWarnings = await buildUploadWarnings(selectedFiles);
+    setUploadWarnings(nextWarnings);
+
     setIsUploading(true);
 
     try {
-      const response = await uploadAdminProductImages(Array.from(files));
+      const uploadSlug =
+        form.getValues('slug').trim() || slugify(form.getValues('name'));
+      const response = await uploadAdminProductImages(
+        selectedFiles,
+        uploadSlug,
+      );
       const urls = response.items.map((item) => item.url);
+      const currentImageUrl = form.getValues('imageUrl');
       const currentGallery = form.getValues('galleryImages');
-      const mergedGallery = Array.from(new Set([...currentGallery, ...urls]));
+      const mergedGallery = Array.from(
+        new Set(
+          [
+            ...urls,
+            ...currentGallery.filter(
+              (item) =>
+                !urls.includes(item) &&
+                !(
+                  currentImageUrl.startsWith('/images/products/') &&
+                  item === currentImageUrl
+                ),
+            ),
+          ].filter(Boolean),
+        ),
+      );
 
       form.setValue('galleryImages', mergedGallery, {
         shouldDirty: true,
         shouldValidate: true,
       });
 
-      if (mode === 'cover' || !form.getValues('imageUrl')) {
-        form.setValue('imageUrl', urls[0], {
-          shouldDirty: true,
-          shouldValidate: true,
-        });
-      }
+      form.setValue('imageUrl', urls[0], {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
 
       setPageError(null);
       pushToast({
@@ -738,6 +769,8 @@ export function AdminProductEditorPage({
 
   async function onSubmit(values: ProductEditorFormValues) {
     setIsSubmitting(true);
+    form.clearErrors();
+    setPageError(null);
 
     const price = Number(values.price);
     const compareAtPrice = values.compareAtPrice
@@ -750,6 +783,7 @@ export function AdminProductEditorPage({
       sku: values.sku.trim().toUpperCase(),
       slug: values.slug.trim(),
       subtitle: values.subtitle.trim() || null,
+      sizeLabel: values.sizeLabel.trim() || null,
       description: values.description.trim(),
       howToUse: values.howToUse.trim(),
       benefits: toListValues(values.benefits),
@@ -768,14 +802,14 @@ export function AdminProductEditorPage({
       const response = productId
         ? await updateAdminProduct(productId, payload)
         : await createAdminProduct(payload);
-
+      applyProductToForm(response.product);
       setPageError(null);
       pushToast({
         title: uiText.saveSuccessTitle,
         description: uiText.saveSuccessDescription,
         tone: 'success',
       });
-      router.push(`/admin/products/${response.product.id}`);
+      router.replace(`/admin/products/${response.product.id}`);
       router.refresh();
     } catch (error: unknown) {
       const apiError = toApiError(error, {
@@ -783,34 +817,43 @@ export function AdminProductEditorPage({
         message: uiText.saveFailed,
       });
 
-      setPageError(apiError.message);
+      const firstFieldErrorMessage = applyAdminProductApiFieldErrors(
+        apiError,
+        validationText,
+        form.setError,
+      );
 
-      if (apiError.fieldErrors?.sku) {
-        form.setError('sku', {
-          message:
-            locale === 'th'
-              ? 'SKU นี้ถูกใช้งานแล้ว'
-              : 'This SKU is already in use.',
-        });
-      }
-
-      if (apiError.fieldErrors?.slug) {
-        form.setError('slug', {
-          message:
-            locale === 'th'
-              ? 'Slug นี้ถูกใช้งานแล้ว'
-              : 'This slug is already in use.',
-        });
-      }
+      setPageError(firstFieldErrorMessage ?? apiError.message);
     } finally {
       setIsSubmitting(false);
     }
   }
 
   function onInvalidSubmit() {
+    const firstErrorMessage = [
+      form.formState.errors.name?.message,
+      form.formState.errors.sku?.message,
+      form.formState.errors.slug?.message,
+      form.formState.errors.categoryId?.message,
+      form.formState.errors.price?.message,
+      form.formState.errors.compareAtPrice?.message,
+      form.formState.errors.stock?.message,
+      form.formState.errors.description?.message,
+      form.formState.errors.howToUse?.message,
+      getFieldGroupErrorMessage(form.formState.errors.benefits),
+      getFieldGroupErrorMessage(form.formState.errors.ingredients),
+    ].find((message): message is string => typeof message === 'string');
+
+    const resolvedMessage = firstErrorMessage
+      ? (getProductEditorErrorMessage(validationText, firstErrorMessage) ??
+        firstErrorMessage)
+      : '';
+
+    setPageError(resolvedMessage || null);
+
     pushToast({
       title: uiText.validationErrorTitle,
-      description: uiText.validationErrorDescription,
+      description: resolvedMessage,
       tone: 'error',
     });
   }
@@ -910,27 +953,50 @@ export function AdminProductEditorPage({
               </p>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="grid gap-2 md:col-span-2">
+              <div className="grid gap-2">
                 <Label htmlFor="product-name">{uiText.name}</Label>
                 <Input
                   id="product-name"
-                  placeholder={
-                    locale === 'th'
-                      ? 'เช่น Quiet Bloom Amino Cleanser'
-                      : 'For example: Quiet Bloom Amino Cleanser'
-                  }
+                  aria-invalid={form.formState.errors.name ? 'true' : undefined}
+                  placeholder={uiText.namePlaceholder}
                   {...form.register('name')}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {locale === 'th'
-                    ? 'ใช้ชื่อที่ลูกค้าจะเห็นบนหน้าสินค้าและในรายการค้นหา'
-                    : 'Use the customer-facing product name shown across the storefront.'}
+                  {uiText.nameHelper}
                 </p>
                 {form.formState.errors.name ? (
                   <p className="text-xs text-destructive">
                     {getProductEditorErrorMessage(
-                      locale,
+                      validationText,
                       form.formState.errors.name.message,
+                    )}
+                  </p>
+                ) : null}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="product-slug">{uiText.slug}</Label>
+                <Input
+                  id="product-slug"
+                  aria-invalid={form.formState.errors.slug ? 'true' : undefined}
+                  placeholder="quiet-bloom-amino-cleanser"
+                  {...form.register('slug')}
+                  onChange={(event) => {
+                    setHasCustomizedSlug(true);
+                    form.setValue('slug', event.target.value, {
+                      shouldDirty: true,
+                    });
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {uiText.slugHelper}
+                </p>
+                {form.formState.errors.slug &&
+                form.formState.errors.slug.message !==
+                  PRODUCT_EDITOR_ERROR.slugRequired ? (
+                  <p className="text-xs text-destructive">
+                    {getProductEditorErrorMessage(
+                      validationText,
+                      form.formState.errors.slug.message,
                     )}
                   </p>
                 ) : null}
@@ -939,6 +1005,7 @@ export function AdminProductEditorPage({
                 <Label htmlFor="product-sku">{uiText.sku}</Label>
                 <Input
                   id="product-sku"
+                  aria-invalid={form.formState.errors.sku ? 'true' : undefined}
                   placeholder="FCE-CLN-001"
                   {...(() => {
                     const skuField = form.register('sku');
@@ -955,44 +1022,13 @@ export function AdminProductEditorPage({
                   })()}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {locale === 'th'
-                    ? 'ใช้ตัวอักษรอังกฤษ ตัวเลข และขีด - เท่านั้น'
-                    : 'Use letters, numbers, and hyphens only.'}
+                  {uiText.skuHelper}
                 </p>
                 {form.formState.errors.sku ? (
                   <p className="text-xs text-destructive">
                     {getProductEditorErrorMessage(
-                      locale,
+                      validationText,
                       form.formState.errors.sku.message,
-                    )}
-                  </p>
-                ) : null}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="product-slug">{uiText.slug}</Label>
-                <Input
-                  id="product-slug"
-                  placeholder="quiet-bloom-amino-cleanser"
-                  {...form.register('slug')}
-                  onChange={(event) => {
-                    setHasCustomizedSlug(true);
-                    form.setValue('slug', event.target.value, {
-                      shouldDirty: true,
-                    });
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {locale === 'th'
-                    ? 'ใช้ตัวพิมพ์เล็ก ตัวเลข และขีด - สำหรับ URL สินค้า'
-                    : 'Use lowercase letters, numbers, and hyphens for the product URL.'}
-                </p>
-                {form.formState.errors.slug &&
-                form.formState.errors.slug.message !==
-                  PRODUCT_EDITOR_ERROR.slugRequired ? (
-                  <p className="text-xs text-destructive">
-                    {getProductEditorErrorMessage(
-                      locale,
-                      form.formState.errors.slug.message,
                     )}
                   </p>
                 ) : null}
@@ -1001,49 +1037,68 @@ export function AdminProductEditorPage({
                 <Label htmlFor="product-subtitle">{uiText.subtitle}</Label>
                 <Input
                   id="product-subtitle"
-                  placeholder={
-                    locale === 'th'
-                      ? 'ข้อความสั้นใต้ชื่อสินค้า'
-                      : 'A short line shown under the product name'
+                  aria-invalid={
+                    form.formState.errors.subtitle ? 'true' : undefined
                   }
+                  placeholder={uiText.subtitlePlaceholder}
                   {...form.register('subtitle')}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {uiText.subtitleHelper}
+                </p>
                 {form.formState.errors.subtitle ? (
                   <p className="text-xs text-destructive">
                     {form.formState.errors.subtitle.message}
                   </p>
                 ) : null}
               </div>
-              <div className="grid gap-2">
-                <Label>{uiText.category}</Label>
-                <Select
-                  value={categoryId}
-                  onValueChange={(value) =>
-                    form.setValue('categoryId', value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={uiText.category} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.categoryId ? (
-                  <p className="text-xs text-destructive">
-                    {getProductEditorErrorMessage(
-                      locale,
-                      form.formState.errors.categoryId.message,
-                    )}
-                  </p>
-                ) : null}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label>{uiText.category}</Label>
+                  <Select
+                    value={categoryId}
+                    onValueChange={(value) =>
+                      form.setValue('categoryId', value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger
+                      aria-invalid={
+                        form.formState.errors.categoryId ? 'true' : undefined
+                      }
+                    >
+                      <SelectValue placeholder={uiText.category} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.categoryId ? (
+                    <p className="text-xs text-destructive">
+                      {getProductEditorErrorMessage(
+                        validationText,
+                        form.formState.errors.categoryId.message,
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="product-size">{uiText.sizeLabel}</Label>
+                  <Input
+                    id="product-size"
+                    aria-invalid={
+                      form.formState.errors.sizeLabel ? 'true' : undefined
+                    }
+                    placeholder={uiText.sizePlaceholder}
+                    {...form.register('sizeLabel')}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1062,18 +1117,17 @@ export function AdminProductEditorPage({
                 </Label>
                 <Textarea
                   id="product-description"
-                  rows={2}
-                  placeholder={
-                    locale === 'th'
-                      ? 'อธิบายเนื้อสัมผัส จุดเด่น และความรู้สึกหลังใช้'
-                      : 'Describe the texture, purpose, and skin feel after use.'
+                  aria-invalid={
+                    form.formState.errors.description ? 'true' : undefined
                   }
+                  rows={2}
+                  placeholder={uiText.descriptionPlaceholder}
                   {...form.register('description')}
                 />
                 {form.formState.errors.description ? (
                   <p className="text-xs text-destructive">
                     {getProductEditorErrorMessage(
-                      locale,
+                      validationText,
                       form.formState.errors.description.message,
                     )}
                   </p>
@@ -1083,18 +1137,17 @@ export function AdminProductEditorPage({
                 <Label htmlFor="product-how-to-use">{uiText.howToUse}</Label>
                 <Textarea
                   id="product-how-to-use"
-                  rows={2}
-                  placeholder={
-                    locale === 'th'
-                      ? 'เช่น นวดบนผิวเปียกแล้วล้างออก'
-                      : 'For example: Massage onto damp skin, then rinse.'
+                  aria-invalid={
+                    form.formState.errors.howToUse ? 'true' : undefined
                   }
+                  rows={2}
+                  placeholder={uiText.howToUsePlaceholder}
                   {...form.register('howToUse')}
                 />
                 {form.formState.errors.howToUse ? (
                   <p className="text-xs text-destructive">
                     {getProductEditorErrorMessage(
-                      locale,
+                      validationText,
                       form.formState.errors.howToUse.message,
                     )}
                   </p>
@@ -1116,8 +1169,8 @@ export function AdminProductEditorPage({
             move={benefitsFieldArray.move}
             itemErrors={toFieldErrorMessages(form.formState.errors.benefits)}
             errorMessage={getProductEditorErrorMessage(
-              locale,
-              form.formState.errors.benefits?.message,
+              validationText,
+              getFieldGroupErrorMessage(form.formState.errors.benefits),
             )}
           />
 
@@ -1134,8 +1187,8 @@ export function AdminProductEditorPage({
             move={ingredientsFieldArray.move}
             itemErrors={toFieldErrorMessages(form.formState.errors.ingredients)}
             errorMessage={getProductEditorErrorMessage(
-              locale,
-              form.formState.errors.ingredients?.message,
+              validationText,
+              getFieldGroupErrorMessage(form.formState.errors.ingredients),
             )}
           />
         </div>
@@ -1156,18 +1209,19 @@ export function AdminProductEditorPage({
                   <Label htmlFor="product-price">{uiText.price}</Label>
                   <Input
                     id="product-price"
+                    aria-invalid={
+                      form.formState.errors.price ? 'true' : undefined
+                    }
                     placeholder="350"
                     {...form.register('price')}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {locale === 'th'
-                      ? 'ราคาขายจริงที่ลูกค้าจ่ายตอนนี้'
-                      : 'The current selling price shown to customers.'}
+                    {uiText.priceHelper}
                   </p>
                   {form.formState.errors.price ? (
                     <p className="text-xs text-destructive">
                       {getProductEditorErrorMessage(
-                        locale,
+                        validationText,
                         form.formState.errors.price.message,
                       )}
                     </p>
@@ -1179,21 +1233,20 @@ export function AdminProductEditorPage({
                   </Label>
                   <Input
                     id="product-compare"
+                    aria-invalid={
+                      form.formState.errors.compareAtPrice ? 'true' : undefined
+                    }
                     {...form.register('compareAtPrice')}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {locale === 'th'
-                      ? 'ราคาเดิมต้องมากกว่าราคาปัจจุบันเสมอ'
-                      : 'Compare-at price must be higher than the current price.'}
+                    {uiText.compareAtHelper}
                   </p>
                   {form.formState.errors.compareAtPrice ? (
                     <p className="text-xs text-destructive">
-                      {form.formState.errors.compareAtPrice.message ===
-                      'Compare-at price must be greater than price.'
-                        ? locale === 'th'
-                          ? 'ราคาเดิมต้องมากกว่าราคาปัจจุบัน'
-                          : 'Compare-at price must be greater than price.'
-                        : form.formState.errors.compareAtPrice.message}
+                      {getProductEditorErrorMessage(
+                        validationText,
+                        form.formState.errors.compareAtPrice.message,
+                      ) ?? form.formState.errors.compareAtPrice.message}
                     </p>
                   ) : null}
                 </div>
@@ -1202,13 +1255,16 @@ export function AdminProductEditorPage({
                 <Label htmlFor="product-stock">{uiText.stock}</Label>
                 <Input
                   id="product-stock"
+                  aria-invalid={
+                    form.formState.errors.stock ? 'true' : undefined
+                  }
                   placeholder="25"
                   {...form.register('stock')}
                 />
                 {form.formState.errors.stock ? (
                   <p className="text-xs text-destructive">
                     {getProductEditorErrorMessage(
-                      locale,
+                      validationText,
                       form.formState.errors.stock.message,
                     )}
                   </p>
@@ -1230,7 +1286,7 @@ export function AdminProductEditorPage({
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-foreground">
-                    {uiText.flashSale}
+                    {uiText.onSale}
                   </p>
                   <Switch
                     checked={isFlashSaleValue}
@@ -1259,8 +1315,55 @@ export function AdminProductEditorPage({
                 {uiText.mediaDescription}
               </p>
             </CardHeader>
-            <CardContent className="grid gap-5">
-              <div className="grid gap-3">
+            <CardContent className="grid gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">
+                    {uiText.mediaTitle}
+                  </p>
+                  <div className="text-[11px] leading-5 text-muted-foreground">
+                    <p>{uiText.uploadRequirements}</p>
+                    <p>{uploadGuidance.size}</p>
+                    <p>{uploadGuidance.aspect}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                  <input
+                    ref={mediaInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => {
+                      void handleUpload(event.target.files);
+                      event.target.value = '';
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading}
+                    onClick={() => mediaInputRef.current?.click()}
+                  >
+                    <ImagePlusIcon data-icon="inline-start" />
+                    {isUploading ? uiText.saving : uiText.uploadGallery}
+                  </Button>
+                </div>
+              </div>
+              {uploadWarnings.length > 0 ? (
+                <div className="rounded-[1rem] border border-[#a56b50]/35 bg-[#3a251d]/55 p-3 text-xs leading-6 text-[#f4d8ca]">
+                  <p className="font-medium text-[#f9e6dc]">
+                    {uploadGuidance.warningsTitle}
+                  </p>
+                  <div className="mt-1 grid gap-1.5">
+                    {uploadWarnings.map((warning) => (
+                      <p key={warning}>{warning}</p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="hidden">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-medium text-foreground">
                     {uiText.coverImage}
@@ -1268,27 +1371,24 @@ export function AdminProductEditorPage({
                   <div className="flex shrink-0 flex-col-reverse items-end gap-2">
                     <div className="text-right text-[11px] leading-5 text-muted-foreground">
                       <p>{uiText.uploadRequirements}</p>
-                      <p>
-                        {locale === 'th'
-                          ? 'à¹à¸™à¸°à¸™à¸³ 1200 Ã— 1500 px à¸‚à¸¶à¹‰à¸™à¹„à¸›'
-                          : 'Recommended 1200 × 1500 px or larger'}
-                      </p>
+                      <p>{uiText.uploadRecommendedSize}</p>
+                      <p>{uploadGuidance.aspect}</p>
                     </div>
                     <input
-                      ref={coverInputRef}
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(event) =>
-                        void handleUpload(event.target.files, 'cover')
-                      }
+                      onChange={(event) => {
+                        void handleUpload(event.target.files);
+                        event.target.value = '';
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       disabled={isUploading}
-                      onClick={() => coverInputRef.current?.click()}
+                      onClick={() => mediaInputRef.current?.click()}
                     >
                       <ImagePlusIcon data-icon="inline-start" />
                       {isUploading ? uiText.saving : uiText.uploadCover}
@@ -1321,37 +1421,46 @@ export function AdminProductEditorPage({
                     )}
                   </div>
                 </div>
+                {uploadWarnings.length > 0 ? (
+                  <div className="rounded-[1rem] border border-[#a56b50]/35 bg-[#3a251d]/55 p-3 text-xs leading-6 text-[#f4d8ca]">
+                    <p className="font-medium text-[#f9e6dc]">
+                      {uploadGuidance.warningsTitle}
+                    </p>
+                    <div className="mt-1 grid gap-1.5">
+                      {uploadWarnings.map((warning) => (
+                        <p key={warning}>{warning}</p>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
-              <div className="flex items-start justify-between gap-3">
+              <div className="hidden">
                 <p className="text-sm font-medium text-foreground">
                   {uiText.galleryImages}
                 </p>
                 <div className="flex shrink-0 flex-col-reverse items-end gap-2">
                   <div className="text-right text-[11px] leading-5 text-muted-foreground">
                     <p>{uiText.uploadRequirements}</p>
-                    <p>
-                      {locale === 'th'
-                        ? 'à¹à¸™à¸°à¸™à¸³ 1200 Ã— 1500 px à¸‚à¸¶à¹‰à¸™à¹„à¸›'
-                        : 'Recommended 1200 × 1500 px or larger'}
-                    </p>
+                    <p>{uiText.uploadRecommendedSize}</p>
+                    <p>{uploadGuidance.aspect}</p>
                   </div>
                   <input
-                    ref={galleryInputRef}
                     type="file"
                     accept="image/*"
                     multiple
                     className="hidden"
-                    onChange={(event) =>
-                      void handleUpload(event.target.files, 'gallery')
-                    }
+                    onChange={(event) => {
+                      void handleUpload(event.target.files);
+                      event.target.value = '';
+                    }}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     disabled={isUploading}
-                    onClick={() => galleryInputRef.current?.click()}
+                    onClick={() => mediaInputRef.current?.click()}
                   >
                     <ImagePlusIcon data-icon="inline-start" />
                     {uiText.uploadGallery}
@@ -1361,57 +1470,71 @@ export function AdminProductEditorPage({
 
               <div className="grid gap-3">
                 {galleryImages.length > 0 ? (
-                  galleryImages.map((url) => (
-                    <div
-                      key={url}
-                      className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-4 rounded-[1.3rem] border border-border/60 bg-card/70 p-4"
-                    >
-                      <div className="self-start overflow-hidden rounded-[1rem] border border-border/60 bg-background/70">
-                        <button
-                          type="button"
-                          className="block w-full cursor-pointer"
-                          onClick={() =>
-                            setPreviewImage({
-                              url,
-                              label: uiText.galleryImages,
-                            })
-                          }
-                        >
-                          <div className="bg-[#1f1613]/70">
-                            <img
-                              src={url}
-                              alt="Gallery"
-                              className="aspect-3/4 w-full object-cover object-center transition-opacity hover:opacity-90"
-                            />
+                  <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+                    {galleryImages.map((url, index) => (
+                      <div
+                        key={url}
+                        className="overflow-hidden rounded-[1.4rem] border border-border/60 bg-card/75"
+                      >
+                        <div className="relative">
+                          <button
+                            type="button"
+                            className="block w-full cursor-pointer"
+                            onClick={() =>
+                              setPreviewImage({
+                                url,
+                                label: uiText.galleryImages,
+                              })
+                            }
+                          >
+                            <div className="bg-[#1f1613]/70">
+                              <img
+                                src={url}
+                                alt={`Gallery ${index + 1}`}
+                                className="aspect-4/5 w-full object-cover object-center transition duration-200 hover:scale-[1.015] hover:opacity-95"
+                              />
+                            </div>
+                          </button>
+                          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-start gap-3 p-3">
+                            <span className="rounded-full border border-black/10 bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white/92 backdrop-blur">
+                              {uiText.galleryItemLabel(index + 1)}
+                            </span>
                           </div>
-                        </button>
-                      </div>
-                      <div className="grid min-w-0 gap-3">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0 space-y-2">
-                            <p className="break-all text-sm font-medium leading-6 text-foreground">
-                              {url}
-                            </p>
-                            {url === imageUrl ? (
-                              <Badge
-                                variant="outline"
-                                className="border-primary/30 bg-primary/10 text-primary"
-                              >
+                        </div>
+
+                        <div className="grid gap-3 p-3">
+                          {url === imageUrl ? (
+                            <div className="flex justify-center">
+                              <Badge className="border-primary/30 bg-primary/10 text-primary">
                                 {uiText.coverImage}
                               </Badge>
-                            ) : null}
-                          </div>
-                          <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
+                            </div>
+                          ) : null}
+                          <div className="flex flex-wrap items-center justify-center gap-2">
                             {url !== imageUrl ? (
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() =>
+                                onClick={() => {
                                   form.setValue('imageUrl', url, {
                                     shouldDirty: true,
-                                  })
-                                }
+                                    shouldValidate: true,
+                                  });
+                                  form.setValue(
+                                    'galleryImages',
+                                    [
+                                      url,
+                                      ...galleryImages.filter(
+                                        (item) => item !== url,
+                                      ),
+                                    ],
+                                    {
+                                      shouldDirty: true,
+                                      shouldValidate: true,
+                                    },
+                                  );
+                                }}
                               >
                                 {uiText.setAsCover}
                               </Button>
@@ -1429,11 +1552,11 @@ export function AdminProductEditorPage({
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
                   <div className="rounded-[1.4rem] border border-dashed border-border/70 bg-card/60 p-5 text-sm text-muted-foreground">
-                    {uiText.emptyGallery}
+                    {uiText.emptyGalleryDescription}
                   </div>
                 )}
               </div>

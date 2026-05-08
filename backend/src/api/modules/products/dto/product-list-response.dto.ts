@@ -11,12 +11,15 @@ export const productListItemSchema = z.object({
   id: z.cuid(),
   name: z.string(),
   slug: z.string(),
+  createdAt: z.iso.datetime(),
+  sizeLabel: z.string().nullable(),
   description: z.string(),
   imageUrl: z.string().nullable(),
   isFlashSale: z.boolean(),
   price: z.number().nonnegative(),
   compareAtPrice: z.number().nonnegative().nullable(),
   stock: z.number().int().nonnegative(),
+  soldCount: z.number().int().nonnegative(),
   category: productCategorySchema,
 });
 

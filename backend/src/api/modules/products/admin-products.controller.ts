@@ -76,8 +76,9 @@ export class AdminProductsController {
     }),
   )
   uploadImages(
+    @Body('slug') slug: string | undefined,
     @UploadedFiles() files: Express.Multer.File[],
   ): Promise<AdminProductUploadResponseDto> {
-    return this.adminProductsService.uploadImages(files ?? []);
+    return this.adminProductsService.uploadImages(files ?? [], slug);
   }
 }

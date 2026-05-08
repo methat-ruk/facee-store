@@ -53,8 +53,12 @@ export async function updateAdminProduct(
   return adminProductDetailResponseSchema.parse(response.data);
 }
 
-export async function uploadAdminProductImages(files: File[]) {
+export async function uploadAdminProductImages(files: File[], slug?: string) {
   const formData = new FormData();
+
+  if (slug?.trim()) {
+    formData.append('slug', slug.trim());
+  }
 
   for (const file of files) {
     formData.append('files', file);

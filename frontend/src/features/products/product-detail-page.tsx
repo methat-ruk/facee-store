@@ -45,6 +45,15 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
     galleryImages: product.galleryImages,
     imageUrl: product.imageUrl,
   };
+  const soldCountLabel =
+    displayProduct.soldCount > 0
+      ? t('soldCount', {
+          count: new Intl.NumberFormat(locale, {
+            notation: displayProduct.soldCount >= 1000 ? 'compact' : 'standard',
+            maximumFractionDigits: displayProduct.soldCount >= 1000 ? 1 : 0,
+          }).format(displayProduct.soldCount),
+        })
+      : null;
 
   return (
     <main className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-10 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
@@ -77,6 +86,19 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
                 </Badge>
               ) : null}
               <ProductAvailabilityBadge stock={localizedProduct.stock} />
+              {displayProduct.sizeLabel ? (
+                <Badge className="h-7 border-[#c37b5a]/30 bg-[#4a2d22] px-3 text-sm text-[#ffd9c6] hover:bg-[#4a2d22]">
+                  {t('detailSizeLabel')}: {displayProduct.sizeLabel}
+                </Badge>
+              ) : null}
+              {soldCountLabel ? (
+                <Badge
+                  variant="outline"
+                  className="h-7 border-border/70 px-3 text-sm text-muted-foreground"
+                >
+                  {soldCountLabel}
+                </Badge>
+              ) : null}
             </div>
 
             <div className="space-y-4">
@@ -134,7 +156,7 @@ export async function ProductDetailPage({ slug }: ProductDetailPageProps) {
               </p>
             </div>
           </div>
-          <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid items-start gap-2.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {relatedProducts.map((relatedProduct) => (
               <ProductCard key={relatedProduct.id} product={relatedProduct} />
             ))}

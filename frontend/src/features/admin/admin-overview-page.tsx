@@ -1,4 +1,6 @@
-'use client';
+﻿'use client';
+
+/* eslint-disable @next/next/no-img-element */
 
 import {
   ArrowRightIcon,
@@ -129,59 +131,28 @@ export function AdminOverviewPage() {
     () => getCurrentMonthRange(),
   );
 
-  const uiText =
-    locale === 'th'
-      ? {
-          greeting: 'สวัสดี แอดมิน',
-          summary:
-            'นี่คือภาพรวมงานคำสั่งซื้อ สต็อก และคำขอที่ต้องตัดสินใจในช่วงเวลาที่เลือก',
-          rangeLabel: 'ช่วงเวลา',
-          chooseRange: 'เลือกช่วงวันที่',
-          resetMonth: 'เดือนนี้',
-          reviewQueue: 'ดูคำขอทั้งหมด',
-          reviewOrders: 'ดูออเดอร์ทั้งหมด',
-          quickActions: 'ทางลัด',
-          quickActionsDescription:
-            'เข้าถึงงานหลักได้เร็วขึ้นโดยไม่ต้องออกจาก overview',
-          openOrders: 'Review orders',
-          openStorefront: 'Open storefront',
-          restockFocus: 'Stock focus',
-          pendingOrdersNote: 'ออเดอร์ที่ยังเปิดอยู่ภายในช่วงวันที่เลือก',
-          pendingReviewsNote: 'คำขอยกเลิกที่ยังรอการอนุมัติในช่วงวันที่เลือก',
-          lowStockNote: 'สินค้าที่เผยแพร่อยู่และมีสต็อก 10 ชิ้นหรือน้อยกว่า',
-          revenueNote: 'ยอดชำระเงินสำเร็จในช่วงวันที่เลือก',
-          queueTitle: 'คำขอยกเลิกที่ต้องตรวจสอบ',
-          queueDescription:
-            'รายการที่ชำระแล้วหรือกำลังแพ็กที่ยังต้องการการตัดสินใจจากแอดมิน',
-          stockViewAll: 'ดูสินค้าคงเหลือต่ำ',
-          currentMonth: 'เดือนปัจจุบัน',
-        }
-      : {
-          greeting: 'Good morning, Admin',
-          summary:
-            "Here's what's happening across orders, payments, and stock in the selected range.",
-          rangeLabel: 'Date range',
-          chooseRange: 'Choose a range',
-          resetMonth: 'This month',
-          reviewQueue: 'View all reviews',
-          reviewOrders: 'View all orders',
-          quickActions: 'Quick actions',
-          quickActionsDescription:
-            'Move straight into the review surfaces that matter most today.',
-          openOrders: 'Review orders',
-          openStorefront: 'Open storefront',
-          restockFocus: 'Stock focus',
-          pendingOrdersNote: 'Orders still open inside the selected range.',
-          pendingReviewsNote: 'Cancellation requests waiting for a decision.',
-          lowStockNote: 'Current published inventory at 10 units or below.',
-          revenueNote:
-            'Completed payments captured inside this selected range.',
-          queueTitle: 'Cancellation requests needing review',
-          queueDescription:
-            'Paid or packing orders waiting for a manual admin decision.',
-          stockViewAll: 'View all stock alerts',
-          currentMonth: 'Current month',
-        };
+  const uiText = {
+    greeting: t('greeting'),
+    summary: t('summary'),
+    rangeLabel: t('rangeLabel'),
+    chooseRange: t('chooseRange'),
+    resetMonth: t('resetMonth'),
+    reviewQueue: t('reviewQueue'),
+    reviewOrders: t('reviewOrdersCta'),
+    quickActions: t('quickActionsTitle'),
+    quickActionsDescription: t('quickActionsDescription'),
+    openOrders: t('openOrders'),
+    openStorefront: t('openStorefront'),
+    restockFocus: t('restockFocus'),
+    pendingOrdersNote: t('pendingOrdersNote'),
+    pendingReviewsNote: t('pendingReviewsNote'),
+    lowStockNote: t('lowStockNote'),
+    revenueNote: t('revenueNote'),
+    queueTitle: t('queueTitleAlt'),
+    queueDescription: t('queueDescriptionAlt'),
+    stockViewAll: t('stockViewAll'),
+    currentMonth: t('currentMonth'),
+  };
 
   const resolvedRange = useMemo(() => {
     const currentMonth = getCurrentMonthRange();
@@ -190,8 +161,8 @@ export function AdminOverviewPage() {
       : currentMonth;
   }, [selectedRange]);
 
-  const startDateText = locale === 'th' ? 'วันเริ่มต้น' : 'Start date';
-  const endDateText = locale === 'th' ? 'วันสิ้นสุด' : 'End date';
+  const startDateText = t('startDate');
+  const endDateText = t('endDate');
   const startDateLabel = useMemo(
     () =>
       formatSingleDateLabel(locale, resolvedRange.from, uiText.currentMonth),
@@ -357,7 +328,7 @@ export function AdminOverviewPage() {
               {uiText.rangeLabel}
             </p>
             <div className="hidden flex-wrap items-start gap-2 lg:justify-end sm:flex">
-              <div className="flex min-w-[15rem] flex-col gap-1.5 text-left">
+              <div className="flex min-w-60 flex-col gap-1.5 text-left">
                 <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   {startDateText}
                 </p>
@@ -371,7 +342,7 @@ export function AdminOverviewPage() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="min-w-[15rem] justify-between rounded-full"
+                      className="min-w-60 justify-between rounded-full"
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <CalendarRangeIcon data-icon="inline-start" />
@@ -416,7 +387,7 @@ export function AdminOverviewPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="flex min-w-[15rem] flex-col gap-1.5 text-left">
+              <div className="flex min-w-60 flex-col gap-1.5 text-left">
                 <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   {endDateText}
                 </p>
@@ -430,7 +401,7 @@ export function AdminOverviewPage() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="min-w-[15rem] justify-between rounded-full"
+                      className="min-w-60 justify-between rounded-full"
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <CalendarRangeIcon data-icon="inline-start" />
@@ -725,7 +696,9 @@ export function AdminOverviewPage() {
                 </p>
               </div>
               <Button asChild variant="ghost" size="sm">
-                <Link href="/admin/orders">{uiText.stockViewAll}</Link>
+                <Link href="/admin/products?lowStock=true">
+                  {uiText.stockViewAll}
+                </Link>
               </Button>
             </CardHeader>
             <CardContent className="grid gap-3">
@@ -736,13 +709,34 @@ export function AdminOverviewPage() {
                     className="rounded-[1.45rem] border border-border/65 bg-background/74 p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {alert.productName}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {alert.categoryName}
-                        </p>
+                      <div className="flex min-w-0 items-start gap-3">
+                        <Link
+                          href={`/admin/products/${alert.productId}`}
+                          className="block size-12 shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-[#201613] transition-opacity hover:opacity-90"
+                        >
+                          {alert.imageUrl ? (
+                            <img
+                              src={alert.imageUrl}
+                              alt={alert.productName}
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex size-full items-center justify-center text-[#b78471]">
+                              <BoxesIcon className="size-4" />
+                            </div>
+                          )}
+                        </Link>
+                        <div className="min-w-0">
+                          <Link
+                            href={`/admin/products/${alert.productId}`}
+                            className="block truncate font-semibold text-foreground transition-colors hover:text-primary"
+                          >
+                            {alert.productName}
+                          </Link>
+                          <p className="text-sm text-muted-foreground">
+                            {alert.categoryName}
+                          </p>
+                        </div>
                       </div>
                       <Badge variant="secondary">
                         {t('stockLeft', { count: alert.stock })}

@@ -70,6 +70,7 @@ type ProductSeed = {
   sku: string;
   slug: string;
   subtitle: string;
+  sizeLabel: string;
   description: string;
   howToUse: string;
   benefits: string[];
@@ -101,6 +102,7 @@ const products: ProductSeed[] = [
     slug: 'cloud-calm-gel-cleanser',
     subtitle:
       'A comfort-first gel wash that leaves skin fresh, soft, and balanced.',
+    sizeLabel: '150 ml',
     description:
       'A gentle gel cleanser that removes excess oil without leaving the skin feeling stripped or tight.',
     howToUse:
@@ -126,6 +128,7 @@ const products: ProductSeed[] = [
     sku: 'FCE-CLN-002',
     slug: 'soft-reset-cream-cleanser',
     subtitle: 'A plush cream cleanser made to comfort dry or sensitive skin.',
+    sizeLabel: '120 ml',
     description:
       'A creamy face wash for dry and sensitive skin with a comfort-first texture for morning and evening routines.',
     howToUse:
@@ -152,6 +155,7 @@ const products: ProductSeed[] = [
     slug: 'bright-dew-vitamin-serum',
     subtitle:
       'A glow-focused serum for uneven tone, dullness, and daily radiance.',
+    sizeLabel: '30 ml',
     description:
       'A lightweight brightening serum made for uneven tone, dullness, and everyday glow support.',
     howToUse:
@@ -180,6 +184,7 @@ const products: ProductSeed[] = [
     slug: 'barrier-bloom-peptide-serum',
     subtitle:
       'A silky peptide serum designed to support bounce and barrier comfort.',
+    sizeLabel: '30 ml',
     description:
       'A peptide-focused serum that helps the skin barrier feel smoother, calmer, and more resilient over time.',
     howToUse:
@@ -207,6 +212,7 @@ const products: ProductSeed[] = [
     sku: 'FCE-MST-001',
     slug: 'daily-veil-moisture-cream',
     subtitle: 'A balanced daily cream for smooth hydration with a soft finish.',
+    sizeLabel: '50 ml',
     description:
       'A daily moisturizer for balanced hydration with a soft finish that layers well under makeup.',
     howToUse:
@@ -232,6 +238,7 @@ const products: ProductSeed[] = [
     sku: 'FCE-MST-002',
     slug: 'overnight-silk-repair-cream',
     subtitle: 'A richer recovery cream built for deep overnight comfort.',
+    sizeLabel: '50 ml',
     description:
       'A richer evening cream designed to support recovery, comfort, and long-lasting overnight moisture.',
     howToUse:
@@ -258,6 +265,7 @@ const products: ProductSeed[] = [
     slug: 'velvet-shield-spf-50',
     subtitle:
       'A soft-finish daily sunscreen that feels smooth and invisible on skin.',
+    sizeLabel: '50 ml',
     description:
       'A broad-spectrum sunscreen with a lightweight feel and a no-white-cast finish for everyday wear.',
     howToUse:
@@ -285,6 +293,7 @@ const products: ProductSeed[] = [
     sku: 'FCE-SUN-002',
     slug: 'airy-glow-tone-up-spf-50',
     subtitle: 'A brightening sunscreen with a fresh tone-up finish.',
+    sizeLabel: '50 ml',
     description:
       'A subtle tone-up sunscreen that helps brighten the complexion while protecting against daily UV exposure.',
     howToUse:
@@ -311,6 +320,7 @@ const products: ProductSeed[] = [
     slug: 'pure-balance-bha-serum',
     subtitle:
       'A clarifying serum for texture, visible pores, and oilier zones.',
+    sizeLabel: '30 ml',
     description:
       'A clarifying treatment serum created for textured skin, visible pores, and oil-prone areas.',
     howToUse:
@@ -339,6 +349,7 @@ const products: ProductSeed[] = [
     slug: 'hydra-petal-water-cream',
     subtitle:
       'A fresh gel-cream with featherlight hydration and a dewy finish.',
+    sizeLabel: '50 ml',
     description:
       'A fresh gel-cream moisturizer for lightweight hydration and a soft, dewy skin finish.',
     howToUse:
@@ -366,6 +377,7 @@ const products: ProductSeed[] = [
     sku: 'FCE-CLN-003',
     slug: 'quiet-bloom-amino-cleanser',
     subtitle: 'A low-foam cleanser for calm, comfortable everyday cleansing.',
+    sizeLabel: '120 ml',
     description:
       'A low-foam amino cleanser made for gentle daily cleansing and comfortable skin feel.',
     howToUse:
@@ -391,6 +403,7 @@ const products: ProductSeed[] = [
     sku: 'FCE-SUN-003',
     slug: 'invisible-finish-uv-milk',
     subtitle: 'A fluid UV milk with a soft-matte finish for warm, humid days.',
+    sizeLabel: '40 ml',
     description:
       'A fluid sunscreen with a soft-matte finish for combination skin and warm-weather routines.',
     howToUse:
@@ -464,6 +477,7 @@ async function main() {
         name: product.name,
         sku: product.sku,
         subtitle: product.subtitle,
+        sizeLabel: product.sizeLabel,
         description: product.description,
         howToUse: product.howToUse,
         benefits: [...product.benefits],
@@ -482,6 +496,7 @@ async function main() {
         sku: product.sku,
         slug: product.slug,
         subtitle: product.subtitle,
+        sizeLabel: product.sizeLabel,
         description: product.description,
         howToUse: product.howToUse,
         benefits: [...product.benefits],

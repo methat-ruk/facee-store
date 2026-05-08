@@ -34,6 +34,7 @@ export const adminProductSummarySchema = z.object({
   sku: z.string(),
   slug: z.string(),
   subtitle: z.string().nullable(),
+  sizeLabel: z.string().nullable(),
   imageUrl: z.string().nullable(),
   isPublished: z.boolean(),
   isFlashSale: z.boolean(),
@@ -50,6 +51,13 @@ export const adminProductDetailSchema = adminProductSummarySchema.extend({
   benefits: z.array(z.string()),
   ingredients: z.array(z.string()),
   galleryImages: z.array(z.string()),
+  mediaAssets: z.array(
+    z.object({
+      originalName: z.string(),
+      filename: z.string(),
+      url: z.string(),
+    }),
+  ),
   createdAt: z.string(),
 });
 
@@ -79,9 +87,9 @@ export const adminProductDetailResponseSchema = z.object({
 export const adminProductUploadResponseSchema = z.object({
   items: z.array(
     z.object({
-      key: z.string(),
+      originalName: z.string(),
+      filename: z.string(),
       url: z.string().url(),
-      fileName: z.string(),
       contentType: z.string(),
       size: z.number().int(),
     }),
@@ -109,6 +117,7 @@ export const adminProductUpsertSchema = z
       .max(120)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     subtitle: z.string().trim().max(160).nullable(),
+    sizeLabel: z.string().trim().max(40).nullable().optional(),
     description: z.string().trim().min(1),
     howToUse: z.string().trim().min(1),
     benefits: z.array(z.string().trim().min(1)),

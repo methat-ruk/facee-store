@@ -22,12 +22,23 @@ type FlashSaleValues = {
   isFlashSale: boolean | undefined;
 };
 
+type ProductMediaAssetRow = {
+  originalName: string;
+  filename: string;
+  url: string;
+};
+
+type AdminProductDetailRecord = Prisma.ProductGetPayload<{
+  select: typeof adminProductDetailSelect;
+}>;
+
 const adminProductListSelect = {
   id: true,
   name: true,
   sku: true,
   slug: true,
   subtitle: true,
+  sizeLabel: true,
   imageUrl: true,
   isPublished: true,
   isFlashSale: true,
@@ -52,7 +63,10 @@ const adminProductDetailSelect = {
   updatedAt: true,
 } satisfies Prisma.ProductSelect;
 
-type AdminProductsPrisma = Pick<PrismaService, 'category' | 'product'>;
+type AdminProductsPrisma = Pick<
+  PrismaService,
+  'category' | 'product' | '$queryRaw' | '$executeRaw'
+>;
 
 @Injectable()
 export class AdminProductsService {
@@ -123,15 +137,7 @@ export class AdminProductsService {
       );
     }
 
-    return {
-      product: {
-        ...product,
-        price: Number(product.price),
-        compareAtPrice: toNumber(product.compareAtPrice),
-        createdAt: product.createdAt.toISOString(),
-        updatedAt: product.updatedAt.toISOString(),
-      },
-    };
+    return this.toDetailResponse(product);
   }
 
   async createProduct(input: CreateAdminProductInput) {
@@ -143,15 +149,7 @@ export class AdminProductsService {
         select: adminProductDetailSelect,
       });
 
-      return {
-        product: {
-          ...product,
-          price: Number(product.price),
-          compareAtPrice: toNumber(product.compareAtPrice),
-          createdAt: product.createdAt.toISOString(),
-          updatedAt: product.updatedAt.toISOString(),
-        },
-      };
+      return this.toDetailResponse(product);
     } catch (error: unknown) {
       const handledError = this.handleUniqueConstraint(error);
       throw handledError ?? error;
@@ -172,22 +170,14 @@ export class AdminProductsService {
         select: adminProductDetailSelect,
       });
 
-      return {
-        product: {
-          ...product,
-          price: Number(product.price),
-          compareAtPrice: toNumber(product.compareAtPrice),
-          createdAt: product.createdAt.toISOString(),
-          updatedAt: product.updatedAt.toISOString(),
-        },
-      };
+      return this.toDetailResponse(product);
     } catch (error: unknown) {
       const handledError = this.handleUniqueConstraint(error);
       throw handledError ?? error;
     }
   }
 
-  uploadImages(files: Express.Multer.File[]) {
+  uploadImages(files: Express.Multer.File[], slug?: string) {
     if (files.length === 0) {
       throw new AppException(
         HttpStatus.BAD_REQUEST,
@@ -197,8 +187,34 @@ export class AdminProductsService {
     }
 
     return this.productMediaService
-      .uploadMany(files)
+      .uploadMany(files, slug)
       .then((items) => ({ items }));
+  }
+
+  private async toDetailResponse(product: AdminProductDetailRecord | null) {
+    if (!product) {
+      throw new AppException(
+        HttpStatus.NOT_FOUND,
+        API_ERROR_CODES.productNotFound,
+        'Product was not found.',
+      );
+    }
+
+    const mediaAssets = await this.getMediaAssetsForUrls([
+      ...(product.imageUrl ? [product.imageUrl] : []),
+      ...product.galleryImages,
+    ]);
+
+    return {
+      product: {
+        ...product,
+        price: Number(product.price),
+        compareAtPrice: toNumber(product.compareAtPrice),
+        createdAt: product.createdAt.toISOString(),
+        updatedAt: product.updatedAt.toISOString(),
+        mediaAssets,
+      },
+    };
   }
 
   private buildWhere(query: AdminProductListQuery): Prisma.ProductWhereInput {
@@ -304,6 +320,48 @@ export class AdminProductsService {
     }
   }
 
+  private async getMediaAssetsForUrls(urls: string[]) {
+    const distinctUrls = [...new Set(urls.filter(Boolean))];
+
+    if (distinctUrls.length === 0) {
+      return [];
+    }
+
+    await this.prisma.$executeRaw(Prisma.sql`
+      CREATE TABLE IF NOT EXISTS "ProductMediaAsset" (
+        "id" TEXT NOT NULL,
+        "originalName" TEXT NOT NULL,
+        "filename" TEXT NOT NULL,
+        "url" TEXT NOT NULL,
+        "contentType" TEXT NOT NULL,
+        "size" INTEGER NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "ProductMediaAsset_pkey" PRIMARY KEY ("id")
+      )
+    `);
+
+    const rows = await this.prisma.$queryRaw<ProductMediaAssetRow[]>(
+      Prisma.sql`
+        SELECT "originalName", "filename", "url"
+        FROM "ProductMediaAsset"
+        WHERE "url" IN (${Prisma.join(distinctUrls)})
+      `,
+    );
+
+    const rowMap = new Map(rows.map((row) => [row.url, row]));
+
+    return distinctUrls.map((url) => {
+      const row = rowMap.get(url);
+      const filename = url.split('/').pop() ?? url;
+
+      return {
+        originalName: row?.originalName ?? filename,
+        filename: row?.filename ?? filename,
+        url,
+      };
+    });
+  }
+
   private toCreateData(
     input: CreateAdminProductInput,
   ): Prisma.ProductCreateInput {
@@ -318,6 +376,7 @@ export class AdminProductsService {
       sku: normalizeSku(input.sku),
       slug: input.slug,
       subtitle: input.subtitle,
+      sizeLabel: input.sizeLabel,
       description: input.description,
       howToUse: input.howToUse,
       benefits: [...input.benefits],
@@ -351,6 +410,7 @@ export class AdminProductsService {
       ...(input.sku !== undefined ? { sku: normalizeSku(input.sku) } : {}),
       ...(input.slug !== undefined ? { slug: input.slug } : {}),
       ...(input.subtitle !== undefined ? { subtitle: input.subtitle } : {}),
+      ...(input.sizeLabel !== undefined ? { sizeLabel: input.sizeLabel } : {}),
       ...(input.description !== undefined
         ? { description: input.description }
         : {}),
