@@ -6,13 +6,14 @@ import type {
   NotificationsSnapshot,
 } from '@/features/notifications/schemas';
 import {
-  createNotificationsEventSource,
   listNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
   markOrderNotificationsAsRead,
-  parseNotificationsEvent,
+  mergeNotificationsSnapshot,
 } from '@/services/notifications';
+
+const POLL_INTERVAL_MS = 30_000;
 
 type NotificationsStore = {
   items: NotificationItem[];
@@ -20,7 +21,7 @@ type NotificationsStore = {
   isInitialized: boolean;
   isConnecting: boolean;
   activeUserId: string | null;
-  stream: EventSource | null;
+  pollerId: number | null;
   connect: (userId: string) => void;
   disconnect: () => void;
   refresh: () => Promise<void>;
@@ -31,8 +32,10 @@ type NotificationsStore = {
   clear: () => void;
 };
 
-function closeStream(stream: EventSource | null) {
-  stream?.close();
+function clearPoller(pollerId: number | null) {
+  if (pollerId !== null) {
+    window.clearInterval(pollerId);
+  }
 }
 
 export const useNotificationsStore = create<NotificationsStore>((set, get) => ({
@@ -41,51 +44,46 @@ export const useNotificationsStore = create<NotificationsStore>((set, get) => ({
   isInitialized: false,
   isConnecting: false,
   activeUserId: null,
-  stream: null,
+  pollerId: null,
   connect: (userId) => {
     const current = get();
 
-    if (current.activeUserId === userId && current.stream) {
+    if (current.activeUserId === userId && current.pollerId !== null) {
       return;
     }
 
-    closeStream(current.stream);
+    clearPoller(current.pollerId);
     set({
       activeUserId: userId,
       isConnecting: true,
-      stream: null,
+      pollerId: null,
     });
 
-    const stream = createNotificationsEventSource();
-    stream.addEventListener('notifications.snapshot', (event) => {
-      const snapshot = parseNotificationsEvent((event as MessageEvent).data);
-      set({
-        items: snapshot.items,
-        unreadCount: snapshot.unreadCount,
-        isInitialized: true,
-        isConnecting: false,
-      });
-    });
-    stream.addEventListener('error', () => {
-      set({
-        isConnecting: false,
-      });
-    });
+    void get().refresh();
 
-    set({ stream });
+    const pollerId = window.setInterval(() => {
+      void get().refresh();
+    }, POLL_INTERVAL_MS);
+
+    set({ pollerId });
   },
   disconnect: () => {
-    const stream = get().stream;
-    closeStream(stream);
+    clearPoller(get().pollerId);
     set({
-      stream: null,
+      pollerId: null,
       activeUserId: null,
       isConnecting: false,
     });
   },
   refresh: async () => {
-    const snapshot = await listNotifications();
-    get().setSnapshot(snapshot);
+    try {
+      const snapshot = await listNotifications();
+      get().setSnapshot(snapshot);
+    } catch {
+      set({
+        isConnecting: false,
+      });
+    }
   },
   markAsRead: async (notificationId) => {
     const snapshot = await markNotificationAsRead(notificationId);
@@ -99,22 +97,25 @@ export const useNotificationsStore = create<NotificationsStore>((set, get) => ({
     const snapshot = await markAllNotificationsAsRead();
     get().setSnapshot(snapshot);
   },
-  setSnapshot: (snapshot) =>
+  setSnapshot: (snapshot) => {
+    const parsedSnapshot = mergeNotificationsSnapshot(snapshot);
+
     set({
-      items: snapshot.items,
-      unreadCount: snapshot.unreadCount,
+      items: parsedSnapshot.items,
+      unreadCount: parsedSnapshot.unreadCount,
       isInitialized: true,
       isConnecting: false,
-    }),
+    });
+  },
   clear: () => {
-    closeStream(get().stream);
+    clearPoller(get().pollerId);
     set({
       items: [],
       unreadCount: 0,
       isInitialized: false,
       isConnecting: false,
       activeUserId: null,
-      stream: null,
+      pollerId: null,
     });
   },
 }));

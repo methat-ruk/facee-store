@@ -1,16 +1,25 @@
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../src/generated/prisma/client.cjs';
+import { PrismaClient } from '@prisma/client';
 
 const databaseUrl = process.env.DATABASE_URL;
 const PASSWORD_SALT_ROUNDS = 12;
 const adminSeed = {
-  id: 'admin_facee_seed',
   email: 'admin@facee.local',
   fullName: 'Facee Admin',
-  password: 'FaceeAdmin123!',
+  password: 'password123',
   role: 'ADMIN' as const,
+};
+const customerSeed = {
+  email: 'customer@facee.local',
+  fullName: 'Facee Customer',
+  password: 'password123',
+  phone: '0812345678',
+  addressLine: '88 Sukhumvit Road',
+  city: 'Bangkok',
+  postalCode: '10110',
+  role: 'CUSTOMER' as const,
 };
 
 if (!databaseUrl) {
@@ -83,6 +92,13 @@ type ProductSeed = {
   compareAtPrice?: string;
   stock: number;
   categorySlug: keyof typeof categoryGalleryMap;
+};
+
+type SeedProductLookup = {
+  id: string;
+  slug: string;
+  name: string;
+  imageUrl: string | null;
 };
 
 function buildGallery(
@@ -426,30 +442,100 @@ const products: ProductSeed[] = [
   },
 ];
 
-async function main() {
-  const adminPasswordHash = await bcrypt.hash(
-    adminSeed.password,
-    PASSWORD_SALT_ROUNDS,
-  );
+const demoOrders = [
+  {
+    orderNo: 'FC-20260518-100001',
+    status: 'PENDING' as const,
+    refundStatus: 'NONE' as const,
+    paymentMethod: 'QR_PAYMENT' as const,
+    paymentDemoStatus: 'NOT_STARTED' as const,
+    paymentSubmittedAt: null,
+    paymentCompletedAt: null,
+    createdAt: new Date('2026-05-18T02:00:00.000Z'),
+    subtotal: '1360.00',
+    shippingTotal: '0.00',
+    total: '1360.00',
+    items: [
+      { slug: 'quiet-bloom-amino-cleanser', quantity: 1, unitPrice: '450.00' },
+      { slug: 'daily-veil-moisture-cream', quantity: 1, unitPrice: '690.00' },
+      { slug: 'airy-glow-tone-up-spf-50', quantity: 1, unitPrice: '220.00' },
+    ],
+  },
+  {
+    orderNo: 'FC-20260516-100002',
+    status: 'PAID' as const,
+    refundStatus: 'NONE' as const,
+    paymentMethod: 'QR_PAYMENT' as const,
+    paymentDemoStatus: 'QR_SUBMITTED' as const,
+    paymentSubmittedAt: new Date('2026-05-16T05:25:00.000Z'),
+    paymentCompletedAt: new Date('2026-05-16T06:10:00.000Z'),
+    createdAt: new Date('2026-05-16T05:10:00.000Z'),
+    subtotal: '1540.00',
+    shippingTotal: '0.00',
+    total: '1540.00',
+    items: [
+      { slug: 'velvet-shield-spf-50', quantity: 1, unitPrice: '640.00' },
+      { slug: 'barrier-bloom-peptide-serum', quantity: 1, unitPrice: '900.00' },
+    ],
+  },
+  {
+    orderNo: 'FC-20260514-100003',
+    status: 'PAID' as const,
+    refundStatus: 'NONE' as const,
+    paymentMethod: 'CARD' as const,
+    paymentDemoStatus: 'CARD_COMPLETED' as const,
+    paymentSubmittedAt: null,
+    paymentCompletedAt: new Date('2026-05-14T09:32:00.000Z'),
+    createdAt: new Date('2026-05-14T09:25:00.000Z'),
+    subtotal: '1180.00',
+    shippingTotal: '50.00',
+    total: '1230.00',
+    items: [
+      { slug: 'cloud-calm-gel-cleanser', quantity: 1, unitPrice: '490.00' },
+      { slug: 'bright-dew-vitamin-serum', quantity: 1, unitPrice: '690.00' },
+    ],
+  },
+  {
+    orderNo: 'FC-20260512-100004',
+    status: 'PACKING' as const,
+    refundStatus: 'PENDING_MANUAL' as const,
+    paymentMethod: 'CARD' as const,
+    paymentDemoStatus: 'CARD_COMPLETED' as const,
+    paymentSubmittedAt: null,
+    paymentCompletedAt: new Date('2026-05-12T03:45:00.000Z'),
+    createdAt: new Date('2026-05-12T03:30:00.000Z'),
+    subtotal: '1590.00',
+    shippingTotal: '0.00',
+    total: '1590.00',
+    items: [
+      {
+        slug: 'overnight-silk-repair-cream',
+        quantity: 1,
+        unitPrice: '950.00',
+      },
+      { slug: 'cloud-calm-gel-cleanser', quantity: 1, unitPrice: '490.00' },
+      { slug: 'quiet-bloom-amino-cleanser', quantity: 1, unitPrice: '150.00' },
+    ],
+  },
+  {
+    orderNo: 'FC-20260510-100005',
+    status: 'CANCELED' as const,
+    refundStatus: 'REFUNDED' as const,
+    paymentMethod: 'CARD' as const,
+    paymentDemoStatus: 'CARD_COMPLETED' as const,
+    paymentSubmittedAt: null,
+    paymentCompletedAt: new Date('2026-05-10T07:18:00.000Z'),
+    createdAt: new Date('2026-05-10T07:00:00.000Z'),
+    subtotal: '710.00',
+    shippingTotal: '50.00',
+    total: '760.00',
+    items: [
+      { slug: 'hydra-petal-water-cream', quantity: 1, unitPrice: '710.00' },
+    ],
+  },
+] as const;
 
-  await prisma.user.upsert({
-    where: {
-      email: adminSeed.email,
-    },
-    update: {
-      fullName: adminSeed.fullName,
-      passwordHash: adminPasswordHash,
-      role: adminSeed.role,
-    },
-    create: {
-      id: adminSeed.id,
-      email: adminSeed.email,
-      fullName: adminSeed.fullName,
-      passwordHash: adminPasswordHash,
-      role: adminSeed.role,
-    },
-  });
-
+async function seedCatalog() {
   for (const category of categories) {
     await prisma.category.upsert({
       where: {
@@ -461,6 +547,14 @@ async function main() {
       create: category,
     });
   }
+
+  await prisma.product.deleteMany({
+    where: {
+      slug: {
+        notIn: products.map((product) => product.slug),
+      },
+    },
+  });
 
   for (const product of products) {
     const category = await prisma.category.findUniqueOrThrow({
@@ -512,6 +606,295 @@ async function main() {
       },
     });
   }
+}
+
+async function resetDemoUsers() {
+  await prisma.authSession.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.orderCancellationRequest.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.savedPaymentMethod.deleteMany();
+  await prisma.address.deleteMany();
+  await prisma.user.deleteMany();
+}
+
+async function createDemoUsers() {
+  const passwordHash = await bcrypt.hash(
+    adminSeed.password,
+    PASSWORD_SALT_ROUNDS,
+  );
+
+  const admin = await prisma.user.create({
+    data: {
+      email: adminSeed.email,
+      fullName: adminSeed.fullName,
+      passwordHash,
+      role: adminSeed.role,
+    },
+  });
+
+  const customer = await prisma.user.create({
+    data: {
+      email: customerSeed.email,
+      fullName: customerSeed.fullName,
+      passwordHash,
+      phone: customerSeed.phone,
+      addressLine: customerSeed.addressLine,
+      city: customerSeed.city,
+      postalCode: customerSeed.postalCode,
+      role: customerSeed.role,
+    },
+  });
+
+  return {
+    admin,
+    customer,
+  };
+}
+
+async function createDemoAddresses(customerId: string) {
+  await prisma.address.createMany({
+    data: [
+      {
+        userId: customerId,
+        label: 'Home',
+        recipientFullName: customerSeed.fullName,
+        recipientEmail: customerSeed.email,
+        recipientPhone: customerSeed.phone,
+        addressLine: '88 Sukhumvit Road',
+        city: 'Bangkok',
+        postalCode: '10110',
+        isDefault: true,
+      },
+      {
+        userId: customerId,
+        label: 'Office',
+        recipientFullName: customerSeed.fullName,
+        recipientEmail: customerSeed.email,
+        recipientPhone: customerSeed.phone,
+        addressLine: '120 Silom Complex',
+        city: 'Bangkok',
+        postalCode: '10500',
+        isDefault: false,
+      },
+    ],
+  });
+}
+
+async function createDemoPaymentMethods(customerId: string) {
+  await prisma.savedPaymentMethod.createMany({
+    data: [
+      {
+        userId: customerId,
+        type: 'CARD',
+        label: 'Main Visa',
+        isDefault: true,
+        cardholderName: customerSeed.fullName,
+        cardLast4: '4242',
+        cardExpiryMonth: '08',
+        cardExpiryYear: '28',
+      },
+      {
+        userId: customerId,
+        type: 'QR_PAYMENT',
+        label: 'SCB Everyday QR',
+        isDefault: false,
+        bankName: 'SCB',
+      },
+    ],
+  });
+}
+
+async function createDemoOrders(customerId: string) {
+  const seededProducts: SeedProductLookup[] = await prisma.product.findMany({
+    where: {
+      slug: {
+        in: demoOrders.flatMap((order) => order.items.map((item) => item.slug)),
+      },
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      imageUrl: true,
+    },
+  });
+
+  const productMap = new Map(
+    seededProducts.map((product: SeedProductLookup) => [product.slug, product]),
+  );
+
+  const orders = [] as Array<{ id: string; orderNo: string; userId: string }>;
+
+  for (const order of demoOrders) {
+    const createdOrder = await prisma.order.create({
+      data: {
+        orderNo: order.orderNo,
+        userId: customerId,
+        status: order.status,
+        refundStatus: order.refundStatus,
+        paymentMethod: order.paymentMethod,
+        paymentDemoStatus: order.paymentDemoStatus,
+        paymentSubmittedAt: order.paymentSubmittedAt,
+        paymentCompletedAt: order.paymentCompletedAt,
+        customerFullName: customerSeed.fullName,
+        customerEmail: customerSeed.email,
+        customerPhone: customerSeed.phone,
+        shippingAddressLine: customerSeed.addressLine,
+        shippingCity: customerSeed.city,
+        shippingPostalCode: customerSeed.postalCode,
+        subtotal: order.subtotal,
+        shippingTotal: order.shippingTotal,
+        total: order.total,
+        createdAt: order.createdAt,
+        items: {
+          create: order.items.map((item) => {
+            const product = productMap.get(item.slug);
+
+            if (!product) {
+              throw new Error(`Missing seeded product for slug: ${item.slug}`);
+            }
+
+            return {
+              productId: product.id,
+              productName: product.name,
+              productSlug: product.slug,
+              productImageUrl: product.imageUrl,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+            };
+          }),
+        },
+      },
+      select: {
+        id: true,
+        orderNo: true,
+        userId: true,
+      },
+    });
+
+    orders.push(createdOrder);
+  }
+
+  return orders;
+}
+
+async function createDemoCancellationRequest(
+  orders: Array<{ id: string; orderNo: string; userId: string }>,
+) {
+  const targetOrder = orders.find(
+    (order) => order.orderNo === 'FC-20260512-100004',
+  );
+
+  if (!targetOrder) {
+    return;
+  }
+
+  await prisma.orderCancellationRequest.create({
+    data: {
+      orderId: targetOrder.id,
+      requesterUserId: targetOrder.userId,
+      reasonCode: 'ORDER_DELAY',
+      details: 'Customer asked for an urgent update before shipment leaves.',
+      status: 'REQUESTED',
+      reviewNote: null,
+      reviewedByUserId: null,
+      reviewedAt: null,
+    },
+  });
+}
+
+async function createDemoNotifications(
+  adminUserId: string,
+  customerUserId: string,
+) {
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: adminUserId,
+        type: 'ORDER_CREATED',
+        orderNo: 'FC-20260518-100001',
+        titleEn: 'New order received',
+        titleTh: 'มีคำสั่งซื้อใหม่เข้ามา',
+        bodyEn: 'Facee Customer just placed a new order for today.',
+        bodyTh: 'Facee Customer เพิ่งสร้างคำสั่งซื้อใหม่สำหรับวันนี้',
+      },
+      {
+        userId: adminUserId,
+        type: 'QR_PAYMENT_SUBMITTED',
+        orderNo: 'FC-20260516-100002',
+        titleEn: 'QR payment needs review',
+        titleTh: 'มีรายการ QR รอตรวจสอบ',
+        bodyEn: 'Order FC-20260516-100002 submitted a QR transfer for review.',
+        bodyTh: 'ออเดอร์ FC-20260516-100002 ส่งรายการชำระผ่าน QR เข้ามาแล้ว',
+      },
+      {
+        userId: adminUserId,
+        type: 'CANCELLATION_REQUESTED',
+        orderNo: 'FC-20260512-100004',
+        titleEn: 'Cancellation request received',
+        titleTh: 'มีคำขอยกเลิกใหม่',
+        bodyEn: 'A cancellation review is waiting on the packing order queue.',
+        bodyTh: 'มีคำขอยกเลิกรอการตรวจสอบในคิวคำสั่งซื้อที่กำลังแพ็ก',
+      },
+      {
+        userId: customerUserId,
+        type: 'ORDER_CREATED',
+        orderNo: 'FC-20260518-100001',
+        titleEn: 'Order placed successfully',
+        titleTh: 'สร้างคำสั่งซื้อเรียบร้อยแล้ว',
+        bodyEn:
+          'We saved your latest order and are waiting for payment confirmation.',
+        bodyTh:
+          'ระบบบันทึกคำสั่งซื้อล่าสุดของคุณแล้ว และกำลังรอยืนยันการชำระเงิน',
+      },
+      {
+        userId: customerUserId,
+        type: 'QR_PAYMENT_CONFIRMED',
+        orderNo: 'FC-20260516-100002',
+        titleEn: 'Payment confirmed',
+        titleTh: 'ยืนยันการชำระเงินแล้ว',
+        bodyEn:
+          'Your QR payment for FC-20260516-100002 was confirmed by the team.',
+        bodyTh: 'ทีมงานยืนยันการชำระเงินผ่าน QR ของ FC-20260516-100002 แล้ว',
+      },
+      {
+        userId: customerUserId,
+        type: 'REFUND_PENDING',
+        orderNo: 'FC-20260512-100004',
+        titleEn: 'Refund is being processed',
+        titleTh: 'กำลังดำเนินการคืนเงิน',
+        bodyEn:
+          'We are reviewing the refund steps for your latest cancellation.',
+        bodyTh: 'เรากำลังตรวจสอบขั้นตอนการคืนเงินสำหรับคำขอยกเลิกล่าสุดของคุณ',
+      },
+      {
+        userId: customerUserId,
+        type: 'REFUND_COMPLETED',
+        orderNo: 'FC-20260510-100005',
+        titleEn: 'Refund completed',
+        titleTh: 'คืนเงินสำเร็จแล้ว',
+        bodyEn: 'Your refund for FC-20260510-100005 has been completed.',
+        bodyTh: 'การคืนเงินสำหรับ FC-20260510-100005 เสร็จสมบูรณ์แล้ว',
+      },
+    ],
+  });
+}
+
+async function main() {
+  await seedCatalog();
+  await resetDemoUsers();
+  const { admin, customer } = await createDemoUsers();
+  await createDemoAddresses(customer.id);
+  await createDemoPaymentMethods(customer.id);
+  const orders = await createDemoOrders(customer.id);
+  await createDemoCancellationRequest(orders);
+  await createDemoNotifications(admin.id, customer.id);
+
+  console.log('Seeded demo credentials:');
+  console.log(`- Admin: ${adminSeed.email} / ${adminSeed.password}`);
+  console.log(`- Customer: ${customerSeed.email} / ${customerSeed.password}`);
 }
 
 main()

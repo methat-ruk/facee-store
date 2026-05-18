@@ -607,6 +607,14 @@
       "QR_PAYMENT": "ชำระด้วยคิวอาร์",
       "CARD": "บัตรเครดิต / เดบิต"
     },
+    "cancellationReasons": {
+      "WRONG_ADDRESS": "ที่อยู่ไม่ถูกต้อง",
+      "DUPLICATE_ORDER": "สั่งซ้ำ",
+      "CHANGED_MIND": "เปลี่ยนใจ",
+      "PAYMENT_ISSUE": "มีปัญหาการชำระเงิน",
+      "ORDER_DELAY": "ออเดอร์ล่าช้า",
+      "OTHER": "อื่น ๆ"
+    },
     "stockAlertsTitle": "แจ้งเตือนสต็อก",
     "stockAlertsDescription": "สินค้าที่ใกล้ถึงจุดต้องตัดสินใจเติมสต็อกแล้ว",
     "stockAlertsEmpty": "ยังไม่มีสินค้าที่เผยแพร่แล้วอยู่ต่ำกว่าค่าแจ้งเตือนสต็อก",

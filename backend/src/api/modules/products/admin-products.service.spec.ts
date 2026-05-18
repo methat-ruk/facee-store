@@ -3,7 +3,7 @@ jest.mock('../../../prisma/prisma.service', () => ({
 }));
 
 jest.mock(
-  '../../../generated/prisma/client.cjs',
+  '@prisma/client',
   () => ({
     Prisma: {
       PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {},
@@ -13,7 +13,7 @@ jest.mock(
 );
 
 import { HttpStatus } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client.cjs';
+import { Prisma } from '@prisma/client';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import { AppException } from '../../../common/errors/app-exception';
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';

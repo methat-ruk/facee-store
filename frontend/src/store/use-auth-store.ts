@@ -8,10 +8,16 @@ import {
   getProfile,
   login,
   logout,
+  refreshSession,
   register,
 } from '@/services/auth';
 import type { AuthErrorSource } from '@/features/auth/classify-auth-error';
 import { type ApiError, toApiError } from '@/services/api-error';
+import {
+  clearStoredAuthTokens,
+  getStoredRefreshToken,
+  persistAuthTokens,
+} from '@/lib/auth-tokens';
 
 type AuthStore = {
   user: AuthUser | null;
@@ -42,25 +48,63 @@ export const useAuthStore = create<AuthStore>((set) => ({
   refreshProfile: async () => {
     set({ isRestoringProfile: true, error: null, errorSource: null });
 
-    try {
-      const session = await getProfile();
+    const refreshToken = getStoredRefreshToken();
+    const hadStoredSession = refreshToken !== null;
+
+    if (!refreshToken) {
       set({
-        user: session.user,
+        user: null,
         isRestoringProfile: false,
         isInitialized: true,
       });
+      return;
+    }
+
+    try {
+      try {
+        const user = await getProfile();
+        set({
+          user,
+          isRestoringProfile: false,
+          isInitialized: true,
+        });
+        return;
+      } catch {
+        const session = await refreshSession(refreshToken);
+        persistAuthTokens({
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          accessTokenExpiresAt: session.accessTokenExpiresAt,
+          refreshTokenExpiresAt: session.refreshTokenExpiresAt,
+        });
+        set({
+          user: session.user,
+          isRestoringProfile: false,
+          isInitialized: true,
+        });
+        return;
+      }
     } catch (error) {
-      const apiError = toApiError(error, {
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Unable to restore the current session.',
-        statusCode: 500,
-      });
+      clearStoredAuthTokens();
+
+      if (!hadStoredSession) {
+        set({
+          user: null,
+          isRestoringProfile: false,
+          isInitialized: true,
+        });
+        return;
+      }
 
       set({
         user: null,
         isRestoringProfile: false,
         isInitialized: true,
-        error: apiError,
+        error: toApiError(error, {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Unable to restore the current session.',
+          statusCode: 500,
+        }),
         errorSource: 'profile-restore',
       });
     }
@@ -69,9 +113,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ isLoggingIn: true, error: null, errorSource: null });
 
     try {
-      const user = await login(input);
-      set({ user, isLoggingIn: false, isInitialized: true });
-      return user;
+      const session = await login(input);
+      persistAuthTokens({
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        accessTokenExpiresAt: session.accessTokenExpiresAt,
+        refreshTokenExpiresAt: session.refreshTokenExpiresAt,
+      });
+      set({ user: session.user, isLoggingIn: false, isInitialized: true });
+      return session.user;
     } catch (error) {
       const apiError = toApiError(error, {
         code: 'INTERNAL_SERVER_ERROR',
@@ -91,9 +141,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ isRegistering: true, error: null, errorSource: null });
 
     try {
-      const user = await register(input);
-      set({ user, isRegistering: false, isInitialized: true });
-      return user;
+      const session = await register(input);
+      persistAuthTokens({
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        accessTokenExpiresAt: session.accessTokenExpiresAt,
+        refreshTokenExpiresAt: session.refreshTokenExpiresAt,
+      });
+      set({ user: session.user, isRegistering: false, isInitialized: true });
+      return session.user;
     } catch (error) {
       const apiError = toApiError(error, {
         code: 'INTERNAL_SERVER_ERROR',
@@ -113,7 +169,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ isLoggingOut: true, error: null, errorSource: null });
 
     try {
-      await logout();
+      const refreshToken = getStoredRefreshToken();
+      if (refreshToken) {
+        await logout(refreshToken);
+      }
+      clearStoredAuthTokens();
       set({
         user: null,
         isLoggingOut: false,
@@ -121,6 +181,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         errorSource: null,
       });
     } catch (error) {
+      clearStoredAuthTokens();
       const apiError = toApiError(error, {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Unable to log out. Please try again.',
@@ -136,12 +197,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
   clearError: () => set({ error: null, errorSource: null }),
-  clearSession: () =>
+  clearSession: () => {
+    clearStoredAuthTokens();
     set({
       user: null,
       isInitialized: true,
       isRestoringProfile: false,
       error: null,
       errorSource: null,
-    }),
+    });
+  },
 }));

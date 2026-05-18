@@ -15,18 +15,32 @@ import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   const buildService = () => {
-    const create = jest.fn();
-    const findUnique = jest.fn();
+    const userCreate = jest.fn();
+    const userFindUnique = jest.fn();
+    const authSessionCreate = jest.fn();
+    const authSessionFindFirst = jest.fn();
+    const authSessionUpdate = jest.fn();
+    const authSessionUpdateMany = jest.fn();
     const signAsync = jest.fn();
     const verifyAsync = jest.fn();
 
     const prisma = {
       user: {
-        create,
-        findUnique,
+        create: userCreate,
+        findUnique: userFindUnique,
+      },
+      authSession: {
+        create: authSessionCreate,
+        findFirst: authSessionFindFirst,
+        update: authSessionUpdate,
+        updateMany: authSessionUpdateMany,
       },
     } satisfies {
       user: Pick<PrismaService['user'], 'create' | 'findUnique'>;
+      authSession: Pick<
+        PrismaService['authSession'],
+        'create' | 'findFirst' | 'update' | 'updateMany'
+      >;
     };
 
     const jwtService = {
@@ -41,8 +55,12 @@ describe('AuthService', () => {
 
     return {
       service,
-      create,
-      findUnique,
+      userCreate,
+      userFindUnique,
+      authSessionCreate,
+      authSessionFindFirst,
+      authSessionUpdate,
+      authSessionUpdateMany,
       signAsync,
       verifyAsync,
     };
@@ -52,12 +70,19 @@ describe('AuthService', () => {
     jest.clearAllMocks();
   });
 
-  it('registers a customer with a hashed password and token', async () => {
-    const { service, create, findUnique, signAsync } = buildService();
+  it('registers a customer with hashed password and token pair', async () => {
+    const {
+      service,
+      userCreate,
+      userFindUnique,
+      authSessionCreate,
+      authSessionUpdate,
+      signAsync,
+    } = buildService();
 
-    findUnique.mockResolvedValue(null);
+    userFindUnique.mockResolvedValueOnce(null);
     jest.mocked(bcrypt.hash).mockResolvedValue('hashed-password' as never);
-    create.mockResolvedValue({
+    userCreate.mockResolvedValueOnce({
       id: 'cm8user000001234567890123',
       email: 'new@example.com',
       fullName: 'New Customer',
@@ -67,42 +92,66 @@ describe('AuthService', () => {
       postalCode: null,
       role: 'CUSTOMER',
     });
-    signAsync.mockResolvedValue('jwt-token');
+    authSessionCreate.mockResolvedValueOnce({ id: 'session-1' });
+    authSessionUpdate.mockResolvedValueOnce({});
+    signAsync
+      .mockResolvedValueOnce('access-token')
+      .mockResolvedValueOnce('refresh-token');
 
-    await expect(
-      service.register({
-        fullName: ' New Customer ',
-        email: 'NEW@EXAMPLE.COM',
-        password: 'password123',
-        confirmPassword: 'password123',
-      }),
-    ).resolves.toEqual({
-      profile: {
-        id: 'cm8user000001234567890123',
-        email: 'new@example.com',
-        fullName: 'New Customer',
-        phone: null,
-        addressLine: null,
-        city: null,
-        postalCode: null,
-        role: 'CUSTOMER',
-      },
-      token: 'jwt-token',
+    const result = await service.register({
+      fullName: ' New Customer ',
+      email: 'NEW@EXAMPLE.COM',
+      password: 'password123',
+      confirmPassword: 'password123',
     });
 
-    expect(create).toHaveBeenCalledWith({
+    expect(result.user).toEqual({
+      id: 'cm8user000001234567890123',
+      email: 'new@example.com',
+      fullName: 'New Customer',
+      phone: null,
+      addressLine: null,
+      city: null,
+      postalCode: null,
+      role: 'CUSTOMER',
+    });
+    expect(result.accessToken).toBe('access-token');
+    expect(result.refreshToken).toBe('refresh-token');
+    expect(result.accessTokenExpiresAt).toEqual(expect.any(String));
+    expect(result.refreshTokenExpiresAt).toEqual(expect.any(String));
+
+    expect(userCreate).toHaveBeenCalledWith({
       data: {
         email: 'new@example.com',
         fullName: 'New Customer',
         passwordHash: 'hashed-password',
       },
     });
+    expect(authSessionCreate).toHaveBeenCalledTimes(1);
+    const [registerSessionUpdate] = authSessionUpdate.mock.calls as [
+      [
+        {
+          where: { id: string };
+          data: {
+            expiresAt: Date;
+            lastUsedAt: Date;
+            tokenHash: string;
+          };
+        },
+      ],
+    ];
+    expect(registerSessionUpdate[0].where).toEqual({
+      id: 'session-1',
+    });
+    expect(registerSessionUpdate[0].data.expiresAt).toBeInstanceOf(Date);
+    expect(registerSessionUpdate[0].data.lastUsedAt).toBeInstanceOf(Date);
+    expect(registerSessionUpdate[0].data.tokenHash).toEqual(expect.any(String));
   });
 
   it('rejects duplicate registration emails', async () => {
-    const { service, findUnique } = buildService();
+    const { service, userFindUnique } = buildService();
 
-    findUnique.mockResolvedValue({
+    userFindUnique.mockResolvedValue({
       id: 'cm8user000001234567890123',
     });
 
@@ -124,9 +173,15 @@ describe('AuthService', () => {
   });
 
   it('logs in with valid credentials', async () => {
-    const { service, findUnique, signAsync } = buildService();
+    const {
+      service,
+      userFindUnique,
+      authSessionCreate,
+      authSessionUpdate,
+      signAsync,
+    } = buildService();
 
-    findUnique.mockResolvedValue({
+    userFindUnique.mockResolvedValueOnce({
       id: 'cm8user000001234567890123',
       email: 'customer@example.com',
       fullName: 'Customer',
@@ -138,32 +193,35 @@ describe('AuthService', () => {
       role: 'CUSTOMER',
     });
     jest.mocked(bcrypt.compare).mockResolvedValue(true as never);
-    signAsync.mockResolvedValue('jwt-token');
+    authSessionCreate.mockResolvedValueOnce({ id: 'session-1' });
+    authSessionUpdate.mockResolvedValueOnce({});
+    signAsync
+      .mockResolvedValueOnce('access-token')
+      .mockResolvedValueOnce('refresh-token');
 
-    await expect(
-      service.login({
-        email: 'CUSTOMER@EXAMPLE.COM',
-        password: 'password123',
-      }),
-    ).resolves.toEqual({
-      profile: {
-        id: 'cm8user000001234567890123',
-        email: 'customer@example.com',
-        fullName: 'Customer',
-        phone: null,
-        addressLine: null,
-        city: null,
-        postalCode: null,
-        role: 'CUSTOMER',
-      },
-      token: 'jwt-token',
+    const result = await service.login({
+      email: 'CUSTOMER@EXAMPLE.COM',
+      password: 'password123',
     });
+
+    expect(result.user).toEqual({
+      id: 'cm8user000001234567890123',
+      email: 'customer@example.com',
+      fullName: 'Customer',
+      phone: null,
+      addressLine: null,
+      city: null,
+      postalCode: null,
+      role: 'CUSTOMER',
+    });
+    expect(result.accessToken).toBe('access-token');
+    expect(result.refreshToken).toBe('refresh-token');
   });
 
   it('rejects invalid credentials', async () => {
-    const { service, findUnique } = buildService();
+    const { service, userFindUnique } = buildService();
 
-    findUnique.mockResolvedValue({
+    userFindUnique.mockResolvedValue({
       id: 'cm8user000001234567890123',
       email: 'customer@example.com',
       fullName: 'Customer',
@@ -192,10 +250,90 @@ describe('AuthService', () => {
     });
   });
 
-  it('returns a profile for an authenticated user id', async () => {
-    const { service, findUnique } = buildService();
+  it('refreshes a valid refresh token session', async () => {
+    const {
+      service,
+      userFindUnique,
+      authSessionFindFirst,
+      authSessionUpdate,
+      signAsync,
+      verifyAsync,
+    } = buildService();
 
-    findUnique.mockResolvedValue({
+    verifyAsync.mockResolvedValueOnce({
+      sub: 'cm8user000001234567890123',
+      sessionId: 'session-1',
+      type: 'refresh',
+    });
+    authSessionFindFirst.mockResolvedValueOnce({
+      id: 'session-1',
+      userId: 'cm8user000001234567890123',
+      tokenHash:
+        '0eb17643d4e9261163783a420859c92c7d212fa9624106a12b510afbec266120',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    userFindUnique.mockResolvedValueOnce({
+      id: 'cm8user000001234567890123',
+      email: 'customer@example.com',
+      fullName: 'Customer',
+      phone: null,
+      addressLine: null,
+      city: null,
+      postalCode: null,
+      role: 'CUSTOMER',
+    });
+    authSessionUpdate.mockResolvedValueOnce({});
+    signAsync
+      .mockResolvedValueOnce('next-access-token')
+      .mockResolvedValueOnce('next-refresh-token');
+
+    const result = await service.refresh({
+      refreshToken: 'refresh-token',
+    });
+
+    expect(result.user.email).toBe('customer@example.com');
+    expect(result.accessToken).toBe('next-access-token');
+    expect(result.refreshToken).toBe('next-refresh-token');
+    const [refreshSessionUpdate] = authSessionUpdate.mock.calls as [
+      [
+        {
+          where: { id: string };
+          data: {
+            expiresAt: Date;
+            lastUsedAt: Date;
+            tokenHash: string;
+          };
+        },
+      ],
+    ];
+    expect(refreshSessionUpdate[0].where).toEqual({
+      id: 'session-1',
+    });
+    expect(refreshSessionUpdate[0].data.expiresAt).toBeInstanceOf(Date);
+    expect(refreshSessionUpdate[0].data.lastUsedAt).toBeInstanceOf(Date);
+    expect(refreshSessionUpdate[0].data.tokenHash).toEqual(expect.any(String));
+  });
+
+  it('rejects invalid refresh tokens', async () => {
+    const { service, verifyAsync } = buildService();
+
+    verifyAsync.mockRejectedValueOnce(new Error('invalid token'));
+
+    await expect(
+      service.refresh({
+        refreshToken: 'bad-token',
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: API_ERROR_CODES.authUnauthorized,
+      },
+    });
+  });
+
+  it('returns a profile for an authenticated user id', async () => {
+    const { service, userFindUnique } = buildService();
+
+    userFindUnique.mockResolvedValueOnce({
       id: 'cm8user000001234567890123',
       email: 'customer@example.com',
       fullName: 'Customer',
@@ -220,55 +358,53 @@ describe('AuthService', () => {
     });
   });
 
-  it('returns null session profile when no token is provided', async () => {
-    const { service } = buildService();
+  it('revokes a valid refresh token during logout', async () => {
+    const { service, authSessionUpdateMany, verifyAsync } = buildService();
 
-    await expect(service.getSessionProfile(null)).resolves.toBeNull();
+    verifyAsync.mockResolvedValueOnce({
+      sub: 'cm8user000001234567890123',
+      sessionId: 'session-1',
+      type: 'refresh',
+    });
+    authSessionUpdateMany.mockResolvedValueOnce({ count: 1 });
+
+    await expect(service.logout('refresh-token')).resolves.toEqual({
+      ok: true,
+    });
+    const [logoutSessionUpdate] = authSessionUpdateMany.mock.calls as [
+      [
+        {
+          where: {
+            id: string;
+            userId: string;
+            revokedAt: null;
+          };
+          data: {
+            revokedAt: Date;
+          };
+        },
+      ],
+    ];
+    expect(logoutSessionUpdate[0].where).toEqual({
+      id: 'session-1',
+      userId: 'cm8user000001234567890123',
+      revokedAt: null,
+    });
+    expect(logoutSessionUpdate[0].data.revokedAt).toBeInstanceOf(Date);
   });
 
-  it('returns null session profile for invalid tokens', async () => {
+  it('ignores invalid logout tokens', async () => {
     const { service, verifyAsync } = buildService();
 
-    verifyAsync.mockRejectedValue(new Error('invalid token'));
+    verifyAsync.mockRejectedValueOnce(new Error('invalid token'));
 
-    await expect(service.getSessionProfile('bad-token')).resolves.toBeNull();
-  });
-
-  it('returns a session profile for valid tokens', async () => {
-    const { service, findUnique, verifyAsync } = buildService();
-
-    verifyAsync.mockResolvedValue({
-      sub: 'cm8user000001234567890123',
-      email: 'customer@example.com',
-      role: 'CUSTOMER',
-    });
-    findUnique.mockResolvedValue({
-      id: 'cm8user000001234567890123',
-      email: 'customer@example.com',
-      fullName: 'Customer',
-      phone: null,
-      addressLine: null,
-      city: null,
-      postalCode: null,
-      role: 'CUSTOMER',
-    });
-
-    await expect(service.getSessionProfile('good-token')).resolves.toEqual({
-      id: 'cm8user000001234567890123',
-      email: 'customer@example.com',
-      fullName: 'Customer',
-      phone: null,
-      addressLine: null,
-      city: null,
-      postalCode: null,
-      role: 'CUSTOMER',
-    });
+    await expect(service.logout('bad-token')).resolves.toEqual({ ok: true });
   });
 
   it('rejects unknown authenticated user ids', async () => {
-    const { service, findUnique } = buildService();
+    const { service, userFindUnique } = buildService();
 
-    findUnique.mockResolvedValue(null);
+    userFindUnique.mockResolvedValueOnce(null);
 
     await expect(service.getProfile('missing-user')).rejects.toMatchObject({
       response: {

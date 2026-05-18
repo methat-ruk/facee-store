@@ -1,84 +1,43 @@
-import { Body, Controller, Get, Req, Post, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { clearAuthCookie, readCookie, setAuthCookie } from './auth-cookie';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import type { AuthenticatedRequest } from './auth.types';
 import { AuthService } from './auth.service';
 import { AuthProfileResponseDto } from './dto/auth-profile-response.dto';
-import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
+import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginRequestDto } from './dto/login-request.dto';
+import { LogoutRequestDto } from './dto/logout-request.dto';
+import { RefreshTokenRequestDto } from './dto/refresh-token-request.dto';
 import { RegisterRequestDto } from './dto/register-request.dto';
-import { AUTH_COOKIE_NAME } from './auth.types';
-
-function applyNoStore(response: Response) {
-  response.setHeader(
-    'Cache-Control',
-    'private, no-store, no-cache, max-age=0, must-revalidate',
-  );
-  response.setHeader('Pragma', 'no-cache');
-  response.setHeader('Expires', '0');
-  response.setHeader('Vary', 'Cookie');
-}
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(
-    @Body() body: RegisterRequestDto,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthProfileResponseDto> {
-    applyNoStore(response);
-    const result = await this.authService.register(body);
-    setAuthCookie(response, result.token);
-
-    return result.profile;
+  register(@Body() body: RegisterRequestDto): Promise<AuthResponseDto> {
+    return this.authService.register(body);
   }
 
   @Post('login')
-  async login(
-    @Body() body: LoginRequestDto,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthProfileResponseDto> {
-    applyNoStore(response);
-    const result = await this.authService.login(body);
-    setAuthCookie(response, result.token);
+  login(@Body() body: LoginRequestDto): Promise<AuthResponseDto> {
+    return this.authService.login(body);
+  }
 
-    return result.profile;
+  @Post('refresh')
+  refresh(@Body() body: RefreshTokenRequestDto): Promise<AuthResponseDto> {
+    return this.authService.refresh(body);
   }
 
   @Post('logout')
-  logout(@Res({ passthrough: true }) response: Response) {
-    applyNoStore(response);
-    clearAuthCookie(response);
-
-    return {
-      ok: true,
-    };
+  logout(@Body() body: LogoutRequestDto) {
+    return this.authService.logout(body.refreshToken);
   }
 
   @Get('profile')
-  async profile(
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthSessionResponseDto> {
-    applyNoStore(response);
-    const token = readCookie(request.headers.cookie, AUTH_COOKIE_NAME);
-    const user = await this.authService.getSessionProfile(token);
-
-    if (!user) {
-      if (token) {
-        clearAuthCookie(response);
-      }
-
-      return {
-        authenticated: false,
-        user: null,
-      };
-    }
-
-    return {
-      authenticated: true,
-      user,
-    };
+  @UseGuards(JwtAuthGuard)
+  profile(
+    @Req() request: AuthenticatedRequest,
+  ): Promise<AuthProfileResponseDto> {
+    return this.authService.getProfile(request.user.sub);
   }
 }

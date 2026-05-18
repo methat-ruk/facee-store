@@ -7,12 +7,9 @@ import {
   Patch,
   Post,
   Req,
-  Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { setAuthCookie } from '../auth/auth-cookie';
 import type { AuthenticatedRequest } from '../auth/auth.types';
 import { AccountService } from './account.service';
 import { AccountProfileDto } from './dto/account-profile.dto';
@@ -26,16 +23,6 @@ import { PaymentMethodParamDto } from './dto/payment-method-param.dto';
 import { UpdateAccountProfileRequestDto } from './dto/update-account-profile-request.dto';
 import { UpsertAddressRequestDto } from './dto/upsert-address-request.dto';
 import { UpsertPaymentMethodRequestDto } from './dto/upsert-payment-method-request.dto';
-
-function applyNoStore(response: Response) {
-  response.setHeader(
-    'Cache-Control',
-    'private, no-store, no-cache, max-age=0, must-revalidate',
-  );
-  response.setHeader('Pragma', 'no-cache');
-  response.setHeader('Expires', '0');
-  response.setHeader('Vary', 'Cookie');
-}
 
 @Controller('account')
 @UseGuards(JwtAuthGuard)
@@ -51,16 +38,8 @@ export class AccountController {
   async updateProfile(
     @Req() request: AuthenticatedRequest,
     @Body() body: UpdateAccountProfileRequestDto,
-    @Res({ passthrough: true }) response: Response,
   ): Promise<AccountProfileDto> {
-    applyNoStore(response);
-    const result = await this.accountService.updateProfile(
-      request.user.sub,
-      body,
-    );
-    setAuthCookie(response, result.token);
-
-    return result.profile;
+    return this.accountService.updateProfile(request.user.sub, body);
   }
 
   @Get('addresses')

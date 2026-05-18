@@ -5,12 +5,10 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { Request } from 'express';
 import { AppException } from '../errors/app-exception';
 import { API_ERROR_CODES } from '../errors/error-codes';
-import { readCookie } from '../../api/modules/auth/auth-cookie';
+import { appEnv } from '../../config/env';
 import {
-  AUTH_COOKIE_NAME,
   type AuthenticatedRequest,
   type AuthTokenPayload,
 } from '../../api/modules/auth/auth.types';
@@ -21,12 +19,10 @@ export class JwtAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const token = readCookie(
-      (request as Request).headers.cookie,
-      AUTH_COOKIE_NAME,
-    );
+    const authorizationHeader = request.headers.authorization;
+    const [scheme, token] = authorizationHeader?.split(' ') ?? [];
 
-    if (!token) {
+    if (scheme !== 'Bearer' || !token) {
       throw new AppException(
         HttpStatus.UNAUTHORIZED,
         API_ERROR_CODES.authUnauthorized,
@@ -35,7 +31,18 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      request.user = await this.jwtService.verifyAsync<AuthTokenPayload>(token);
+      const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(
+        token,
+        {
+          secret: appEnv.jwtAccessSecret,
+        },
+      );
+
+      if (payload.type !== 'access') {
+        throw new Error('Invalid token type.');
+      }
+
+      request.user = payload;
       return true;
     } catch {
       throw new AppException(

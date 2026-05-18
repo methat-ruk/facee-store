@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import type { Prisma } from '../../../generated/prisma/client.cjs';
+import type { Prisma } from '@prisma/client';
 import { AppException } from '../../../common/errors/app-exception';
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -85,7 +85,9 @@ export class AdminCustomersService {
       }),
     ]);
 
-    const customerIds = customers.map((customer) => customer.id);
+    const customerIds = customers.map(
+      (customer: (typeof customers)[number]) => customer.id,
+    );
     const orders =
       customerIds.length > 0
         ? await this.prisma.order.findMany({
@@ -113,7 +115,7 @@ export class AdminCustomersService {
     const statsByCustomerId = this.buildStatsByCustomerId(customerIds, orders);
 
     return {
-      items: customers.map((customer) => {
+      items: customers.map((customer: (typeof customers)[number]) => {
         const stats = statsByCustomerId.get(customer.id);
 
         return {
@@ -204,16 +206,20 @@ export class AdminCustomersService {
         lastOrderAt: stats.lastOrderAt?.toISOString() ?? null,
         pendingCancellationCount: stats.pendingCancellationCount,
       },
-      addresses: addresses.map((address) => this.toAddress(address)),
-      recentOrders: recentOrders.map((order) => ({
-        orderNo: order.orderNo,
-        status: order.status,
-        refundStatus: order.refundStatus,
-        paymentMethod: order.paymentMethod,
-        createdAt: order.createdAt.toISOString(),
-        total: Number(order.total),
-        hasPendingCancellationRequest: order.cancellationRequests.length > 0,
-      })),
+      addresses: addresses.map((address: AddressRecord) =>
+        this.toAddress(address),
+      ),
+      recentOrders: recentOrders.map(
+        (order: (typeof recentOrders)[number]) => ({
+          orderNo: order.orderNo,
+          status: order.status,
+          refundStatus: order.refundStatus,
+          paymentMethod: order.paymentMethod,
+          createdAt: order.createdAt.toISOString(),
+          total: Number(order.total),
+          hasPendingCancellationRequest: order.cancellationRequests.length > 0,
+        }),
+      ),
     };
   }
 

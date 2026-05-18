@@ -121,12 +121,13 @@ export class AdminDashboardService {
         pendingCancellationCount,
         lowStockProductsCount,
         paidTodayRevenue: paidInRangeOrders.reduce(
-          (sum, order) => sum + Number(order.total),
+          (sum: number, order: (typeof paidInRangeOrders)[number]) =>
+            sum + Number(order.total),
           0,
         ),
       },
       pendingCancellationRequests: pendingCancellationRequests.map(
-        (request) => ({
+        (request: (typeof pendingCancellationRequests)[number]) => ({
           requestId: request.id,
           orderNo: request.order.orderNo,
           customerName:
@@ -140,7 +141,7 @@ export class AdminDashboardService {
         }),
       ),
       recentOrders: recentOrders.slice(0, 6),
-      stockAlerts: stockAlerts.map((product) => ({
+      stockAlerts: stockAlerts.map((product: (typeof stockAlerts)[number]) => ({
         productId: product.id,
         productName: product.name,
         productSlug: product.slug,

@@ -7,7 +7,7 @@ import type {
   PaymentMethod,
   RefundStatus,
   User,
-} from '../../../generated/prisma/client.cjs';
+} from '@prisma/client';
 import { AppException } from '../../../common/errors/app-exception';
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -205,7 +205,9 @@ export class OrdersService {
     });
 
     const pricedItems = normalizedItems.map((item) => {
-      const product = products.find((current) => current.id === item.productId);
+      const product = products.find(
+        (current: (typeof products)[number]) => current.id === item.productId,
+      );
 
       if (!product || !product.isPublished || product.stock === 0) {
         throw new AppException(
@@ -343,7 +345,9 @@ export class OrdersService {
     });
 
     return {
-      items: orders.map((order) => this.toOrderListItem(order)),
+      items: orders.map((order: (typeof orders)[number]) =>
+        this.toOrderListItem(order),
+      ),
     };
   }
 
@@ -611,7 +615,9 @@ export class OrdersService {
     });
 
     return {
-      items: orders.map((order) => this.toOrderListItem(order)),
+      items: orders.map((order: (typeof orders)[number]) =>
+        this.toOrderListItem(order),
+      ),
     };
   }
 

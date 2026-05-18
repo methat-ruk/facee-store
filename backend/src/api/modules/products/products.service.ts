@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client.cjs';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ProductDetailResponseDto } from './dto/product-detail-response.dto';
 import { GetProductsQuery } from './dto/get-products-query.dto';
@@ -111,7 +111,7 @@ export class ProductsService {
       take: query.limit,
     });
     const soldCountMap = await this.getSoldCountMap(
-      items.map((item) => item.id),
+      items.map((item: (typeof items)[number]) => item.id),
     );
 
     return {
@@ -160,7 +160,9 @@ export class ProductsService {
     });
     const soldCountMap = await this.getSoldCountMap([
       product.id,
-      ...relatedProducts.map((item) => item.id),
+      ...relatedProducts.map(
+        (item: (typeof relatedProducts)[number]) => item.id,
+      ),
     ]);
 
     return {
@@ -201,7 +203,12 @@ export class ProductsService {
       GROUP BY oi."productId"
     `);
 
-    return new Map(rows.map((row) => [row.productId, Number(row.soldCount)]));
+    return new Map(
+      rows.map((row: ProductSoldCountRow) => [
+        row.productId,
+        Number(row.soldCount),
+      ]),
+    );
   }
 
   private getOrderBy(
