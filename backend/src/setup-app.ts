@@ -9,19 +9,15 @@ import { APP_CONSTANTS } from './config/app.constants';
 import { appEnv } from './config/env';
 
 export function setupApp(app: INestApplication, env: typeof appEnv = appEnv) {
-  const allowedOrigins = env.frontendUrl
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
   app.use(
     helmet({
       crossOriginResourcePolicy: false,
     }),
   );
   app.enableCors({
-    origin: allowedOrigins,
+    origin: env.corsOrigins,
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   const uploadDirectory = resolve(process.cwd(), env.mediaLocalDir);

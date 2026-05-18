@@ -27,10 +27,12 @@ Current backend variables:
 
 ```env
 PORT=4000
-FRONTEND_URL=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/facee
-JWT_SECRET=change-me
-COOKIE_SECRET=change-me
+JWT_ACCESS_SECRET=change-me-access
+JWT_REFRESH_SECRET=change-me-refresh
+JWT_ACCESS_TTL_MINUTES=15
+JWT_REFRESH_TTL_DAYS=14
 ```
 
 ## Database Setup
@@ -46,6 +48,15 @@ Commands:
 npm --prefix backend exec prisma migrate deploy --schema prisma/schema.prisma
 npm --prefix backend run db:seed
 ```
+
+Each seed run resets demo users and rebuilds the showcase data set:
+
+- admin login: `admin@facee.local` / `password123`
+- customer login: `customer@facee.local` / `password123`
+- customer addresses: Home and Office
+- customer payment methods: Main Visa and SCB Everyday QR
+- customer orders: pending, paid, packing with cancellation request, and refunded history
+- notifications: seeded for both admin and customer accounts
 
 If you are creating a new local migration while developing schema changes:
 
@@ -73,6 +84,10 @@ This starts:
 
 - frontend on `http://localhost:3000`
 - backend on `http://localhost:4000`
+
+Auth now uses bearer tokens. The frontend stores the access token for API
+calls and automatically refreshes it with the stored refresh token when
+possible.
 
 ## Useful URLs
 
@@ -123,6 +138,7 @@ Check:
 - `DATABASE_URL` is correct
 - migrations have been applied
 - seed data has been inserted
+- `NEXT_PUBLIC_API_URL` points at the running backend `/api` base URL
 
 ### Product images are missing
 

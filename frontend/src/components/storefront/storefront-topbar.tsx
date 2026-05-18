@@ -174,7 +174,7 @@ function TopbarSearchForm({
       className={
         mobile
           ? 'relative flex items-center'
-          : 'relative hidden items-center gap-3 md:flex'
+          : 'relative hidden items-center gap-3 xl:flex'
       }
       onSubmit={handleSubmit}
     >
@@ -343,17 +343,30 @@ function StorefrontMenuPanel({
   showBrand = true,
   showNavigation = true,
   showPreferences = true,
+  searchSlot,
 }: {
   onAction?: () => void;
   showBrand?: boolean;
   showNavigation?: boolean;
   showPreferences?: boolean;
+  searchSlot?: React.ReactNode;
 }) {
   const t = useTranslations('topbar');
 
   return (
     <div className="flex flex-col gap-5">
       {showBrand ? <BrandWordmark compact /> : null}
+      {searchSlot ? (
+        <>
+          <div className="flex flex-col gap-3">
+            <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              {t('searchSubmit')}
+            </p>
+            {searchSlot}
+          </div>
+          <Separator />
+        </>
+      ) : null}
       {showNavigation ? (
         <div className="flex flex-col gap-3">
           <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -537,18 +550,6 @@ export function StorefrontTopbar() {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <TopbarSearchForm
-              initialQuery={currentSearchQuery}
-              onSubmit={handleSearchSubmit}
-              placeholder={t('searchPlaceholder')}
-              submitLabel={t('searchSubmit')}
-              clearLabel={t('clearSearch')}
-              loadingLabel={t('searchLoading')}
-              noResultsLabel={t('searchNoResults')}
-              viewAllLabel={t('searchViewAll')}
-              flashSaleLabel={productsT('flashSale')}
-            />
-
             <div className="hidden self-stretch px-1 md:flex md:items-center">
               <div className="h-6 w-px bg-border/80" />
             </div>
@@ -557,7 +558,7 @@ export function StorefrontTopbar() {
               type="button"
               variant="outline"
               size="icon"
-              className="shrink-0 md:hidden"
+              className="shrink-0"
               aria-label={t('searchSubmit')}
               onClick={() => setMobileSearchOpen((current) => !current)}
             >
@@ -591,7 +592,7 @@ export function StorefrontTopbar() {
 
             <StorefrontLocalePill />
 
-            <AuthActions />
+            {!user ? <AuthActions /> : null}
 
             <div className="hidden md:block">
               <DropdownMenu
@@ -619,6 +620,23 @@ export function StorefrontTopbar() {
                   <StorefrontMenuPanel
                     showNavigation={false}
                     showPreferences={false}
+                    searchSlot={
+                      !user ? (
+                        <TopbarSearchForm
+                          mobile
+                          initialQuery={currentSearchQuery}
+                          onSubmit={handleSearchSubmit}
+                          placeholder={t('searchPlaceholder')}
+                          submitLabel={t('searchSubmit')}
+                          clearLabel={t('clearSearch')}
+                          loadingLabel={t('searchLoading')}
+                          noResultsLabel={t('searchNoResults')}
+                          viewAllLabel={t('searchViewAll')}
+                          flashSaleLabel={productsT('flashSale')}
+                          onNavigate={() => setDesktopMenuOpen(false)}
+                        />
+                      ) : null
+                    }
                     onAction={() => setDesktopMenuOpen(false)}
                   />
                 </DropdownMenuContent>
@@ -650,6 +668,21 @@ export function StorefrontTopbar() {
                   </SheetDescription>
 
                   <StorefrontMenuPanel
+                    searchSlot={
+                      <TopbarSearchForm
+                        mobile
+                        initialQuery={currentSearchQuery}
+                        onSubmit={handleSearchSubmit}
+                        placeholder={t('searchPlaceholder')}
+                        submitLabel={t('searchSubmit')}
+                        clearLabel={t('clearSearch')}
+                        loadingLabel={t('searchLoading')}
+                        noResultsLabel={t('searchNoResults')}
+                        viewAllLabel={t('searchViewAll')}
+                        flashSaleLabel={productsT('flashSale')}
+                        onNavigate={() => setMobileMenuOpen(false)}
+                      />
+                    }
                     onAction={() => setMobileMenuOpen(false)}
                   />
                 </SheetContent>
@@ -659,7 +692,7 @@ export function StorefrontTopbar() {
         </div>
 
         {mobileSearchOpen ? (
-          <div className="border-t border-border/70 pt-3 md:hidden">
+          <div className="border-t border-border/70 pt-3">
             <TopbarSearchForm
               mobile
               initialQuery={currentSearchQuery}

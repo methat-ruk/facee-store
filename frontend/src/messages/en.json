@@ -612,6 +612,14 @@
       "QR_PAYMENT": "QR payment",
       "CARD": "Credit / debit card"
     },
+    "cancellationReasons": {
+      "WRONG_ADDRESS": "Wrong address",
+      "DUPLICATE_ORDER": "Duplicate order",
+      "CHANGED_MIND": "Changed my mind",
+      "PAYMENT_ISSUE": "Payment issue",
+      "ORDER_DELAY": "Order delay",
+      "OTHER": "Other"
+    },
     "stockAlertsTitle": "Stock alerts",
     "stockAlertsDescription": "Products that are already near the next replenishment decision.",
     "stockAlertsEmpty": "No published products are currently under the stock alert threshold.",

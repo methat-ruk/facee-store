@@ -3,7 +3,7 @@ jest.mock('../../../prisma/prisma.service', () => ({
 }));
 
 jest.mock(
-  '../../../generated/prisma/client.cjs',
+  '@prisma/client',
   () => ({
     Prisma: {
       join: (values: unknown[]) => values,

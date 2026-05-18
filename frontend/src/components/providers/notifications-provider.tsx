@@ -16,6 +16,7 @@ export function NotificationsProvider({
   const isRestoringProfile = useAuthStore((state) => state.isRestoringProfile);
   const connect = useNotificationsStore((state) => state.connect);
   const clear = useNotificationsStore((state) => state.clear);
+  const refresh = useNotificationsStore((state) => state.refresh);
 
   useEffect(() => {
     if (!isInitialized || isRestoringProfile) {
@@ -29,6 +30,22 @@ export function NotificationsProvider({
 
     connect(user.id);
   }, [clear, connect, isInitialized, isRestoringProfile, user]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const handleFocus = () => {
+      void refresh();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refresh, user]);
 
   return children;
 }

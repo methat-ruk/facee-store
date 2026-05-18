@@ -5,8 +5,8 @@
 Facee is currently easiest to deploy as:
 
 - `frontend` on **Vercel**
-- `backend` on a separate Node-capable host
-- `PostgreSQL` on a managed database service
+- `backend` on **Railway** with `backend/` as the service root
+- `PostgreSQL` on **Neon**
 
 Docker is also a valid direction for local parity and future self-hosting, but
 the repo does not yet include production Docker files.
@@ -43,16 +43,18 @@ Required backend environment variables:
 
 ```env
 PORT=4000
-FRONTEND_URL=https://your-frontend-domain
+CORS_ORIGINS=https://your-frontend-domain
 DATABASE_URL=postgresql://user:password@host:5432/facee
-JWT_SECRET=replace-this
-COOKIE_SECRET=replace-this
+JWT_ACCESS_SECRET=replace-this-access
+JWT_REFRESH_SECRET=replace-this-refresh
+JWT_ACCESS_TTL_MINUTES=15
+JWT_REFRESH_TTL_DAYS=14
 ```
 
 ### Database
 
 Use PostgreSQL and apply existing Prisma migrations before seeding or serving
-traffic.
+traffic. Neon works well as the managed Postgres target for this repo.
 
 From `backend/`:
 
@@ -78,11 +80,11 @@ Recommended checks before production:
 ## Backend Deployment Flow
 
 1. Provision PostgreSQL
-2. Provision a Node host for `backend`
+2. Provision a Railway service with the root directory set to `backend`
 3. Add backend environment variables
 4. Run Prisma migrate deploy
-5. Seed data if needed for demo content
-6. Start the NestJS app
+5. Run the seed once if you want demo-ready content
+6. Start the NestJS app with `npm run start:prod` or `npm run start:start:prod`
 
 Useful backend verification:
 
@@ -90,6 +92,11 @@ Useful backend verification:
 - `npm --prefix backend run typecheck`
 - `npm --prefix backend run test`
 - `npm --prefix backend run build`
+
+Recommended demo credentials after seeding:
+
+- `admin@facee.local` / `password123`
+- `customer@facee.local` / `password123`
 
 ## Docker Direction
 
@@ -114,14 +121,15 @@ not a completed implementation.
 Implemented and deployable today:
 
 - localized storefront
-- login/register UI pages
+- login/register UI pages with token refresh
 - catalog and product detail flow
 - NestJS storefront API
+- seeded customer/admin demo flows
+- polling-friendly notifications snapshot flow
 
 Not production-complete yet:
 
-- real auth flow
-- cart and checkout
-- admin dashboard
+- third-party auth providers
+- payment gateway integration
 - production Docker files
 - CI/CD deployment automation

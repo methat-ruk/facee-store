@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client.cjs';
+import { Prisma } from '@prisma/client';
 import { appEnv } from '../../../config/env';
 import { AppException } from '../../../common/errors/app-exception';
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';

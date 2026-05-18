@@ -1,8 +1,5 @@
 import { Injectable, type MessageEvent } from '@nestjs/common';
-import type {
-  NotificationType,
-  UserRole,
-} from '../../../generated/prisma/client.cjs';
+import type { NotificationType, UserRole } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { Observable, Subject } from 'rxjs';
 import type { NotificationsResponseDto } from './dto/notifications-response.dto';
@@ -64,7 +61,9 @@ export class NotificationsService {
 
     return {
       unreadCount,
-      items: items.map((item) => this.toNotificationItem(item)),
+      items: items.map((item: NotificationRecord) =>
+        this.toNotificationItem(item),
+      ),
     };
   }
 
@@ -222,7 +221,7 @@ export class NotificationsService {
     });
 
     await this.notifyUsers(
-      users.map((user) => user.id),
+      users.map((user: { id: string }) => user.id),
       copy,
     );
   }

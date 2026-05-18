@@ -1,5 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client.cjs';
+import { Prisma } from '@prisma/client';
 import { AppException } from '../../../common/errors/app-exception';
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -107,7 +107,7 @@ export class AdminProductsService {
     ]);
 
     return {
-      items: filteredItems.map((item) => ({
+      items: filteredItems.map((item: (typeof filteredItems)[number]) => ({
         ...item,
         price: Number(item.price),
         compareAtPrice: toNumber(item.compareAtPrice),
@@ -348,7 +348,9 @@ export class AdminProductsService {
       `,
     );
 
-    const rowMap = new Map(rows.map((row) => [row.url, row]));
+    const rowMap = new Map<string, ProductMediaAssetRow>(
+      rows.map((row: ProductMediaAssetRow) => [row.url, row]),
+    );
 
     return distinctUrls.map((url) => {
       const row = rowMap.get(url);
@@ -494,32 +496,43 @@ export class AdminProductsService {
 
   private handleUniqueConstraint(error: unknown): AppException | null {
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
+      typeof error !== 'object' ||
+      error === null ||
+      !('code' in error) ||
+      error.code !== 'P2002'
     ) {
-      const target = Array.isArray(error.meta?.target) ? error.meta.target : [];
+      return null;
+    }
 
-      if (target.includes('sku')) {
-        return new AppException(
-          HttpStatus.CONFLICT,
-          API_ERROR_CODES.productSkuExists,
-          'This SKU is already in use.',
-          {
-            sku: [API_ERROR_CODES.productSkuExists],
-          },
-        );
-      }
+    const target =
+      'meta' in error &&
+      typeof error.meta === 'object' &&
+      error.meta !== null &&
+      'target' in error.meta &&
+      Array.isArray(error.meta.target)
+        ? error.meta.target
+        : [];
 
-      if (target.includes('slug')) {
-        return new AppException(
-          HttpStatus.CONFLICT,
-          API_ERROR_CODES.productSlugExists,
-          'This slug is already in use.',
-          {
-            slug: [API_ERROR_CODES.productSlugExists],
-          },
-        );
-      }
+    if (target.includes('sku')) {
+      return new AppException(
+        HttpStatus.CONFLICT,
+        API_ERROR_CODES.productSkuExists,
+        'This SKU is already in use.',
+        {
+          sku: [API_ERROR_CODES.productSkuExists],
+        },
+      );
+    }
+
+    if (target.includes('slug')) {
+      return new AppException(
+        HttpStatus.CONFLICT,
+        API_ERROR_CODES.productSlugExists,
+        'This slug is already in use.',
+        {
+          slug: [API_ERROR_CODES.productSlugExists],
+        },
+      );
     }
 
     return null;

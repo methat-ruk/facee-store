@@ -1,22 +1,11 @@
 import { z } from 'zod';
 import { apiConfig } from '@/config/api';
+import {
+  authResponseSchema,
+  authUserSchema,
+  type AuthResponse,
+} from '@/features/auth/auth-session-schema';
 import { api } from '@/services/api';
-
-export const authUserSchema = z.object({
-  id: z.string(),
-  email: z.email(),
-  fullName: z.string(),
-  phone: z.string().nullable(),
-  addressLine: z.string().nullable(),
-  city: z.string().nullable(),
-  postalCode: z.string().nullable(),
-  role: z.enum(['ADMIN', 'CUSTOMER']),
-});
-
-export const authSessionSchema = z.object({
-  authenticated: z.boolean(),
-  user: authUserSchema.nullable(),
-});
 
 export const loginInputSchema = z.object({
   email: z.email().trim().toLowerCase(),
@@ -36,7 +25,6 @@ export const registerInputSchema = z
   });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
-export type AuthSession = z.infer<typeof authSessionSchema>;
 export type LoginInput = z.infer<typeof loginInputSchema>;
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
@@ -44,7 +32,7 @@ export async function login(input: LoginInput) {
   const parsedInput = loginInputSchema.parse(input);
   const response = await api.post(apiConfig.endpoints.auth.login, parsedInput);
 
-  return authUserSchema.parse(response.data);
+  return authResponseSchema.parse(response.data);
 }
 
 export async function register(input: RegisterInput) {
@@ -54,15 +42,27 @@ export async function register(input: RegisterInput) {
     parsedInput,
   );
 
-  return authUserSchema.parse(response.data);
+  return authResponseSchema.parse(response.data);
+}
+
+export async function refreshSession(
+  refreshToken: string,
+): Promise<AuthResponse> {
+  const response = await api.post(apiConfig.endpoints.auth.refresh, {
+    refreshToken,
+  });
+
+  return authResponseSchema.parse(response.data);
 }
 
 export async function getProfile() {
   const response = await api.get(apiConfig.endpoints.auth.profile);
 
-  return authSessionSchema.parse(response.data);
+  return authUserSchema.parse(response.data);
 }
 
-export async function logout() {
-  await api.post(apiConfig.endpoints.auth.logout);
+export async function logout(refreshToken: string) {
+  await api.post(apiConfig.endpoints.auth.logout, {
+    refreshToken,
+  });
 }

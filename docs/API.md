@@ -40,17 +40,23 @@ Expected item shape:
 
 ### `POST /api/auth/register`
 
-Creates a customer account, sets an HttpOnly session cookie, and returns the
-authenticated profile.
+Creates a customer account and returns the authenticated profile plus
+`accessToken`, `refreshToken`, `accessTokenExpiresAt`, and
+`refreshTokenExpiresAt`.
 
 ### `POST /api/auth/login`
 
-Authenticates an existing customer, sets an HttpOnly session cookie, and
-returns the authenticated profile.
+Authenticates an existing customer and returns the authenticated profile plus
+token metadata.
+
+### `POST /api/auth/refresh`
+
+Accepts a refresh token and returns a rotated access + refresh token pair with
+the current user profile.
 
 ### `POST /api/auth/logout`
 
-Clears the auth cookie.
+Revokes the supplied refresh token session.
 
 Expected response:
 
@@ -62,7 +68,7 @@ Expected response:
 
 ### `GET /api/auth/profile`
 
-Returns the current session state from the HttpOnly cookie session.
+Returns the current authenticated user from the `Authorization: Bearer` token.
 
 ### `GET /api/account/profile`
 
@@ -70,8 +76,7 @@ Returns the authenticated customer profile.
 
 ### `PATCH /api/account/profile`
 
-Updates the authenticated customer profile and refreshes the auth cookie
-payload.
+Updates the authenticated customer profile.
 
 ### `GET /api/account/addresses`
 
@@ -332,7 +337,8 @@ Updates the recorded refund status for an order.
 
 ### `GET /api/notifications`
 
-Returns notifications for the authenticated user or admin session.
+Returns notifications for the authenticated user or admin session. The current
+frontend polls this snapshot endpoint and refreshes on focus.
 
 Supported query params:
 

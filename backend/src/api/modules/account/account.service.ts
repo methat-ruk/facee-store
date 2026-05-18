@@ -1,6 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { AppException } from '../../../common/errors/app-exception';
 import { API_ERROR_CODES } from '../../../common/errors/error-codes';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -69,10 +68,7 @@ type SavedPaymentMethodRecord = Omit<
 
 @Injectable()
 export class AccountService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -133,10 +129,7 @@ export class AccountService {
       select: accountProfileSelect,
     });
 
-    return {
-      profile: user,
-      token: await this.authService.issueUserToken(user),
-    };
+    return user;
   }
 
   async listAddresses(userId: string): Promise<AddressListResponseDtoShape> {
@@ -147,7 +140,7 @@ export class AccountService {
     });
 
     return {
-      items: addresses.map((address) => this.toAddress(address)),
+      items: addresses.map((address: AddressRecord) => this.toAddress(address)),
     };
   }
 
@@ -270,7 +263,7 @@ export class AccountService {
     });
 
     return {
-      items: paymentMethods.map((paymentMethod) =>
+      items: paymentMethods.map((paymentMethod: SavedPaymentMethodRecord) =>
         this.toPaymentMethod(paymentMethod),
       ),
     };

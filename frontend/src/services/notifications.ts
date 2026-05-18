@@ -1,4 +1,4 @@
-import { apiConfig, buildApiUrl } from '@/config/api';
+import { apiConfig } from '@/config/api';
 import { api } from '@/services/api';
 import {
   notificationsSnapshotSchema,
@@ -31,15 +31,8 @@ export async function markAllNotificationsAsRead() {
   return notificationsSnapshotSchema.parse(response.data);
 }
 
-export function createNotificationsEventSource() {
-  return new EventSource(
-    buildApiUrl(apiConfig.endpoints.notifications.stream),
-    {
-      withCredentials: true,
-    },
-  );
-}
-
-export function parseNotificationsEvent(data: string): NotificationsSnapshot {
-  return notificationsSnapshotSchema.parse(JSON.parse(data));
+export function mergeNotificationsSnapshot(
+  snapshot: NotificationsSnapshot,
+): NotificationsSnapshot {
+  return notificationsSnapshotSchema.parse(snapshot);
 }

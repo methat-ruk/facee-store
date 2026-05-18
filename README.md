@@ -40,9 +40,9 @@ The repo currently includes:
 - a NestJS backend for storefront, account, and order APIs
 - PostgreSQL + Prisma for product, account, and order data
 - a customer cart, checkout, and sandbox payment flow
-- customer auth, profile, saved addresses, saved demo cards, and order history
+- customer auth with access + refresh tokens, profile, saved addresses, saved demo cards, and order history
 - a dark-only admin portal with overview, customer lookup, and order review tools
-- real-time notifications for admins and customers via Server-Sent Events
+- customer and admin notifications surfaced with polling-friendly snapshot APIs
 - a shared shadcn/ui-based design system
 
 The project is still in progress. This README keeps both the **implemented
@@ -84,7 +84,7 @@ see what exists today and what is still ahead.
   - account details
   - saved addresses
   - saved demo cards
-- customer notification bell with unread count and real-time order updates
+- customer notification bell with unread count and refresh-based order updates
 - login, register, logout, and guarded customer routes
 
 ### Admin Portal
@@ -116,6 +116,7 @@ see what exists today and what is still ahead.
 - `GET /api/products/:slug`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `GET /api/auth/profile`
 - customer account endpoints for profile, addresses, and saved payment methods
@@ -129,6 +130,7 @@ see what exists today and what is still ahead.
 - Prisma schema and migrations
 - seeded skincare product catalog
 - seeded flash sale products and compare-at pricing
+- seeded admin and customer demo accounts with non-empty addresses, payment methods, orders, cancellation review state, and notifications
 - localized UI copy in `en` and `th`
 - localized category and product presentation on the frontend
 
@@ -239,6 +241,11 @@ npm --prefix backend exec prisma migrate deploy --schema prisma/schema.prisma
 npm --prefix backend run db:seed
 ```
 
+Demo credentials after each seed reset:
+
+- Admin: `admin@facee.local` / `password123`
+- Customer: `customer@facee.local` / `password123`
+
 5. Start the project:
 
 ```bash
@@ -280,6 +287,7 @@ npm --prefix frontend run typecheck
 npm --prefix frontend run typecheck:watch
 npm --prefix backend run test
 npm --prefix backend run db:seed
+npm --prefix backend run start:start:prod
 ```
 
 ## Documentation

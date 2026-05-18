@@ -11,9 +11,9 @@ import { AuthService } from './auth.service';
   imports: [
     PrismaModule,
     JwtModule.register({
-      secret: appEnv.jwtSecret ?? 'facee-dev-jwt-secret',
+      secret: appEnv.jwtAccessSecret,
       signOptions: {
-        expiresIn: '7d',
+        expiresIn: `${appEnv.jwtAccessTtlMinutes}m`,
       },
     }),
   ],
