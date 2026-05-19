@@ -233,6 +233,7 @@
     "paymentDemoStatus": {
       "NOT_STARTED": "Waiting for sandbox confirmation",
       "QR_SUBMITTED": "Transfer submitted in sandbox",
+      "QR_CONFIRMED": "Sandbox QR payment confirmed",
       "CARD_COMPLETED": "Sandbox card payment completed"
     },
     "paymentMethodNote": {
@@ -454,6 +455,7 @@
     "paymentDemoStatus": {
       "NOT_STARTED": "Waiting for sandbox confirmation",
       "QR_SUBMITTED": "Transfer submitted in sandbox",
+      "QR_CONFIRMED": "Sandbox QR payment confirmed",
       "CARD_COMPLETED": "Sandbox card payment completed"
     },
     "pendingPaymentTitle": "Payment confirmation is still waiting.",
@@ -900,6 +902,7 @@
     "paymentDemoStatus": {
       "NOT_STARTED": "Waiting for sandbox confirmation",
       "QR_SUBMITTED": "Transfer submitted in sandbox",
+      "QR_CONFIRMED": "Sandbox QR payment confirmed",
       "CARD_COMPLETED": "Sandbox card payment completed"
     }
   }

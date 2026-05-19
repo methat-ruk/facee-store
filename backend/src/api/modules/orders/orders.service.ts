@@ -824,6 +824,7 @@ export class OrdersService {
       },
       data: {
         status: 'PAID',
+        paymentDemoStatus: 'QR_CONFIRMED',
         paymentCompletedAt: new Date(),
       },
     });

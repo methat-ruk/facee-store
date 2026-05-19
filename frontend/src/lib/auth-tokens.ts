@@ -1,5 +1,3 @@
-'use client';
-
 import type { AuthTokens } from '@/features/auth/auth-session-schema';
 
 const AUTH_TOKENS_STORAGE_KEY = 'facee.auth.tokens';

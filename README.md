@@ -103,7 +103,8 @@ see what exists today and what is still ahead.
 
 ### Notifications
 
-- real-time notifications via `GET /api/notifications/stream`
+- notification snapshot feed via `GET /api/notifications`
+- optional SSE stream via `GET /api/notifications/stream`
 - unread badges for admin order review and customer account updates
 - mark-one, mark-order, and mark-all read actions
 - right-side full list surface for larger notification histories
@@ -123,7 +124,7 @@ see what exists today and what is still ahead.
 - customer order endpoints for listing, detail, cancellation, and sandbox
   payment confirmation
 - admin dashboard, customer directory, and order review endpoints
-- notification list, SSE stream, and read-state endpoints
+- notification list, optional SSE stream, and read-state endpoints
 
 ### Data and Content
 
@@ -211,7 +212,6 @@ facee/
 |     |-- api/
 |     |-- common/
 |     |-- config/
-|     |-- generated/
 |     `-- prisma/
 `-- docs/
 ```
@@ -224,7 +224,8 @@ For the current runtime boundaries and data flow, see
 1. Install dependencies:
 
 ```bash
-npm install
+npm install --prefix frontend
+npm install --prefix backend
 ```
 
 2. Set up environment files:
@@ -246,10 +247,18 @@ Demo credentials after each seed reset:
 - Admin: `admin@facee.local` / `password123`
 - Customer: `customer@facee.local` / `password123`
 
-5. Start the project:
+Seeded payment demo states now cover:
+
+- `NOT_STARTED`: customer still needs to open the payment step
+- `QR_SUBMITTED`: customer submitted the QR transfer and admin review is pending
+- `QR_CONFIRMED`: admin confirmed the QR transfer and the order is paid
+- `CARD_COMPLETED`: sandbox card confirmation completed immediately
+
+5. Start the project in two terminals:
 
 ```bash
-npm run dev
+npm --prefix backend run start:dev
+npm --prefix frontend run dev
 ```
 
 Useful local URLs:
@@ -269,23 +278,22 @@ Full setup details are in [docs/SETUP.md](./docs/SETUP.md).
 
 ## Scripts
 
-From the repo root:
-
-```bash
-npm run dev
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-npm run check
-```
-
 Useful targeted scripts:
 
 ```bash
+npm --prefix frontend run dev
+npm --prefix frontend run lint
+npm --prefix frontend run format:check
 npm --prefix frontend run typecheck
 npm --prefix frontend run typecheck:watch
+npm --prefix frontend run build
+
+npm --prefix backend run start:dev
+npm --prefix backend run lint
+npm --prefix backend run format:check
+npm --prefix backend run typecheck
 npm --prefix backend run test
+npm --prefix backend run build
 npm --prefix backend run db:seed
 npm --prefix backend run start:start:prod
 ```

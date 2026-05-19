@@ -186,6 +186,13 @@ Response shape:
 }
 ```
 
+Current `paymentDemoStatus` values:
+
+- `NOT_STARTED`: customer has not confirmed the sandbox payment step yet
+- `QR_SUBMITTED`: customer submitted a sandbox QR transfer and admin review is still pending
+- `QR_CONFIRMED`: admin confirmed the sandbox QR transfer and the order is paid
+- `CARD_COMPLETED`: sandbox card confirmation completed and the order is paid
+
 Unknown or inaccessible order numbers return `404` with
 `code: "ORDER_NOT_FOUND"`.
 
@@ -325,7 +332,8 @@ Returns one admin-facing order detail payload.
 ### `POST /api/admin/orders/:orderNo/confirm-qr-payment`
 
 Marks a submitted QR payment as confirmed by an admin, moves the order to
-`PAID`, and records `paymentCompletedAt`.
+`PAID`, changes `paymentDemoStatus` to `QR_CONFIRMED`, and records
+`paymentCompletedAt`.
 
 ### `POST /api/admin/cancellation-requests/:requestId/review`
 
@@ -376,7 +384,7 @@ Implemented:
 - sandbox payment confirmation flow
 - admin dashboard, customer directory, and order review endpoints
 - admin QR payment confirmation
-- notification list, SSE stream, and read-state endpoints
+- notification list, polling snapshot, optional SSE stream, and read-state endpoints
 
 Planned but not implemented yet:
 

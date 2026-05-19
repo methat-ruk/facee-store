@@ -74,6 +74,8 @@ export function getPaymentDemoStatusTranslationKey(
   switch (paymentDemoStatus) {
     case 'QR_SUBMITTED':
       return 'paymentDemoStatus.QR_SUBMITTED';
+    case 'QR_CONFIRMED':
+      return 'paymentDemoStatus.QR_CONFIRMED';
     case 'CARD_COMPLETED':
       return 'paymentDemoStatus.CARD_COMPLETED';
     default:
