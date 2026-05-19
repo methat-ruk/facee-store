@@ -35,6 +35,15 @@ JWT_ACCESS_TTL_MINUTES=15
 JWT_REFRESH_TTL_DAYS=14
 ```
 
+For hosted PostgreSQL providers such as Neon, prefer an explicit secure SSL
+mode in `DATABASE_URL`:
+
+```env
+DATABASE_URL=postgresql://user:password@host:5432/facee?sslmode=verify-full
+```
+
+Keep the plain local URL for local Postgres instances that do not expose TLS.
+
 ## Database Setup
 
 1. Create a PostgreSQL database named `facee`
