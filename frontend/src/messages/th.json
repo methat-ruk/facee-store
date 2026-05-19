@@ -250,6 +250,7 @@
     "paymentDemoStatus": {
       "NOT_STARTED": "รอยืนยันการชำระเงินใน sandbox",
       "QR_SUBMITTED": "ส่งรายการชำระผ่าน QR แล้ว",
+      "QR_CONFIRMED": "ยืนยันการชำระผ่าน QR แบบเดโมแล้ว",
       "CARD_COMPLETED": "ชำระด้วยบัตรแบบเดโมเรียบร้อยแล้ว"
     },
     "paymentMethodNote": {
@@ -471,6 +472,7 @@
     "paymentDemoStatus": {
       "NOT_STARTED": "รอยืนยันการชำระเงินใน sandbox",
       "QR_SUBMITTED": "ส่งรายการชำระผ่าน QR แล้ว",
+      "QR_CONFIRMED": "ยืนยันการชำระผ่าน QR แบบเดโมแล้ว",
       "CARD_COMPLETED": "ชำระด้วยบัตรแบบเดโมเรียบร้อยแล้ว"
     },
     "pendingPaymentTitle": "ออเดอร์นี้ยังรอยืนยันการชำระเงิน",
@@ -765,6 +767,7 @@
     "paymentDemoStatus": {
       "NOT_STARTED": "รอยืนยันการชำระเงินแบบเดโม",
       "QR_SUBMITTED": "ส่งรายการโอนในโหมดเดโมแล้ว",
+      "QR_CONFIRMED": "ยืนยันรายการโอนในโหมดเดโมแล้ว",
       "CARD_COMPLETED": "ชำระเงินด้วยบัตรแบบเดโมเรียบร้อยแล้ว"
     }
   },

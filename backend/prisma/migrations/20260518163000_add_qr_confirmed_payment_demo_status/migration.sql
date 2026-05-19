@@ -1,0 +1,1 @@
+ALTER TYPE "PaymentDemoStatus" ADD VALUE 'QR_CONFIRMED';

@@ -703,7 +703,7 @@ describe('OrdersService', () => {
         status: 'PAID',
         refundStatus: 'NONE',
         paymentMethod: 'QR_PAYMENT',
-        paymentDemoStatus: 'QR_SUBMITTED',
+        paymentDemoStatus: 'QR_CONFIRMED',
         paymentSubmittedAt: new Date('2026-04-28T10:05:00.000Z'),
         paymentCompletedAt: new Date('2026-04-28T10:20:00.000Z'),
         createdAt: new Date('2026-04-28T10:00:00.000Z'),
@@ -733,7 +733,7 @@ describe('OrdersService', () => {
     ).resolves.toMatchObject({
       status: 'PAID',
       paymentMethod: 'QR_PAYMENT',
-      paymentDemoStatus: 'QR_SUBMITTED',
+      paymentDemoStatus: 'QR_CONFIRMED',
     });
 
     const updateCalls = orderUpdate.mock.calls as Array<
@@ -742,6 +742,7 @@ describe('OrdersService', () => {
           where: { id: string };
           data: {
             status: string;
+            paymentDemoStatus: string;
             paymentCompletedAt?: unknown;
           };
         },
@@ -751,6 +752,7 @@ describe('OrdersService', () => {
 
     expect(updateArgs?.where.id).toBe('cm8order000001234567890123');
     expect(updateArgs?.data.status).toBe('PAID');
+    expect(updateArgs?.data.paymentDemoStatus).toBe('QR_CONFIRMED');
     expect(updateArgs?.data.paymentCompletedAt).toBeInstanceOf(Date);
   });
 

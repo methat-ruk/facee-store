@@ -230,6 +230,7 @@ enum PaymentMethod {
 enum PaymentDemoStatus {
   NOT_STARTED
   QR_SUBMITTED
+  QR_CONFIRMED
   CARD_COMPLETED
 }
 

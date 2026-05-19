@@ -55,7 +55,13 @@ Each seed run resets demo users and rebuilds the showcase data set:
 - customer login: `customer@facee.local` / `password123`
 - customer addresses: Home and Office
 - customer payment methods: Main Visa and SCB Everyday QR
-- customer orders: pending, paid, packing with cancellation request, and refunded history
+- customer orders:
+  - pending checkout payment (`NOT_STARTED`)
+  - QR submitted and waiting for admin review (`QR_SUBMITTED`)
+  - QR confirmed and paid (`QR_CONFIRMED`)
+  - card-completed paid history (`CARD_COMPLETED`)
+  - packing with cancellation request
+  - refunded history
 - notifications: seeded for both admin and customer accounts
 
 If you are creating a new local migration while developing schema changes:
@@ -66,18 +72,18 @@ npm --prefix backend run db:migrate -- --name your_migration_name
 
 ## Install Dependencies
 
-From the repo root:
-
 ```bash
-npm install
+npm install --prefix frontend
+npm install --prefix backend
 ```
 
 ## Run the Project
 
-From the repo root:
+Start the backend and frontend in separate terminals:
 
 ```bash
-npm run dev
+npm --prefix backend run start:dev
+npm --prefix frontend run dev
 ```
 
 This starts:
@@ -106,18 +112,19 @@ possible.
 
 ## Verification
 
-From the repo root:
-
 ```bash
-npm run lint
-npm run typecheck
-npm run test
+npm --prefix frontend run lint
+npm --prefix frontend run typecheck
+npm --prefix backend run lint
+npm --prefix backend run typecheck
+npm --prefix backend run test
 ```
 
 Optional full verification:
 
 ```bash
-npm run build
+npm --prefix frontend run build
+npm --prefix backend run build
 ```
 
 ## Troubleshooting

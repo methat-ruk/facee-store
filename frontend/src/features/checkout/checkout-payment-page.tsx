@@ -50,6 +50,20 @@ type CardFieldErrors = {
   cvc?: string;
 };
 
+type CardFormValues = {
+  cardholderName: string;
+  cardNumber: string;
+  expiryDate: string;
+  cvc: string;
+};
+
+const demoCardDefaults: CardFormValues = {
+  cardholderName: 'Facee Demo Customer',
+  cardNumber: '4242 4242 4242 4242',
+  expiryDate: '12/30',
+  cvc: '123',
+};
+
 function formatExpiryDateInput(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 4);
   if (digits.length <= 2) {
@@ -104,12 +118,7 @@ export function CheckoutPaymentPage({ orderNo }: CheckoutPaymentPageProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isUpdatingPaymentMethod, setIsUpdatingPaymentMethod] = useState(false);
-  const [cardForm, setCardForm] = useState({
-    cardholderName: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvc: '',
-  });
+  const [cardForm, setCardForm] = useState({ ...demoCardDefaults });
   const [cardFieldErrors, setCardFieldErrors] = useState<CardFieldErrors>({});
   const cardholderInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -178,6 +187,7 @@ export function CheckoutPaymentPage({ orderNo }: CheckoutPaymentPageProps) {
 
   const isAlreadyConfirmed =
     order?.paymentDemoStatus === 'QR_SUBMITTED' ||
+    order?.paymentDemoStatus === 'QR_CONFIRMED' ||
     order?.paymentDemoStatus === 'CARD_COMPLETED';
 
   const paymentStatusKey = order
@@ -236,15 +246,9 @@ export function CheckoutPaymentPage({ orderNo }: CheckoutPaymentPageProps) {
       );
       setOrder(response);
       setCardFieldErrors({});
-      if (paymentMethod === 'QR_PAYMENT') {
-        setCardForm({
-          cardholderName: '',
-          cardNumber: '',
-          expiryDate: '',
-          cvc: '',
-        });
-        setCardFieldErrors({});
-      } else {
+      setCardForm({ ...demoCardDefaults });
+
+      if (paymentMethod === 'CARD') {
         requestAnimationFrame(() => {
           cardholderInputRef.current?.focus();
         });
@@ -511,6 +515,7 @@ export function CheckoutPaymentPage({ orderNo }: CheckoutPaymentPageProps) {
                     <Input
                       id="demo-cardholder-name"
                       ref={cardholderInputRef}
+                      autoComplete="off"
                       value={cardForm.cardholderName}
                       placeholder={t('cardholderNamePlaceholder')}
                       onChange={(event) =>
@@ -530,6 +535,7 @@ export function CheckoutPaymentPage({ orderNo }: CheckoutPaymentPageProps) {
                     <Label htmlFor="demo-card-number">{t('cardNumber')}</Label>
                     <Input
                       id="demo-card-number"
+                      autoComplete="off"
                       inputMode="numeric"
                       value={cardForm.cardNumber}
                       placeholder={t('cardNumberPlaceholder')}
@@ -553,6 +559,7 @@ export function CheckoutPaymentPage({ orderNo }: CheckoutPaymentPageProps) {
                       </Label>
                       <Input
                         id="demo-expiry-date"
+                        autoComplete="off"
                         inputMode="numeric"
                         value={cardForm.expiryDate}
                         placeholder={t('expiryDatePlaceholder')}
@@ -575,6 +582,7 @@ export function CheckoutPaymentPage({ orderNo }: CheckoutPaymentPageProps) {
                       <Label htmlFor="demo-cvc">{t('cvc')}</Label>
                       <Input
                         id="demo-cvc"
+                        autoComplete="off"
                         inputMode="numeric"
                         value={cardForm.cvc}
                         placeholder={t('cvcPlaceholder')}

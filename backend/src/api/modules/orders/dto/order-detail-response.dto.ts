@@ -32,6 +32,7 @@ export const paymentMethodSchema = z.enum(['QR_PAYMENT', 'CARD']);
 export const paymentDemoStatusSchema = z.enum([
   'NOT_STARTED',
   'QR_SUBMITTED',
+  'QR_CONFIRMED',
   'CARD_COMPLETED',
 ]);
 
