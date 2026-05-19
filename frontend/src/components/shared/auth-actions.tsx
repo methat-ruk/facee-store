@@ -3,10 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import {
-  buildAuthNoticeHref,
-  buildReturnTo,
-} from '@/features/auth/auth-routing';
+import { buildReturnTo } from '@/features/auth/auth-routing';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useAuthStore } from '@/store/use-auth-store';
 
@@ -38,6 +35,7 @@ export function AuthActions({
 
   if (user) {
     const showInlineLogout = stacked || menu;
+    const isAdmin = user.role === 'ADMIN';
 
     return (
       <div
@@ -60,6 +58,21 @@ export function AuthActions({
         </div>
         {showInlineLogout ? (
           <>
+            {isAdmin ? (
+              <Button
+                asChild
+                variant="ghost"
+                className={
+                  stacked || menu
+                    ? 'w-full justify-center text-foreground'
+                    : undefined
+                }
+              >
+                <Link href="/admin" prefetch={false} onClick={onAction}>
+                  {t('adminPortal')}
+                </Link>
+              </Button>
+            ) : null}
             <Button
               asChild
               variant="ghost"
@@ -99,7 +112,7 @@ export function AuthActions({
                 try {
                   await logout();
                   onAction?.();
-                  router.replace(buildAuthNoticeHref('/login', 'logged-out'));
+                  router.replace('/products');
                   router.refresh();
                 } catch {
                   // Logout errors stay in the store for future handling.
