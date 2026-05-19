@@ -6,6 +6,7 @@
     "login": "Login",
     "register": "Register",
     "logout": "Logout",
+    "adminPortal": "Admin portal",
     "language": "Language",
     "languageEnglish": "Switch to English",
     "languageThai": "Switch to Thai",

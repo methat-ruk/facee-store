@@ -163,7 +163,7 @@ function AdminAccountMenu() {
             void (async () => {
               try {
                 await logout();
-                router.replace(buildAuthNoticeHref('/login', 'logged-out'));
+                router.replace('/products');
                 router.refresh();
               } catch {
                 // Store keeps the logout error state.
