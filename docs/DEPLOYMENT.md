@@ -44,12 +44,17 @@ Required backend environment variables:
 ```env
 PORT=4000
 CORS_ORIGINS=https://your-frontend-domain
-DATABASE_URL=postgresql://user:password@host:5432/facee
+DATABASE_URL=postgresql://user:password@host:5432/facee?sslmode=verify-full
 JWT_ACCESS_SECRET=replace-this-access
 JWT_REFRESH_SECRET=replace-this-refresh
 JWT_ACCESS_TTL_MINUTES=15
 JWT_REFRESH_TTL_DAYS=14
 ```
+
+For managed PostgreSQL providers, keep TLS explicit in the connection string.
+`sslmode=verify-full` preserves certificate verification and host-name
+verification, which is the safest compatible setting when the provider presents
+a valid public certificate for the database host.
 
 ### Database
 
