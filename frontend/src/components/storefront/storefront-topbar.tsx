@@ -352,6 +352,7 @@ function StorefrontMenuPanel({
   searchSlot?: React.ReactNode;
 }) {
   const t = useTranslations('topbar');
+  const user = useAuthStore((state) => state.user);
 
   return (
     <div className="flex flex-col gap-5">
@@ -406,6 +407,17 @@ function StorefrontMenuPanel({
         <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {t('menuAccount')}
         </p>
+        {user?.role === 'ADMIN' ? (
+          <Button
+            asChild
+            variant="ghost"
+            className="w-full justify-start rounded-xl px-4 py-3 text-left text-foreground/80 hover:bg-muted hover:text-foreground"
+          >
+            <Link href="/admin" prefetch={false} onClick={onAction}>
+              {t('adminPortal')}
+            </Link>
+          </Button>
+        ) : null}
         <AuthActions menu onAction={onAction} />
       </div>
     </div>

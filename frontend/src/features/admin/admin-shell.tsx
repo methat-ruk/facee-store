@@ -163,8 +163,7 @@ function AdminAccountMenu() {
             void (async () => {
               try {
                 await logout();
-                router.replace('/products');
-                router.refresh();
+                window.location.assign(`/${locale}/products`);
               } catch {
                 // Store keeps the logout error state.
               }
