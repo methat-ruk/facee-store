@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { buildReturnTo } from '@/features/auth/auth-routing';
-import { Link, usePathname, useRouter } from '@/i18n/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { useAuthStore } from '@/store/use-auth-store';
 
 type AuthActionsProps = {
@@ -23,7 +23,6 @@ export function AuthActions({
   const user = useAuthStore((state) => state.user);
   const isLoggingOut = useAuthStore((state) => state.isLoggingOut);
   const logout = useAuthStore((state) => state.logout);
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const returnTo = buildReturnTo(pathname, searchParams);
@@ -35,6 +34,7 @@ export function AuthActions({
     : '/register';
 
   if (user) {
+    const isAdmin = user.role === 'ADMIN';
     const showInlineLogout = stacked || menu;
 
     return (
@@ -58,6 +58,21 @@ export function AuthActions({
         </div>
         {showInlineLogout ? (
           <>
+            {isAdmin ? (
+              <Button
+                asChild
+                variant="ghost"
+                className={
+                  stacked || menu
+                    ? 'w-full justify-center text-foreground'
+                    : undefined
+                }
+              >
+                <Link href="/admin" prefetch={false} onClick={onAction}>
+                  {t('adminPortal')}
+                </Link>
+              </Button>
+            ) : null}
             <Button
               asChild
               variant="ghost"

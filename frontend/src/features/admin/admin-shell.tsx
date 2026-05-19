@@ -104,7 +104,6 @@ function AdminLocalePill() {
 function AdminAccountMenu() {
   const locale = useLocale();
   const t = useTranslations('adminShell');
-  const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
   const isLoggingOut = useAuthStore((state) => state.isLoggingOut);
   const user = useAuthStore((state) => state.user);
