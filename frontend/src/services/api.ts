@@ -118,7 +118,8 @@ api.interceptors.response.use(
     if (
       typeof window !== 'undefined' &&
       axios.isAxiosError(error) &&
-      error.response?.status === 401
+      error.response?.status === 401 &&
+      !isAuthRoute(requestUrl)
     ) {
       window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
     }

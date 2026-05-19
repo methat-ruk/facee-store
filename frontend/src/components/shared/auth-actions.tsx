@@ -13,6 +13,10 @@ type AuthActionsProps = {
   menu?: boolean;
 };
 
+function isAdminRole(role: string | null | undefined) {
+  return role?.trim().toUpperCase() === 'ADMIN';
+}
+
 export function AuthActions({
   onAction,
   stacked = false,
@@ -34,7 +38,7 @@ export function AuthActions({
     : '/register';
 
   if (user) {
-    const isAdmin = user.role === 'ADMIN';
+    const isAdmin = isAdminRole(user.role);
     const showInlineLogout = stacked || menu;
 
     return (
@@ -111,10 +115,11 @@ export function AuthActions({
               void (async () => {
                 try {
                   await logout();
-                  onAction?.();
-                  window.location.assign(`/${locale}/products`);
                 } catch {
                   // Logout errors stay in the store for future handling.
+                } finally {
+                  onAction?.();
+                  window.location.replace(`/${locale}/products`);
                 }
               })();
             }}
