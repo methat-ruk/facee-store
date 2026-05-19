@@ -90,6 +90,20 @@ Recommended checks before production:
 5. Run the seed once if you want demo-ready content
 6. Start the NestJS app with `npm run start:prod` or `npm run start:start:prod`
 
+Recommended Render settings:
+
+- Service type: `Web Service`
+- Root Directory: `backend`
+- Build Command: `npm install --include=dev && npm run build`
+- Start Command: `npm run start:prod`
+
+Why the custom build command matters:
+
+- `prisma generate` is called from the backend `prebuild` script
+- `nest build` depends on build-time tooling such as `@nestjs/cli` and `typescript`
+- both Prisma CLI and Nest build tooling live in `devDependencies`, so Render
+  must install dev dependencies during the build step
+
 Useful backend verification:
 
 - `npm --prefix backend run lint`
