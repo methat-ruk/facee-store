@@ -5,7 +5,7 @@
 Facee is currently easiest to deploy as:
 
 - `frontend` on **Vercel**
-- `backend` on **Railway** with `backend/` as the service root
+- `backend` on **Render** with `backend/` as the service root
 - `PostgreSQL` on **Neon**
 
 Docker is also a valid direction for local parity and future self-hosting, but
@@ -34,7 +34,6 @@ Deploy `backend/` as a separate service.
 
 Examples:
 
-- Railway
 - Render
 - Fly.io
 - self-hosted Node runtime
@@ -85,7 +84,7 @@ Recommended checks before production:
 ## Backend Deployment Flow
 
 1. Provision PostgreSQL
-2. Provision a Railway service with the root directory set to `backend`
+2. Provision a Render service with the root directory set to `backend`
 3. Add backend environment variables
 4. Run Prisma migrate deploy
 5. Run the seed once if you want demo-ready content
