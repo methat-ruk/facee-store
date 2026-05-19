@@ -162,9 +162,10 @@ function AdminAccountMenu() {
             void (async () => {
               try {
                 await logout();
-                window.location.assign(`/${locale}/products`);
               } catch {
                 // Store keeps the logout error state.
+              } finally {
+                window.location.replace(`/${locale}/products`);
               }
             })();
           }}

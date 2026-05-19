@@ -188,12 +188,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
 
       set({
+        user: null,
         error: apiError,
         errorSource: 'logout',
         isLoggingOut: false,
         isInitialized: true,
       });
-      throw apiError;
     }
   },
   clearError: () => set({ error: null, errorSource: null }),
