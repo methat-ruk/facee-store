@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { buildReturnTo } from '@/features/auth/auth-routing';
@@ -19,6 +19,7 @@ export function AuthActions({
   menu = false,
 }: AuthActionsProps) {
   const t = useTranslations('topbar');
+  const locale = useLocale();
   const user = useAuthStore((state) => state.user);
   const isLoggingOut = useAuthStore((state) => state.isLoggingOut);
   const logout = useAuthStore((state) => state.logout);
@@ -35,7 +36,6 @@ export function AuthActions({
 
   if (user) {
     const showInlineLogout = stacked || menu;
-    const isAdmin = user.role === 'ADMIN';
 
     return (
       <div
@@ -58,21 +58,6 @@ export function AuthActions({
         </div>
         {showInlineLogout ? (
           <>
-            {isAdmin ? (
-              <Button
-                asChild
-                variant="ghost"
-                className={
-                  stacked || menu
-                    ? 'w-full justify-center text-foreground'
-                    : undefined
-                }
-              >
-                <Link href="/admin" prefetch={false} onClick={onAction}>
-                  {t('adminPortal')}
-                </Link>
-              </Button>
-            ) : null}
             <Button
               asChild
               variant="ghost"
@@ -112,8 +97,7 @@ export function AuthActions({
                 try {
                   await logout();
                   onAction?.();
-                  router.replace('/products');
-                  router.refresh();
+                  window.location.assign(`/${locale}/products`);
                 } catch {
                   // Logout errors stay in the store for future handling.
                 }
