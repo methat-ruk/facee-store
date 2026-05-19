@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: '%s | Facee',
   },
   description:
-    'Facee is a skincare commerce portfolio project built with Next.js, NestJS, Zod, Axios, Zustand, Prisma, shadcn/ui, and next-intl.',
+    'Facee is a skincare commerce portfolio project built with Next.js, NestJS, Zod, Axios, Zustand, Prisma, and next-intl.',
 };
 
 export default async function RootLayout({
